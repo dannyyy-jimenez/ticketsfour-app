@@ -1,0 +1,21 @@
+import { Redirect } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useSession } from "../utils/ctx";
+
+SplashScreen.preventAutoHideAsync();
+
+export default function Page() {
+  const { session: auth, isLoading: isLoadingSession } = useSession();
+
+  if (isLoadingSession) {
+    return <></>;
+  }
+
+  SplashScreen.hideAsync();
+
+  // if (auth) {
+  //   return <Redirect href="/(app)/home" />;
+  // }
+
+  return <Redirect href="/login" />;
+}

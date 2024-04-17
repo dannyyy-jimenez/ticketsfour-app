@@ -1,0 +1,93 @@
+{
+  "expo": {
+    "name": "T4 Admin",
+    "slug": "tickets-four-admin",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "com.ticketsfour.admin",
+    "owner": "ticketsfour",
+    "splash": {
+      "image": "./assets/splash.jpg",
+      "resizeMode": "contain",
+      "backgroundColor": "#FDDCAC"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ticketsfour.admin",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow camera access for scanning",
+        "NSBluetoothAlwaysUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner",
+        "NSBluetoothPeripheralUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner",
+        "NSSpeechRecognitionUsageDescription": "Our app uses speech recognition to make finding the product you're looking for super easy",
+        "NSMicrophoneUsageDescription": "Our app uses the microphone feature to allow audio input when recognizing the product you're searching for",
+        "CFBundleAllowMixedLocalizations": true
+      },
+      "locales": {
+        "es": "./locales/es-meta.json"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FDDCAC"
+      },
+      "package": "com.ticketsfour.admin",
+      "permissions": ["android.permission.RECORD_AUDIO"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "@react-native-voice/voice",
+      "expo-font"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  },
+  "plugins": [
+    [
+      "@react-native-voice/voice",
+      {
+        "microphonePermission": "Allow $(PRODUCT_NAME) to access the microphone",
+        "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to securely recognize user speech"
+      }
+    ],
+    [
+      "expo-camera",
+      {
+        "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+        "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+        "recordAudioAndroid": true
+      }
+    ],
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "The app accesses your photos to let you share them with your friends."
+      }
+    ],
+    [
+      "expo-location",
+      {
+        "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+      }
+    ],
+    [
+      "expo-document-picker",
+      {
+        "iCloudContainerEnvironment": "Production"
+      }
+    ]
+  ]
+}
