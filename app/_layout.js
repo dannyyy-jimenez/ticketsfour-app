@@ -8,10 +8,9 @@ import { HoldMenuProvider } from "react-native-hold-menu";
 import { LocalizationProvider } from "../locales/provider.js";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
+import * as SplashScreen from "expo-splash-screen";
 
 export default function Root() {
-  // Set up the auth context and render our layout inside of it.
-
   return (
     <>
       <SessionProvider>

@@ -1,41 +1,59 @@
 {
   "expo": {
-    "name": "T4 Admin",
-    "slug": "tickets-four-admin",
+    "name": "Tickets Four",
+    "slug": "tickets-four-app",
     "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "com.ticketsfour.admin",
+    "scheme": "com.ticketsfour.app",
     "owner": "ticketsfour",
     "splash": {
-      "image": "./assets/splash.jpg",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FDDCAC"
+      "backgroundColor": "#FB0622"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ticketsfour.admin",
+      "bundleIdentifier": "com.ticketsfour.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow camera access for scanning",
-        "NSBluetoothAlwaysUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner",
-        "NSBluetoothPeripheralUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner",
-        "NSSpeechRecognitionUsageDescription": "Our app uses speech recognition to make finding the product you're looking for super easy",
-        "NSMicrophoneUsageDescription": "Our app uses the microphone feature to allow audio input when recognizing the product you're searching for",
-        "CFBundleAllowMixedLocalizations": true
+        "NSCameraUsageDescription": "Allow camera access for scanning tickets",
+        "NSBluetoothAlwaysUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner to scan tickets",
+        "NSBluetoothPeripheralUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner to scan tickets",
+        "CFBundleAllowMixedLocalizations": true,
+        "LSApplicationQueriesSchemes": ["musics"]
       },
       "locales": {
         "es": "./locales/es-meta.json"
-      }
+      },
+      "associatedDomains": [
+        "applinks:ticketsfour.com",
+        "applinks:www.ticketsfour.com",
+        "applinks:sandbox.ticketsfour.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FDDCAC"
+        "backgroundColor": "#FB0622"
       },
-      "package": "com.ticketsfour.admin",
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "package": "com.ticketsfour.app",
+      "permissions": ["android.permission.RECORD_AUDIO"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "*.ticketsfour.com",
+              "pathPrefix": "/records"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -49,6 +67,9 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "794acf58-73a0-498e-aee5-e86a38b3872c"
       }
     },
     "runtimeVersion": {
@@ -56,13 +77,6 @@
     }
   },
   "plugins": [
-    [
-      "@react-native-voice/voice",
-      {
-        "microphonePermission": "Allow $(PRODUCT_NAME) to access the microphone",
-        "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to securely recognize user speech"
-      }
-    ],
     [
       "expo-camera",
       {
@@ -87,6 +101,13 @@
       "expo-document-picker",
       {
         "iCloudContainerEnvironment": "Production"
+      }
+    ],
+    [
+      "@stripe/stripe-react-native",
+      {
+        "merchantIdentifier": "merchant.com.ticketsfour.app",
+        "enableGooglePay": true
       }
     ]
   ]

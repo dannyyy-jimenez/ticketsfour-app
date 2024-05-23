@@ -1,15 +1,20 @@
 import { StyleSheet } from "react-native";
 
 const theme = {
-  "color-primary-100": "#c4d9fc",
-  "color-primary-200": "#9dc0fa",
-  "color-primary-300": "#89b4f9",
-  "color-primary-400": "#4e8ef6",
-  "color-primary-500": "#3B82F6",
+  "color-primary-100": "#fee6e8",
+  "color-primary-200": "#fecdd2",
+  "color-primary-300": "#fc5064",
+  "color-primary-400": "#fb374e",
+  "color-primary-500": "#fb0622",
   "color-primary-600": "#3575dd",
-  "color-primary-700": "#2f68c4",
-  "color-primary-800": "#295bac",
-  "color-primary-900": "#234e93",
+  "color-primary-700": "#e1051e",
+  "color-primary-800": "#c8041b",
+  "color-primary-900": "#c8041b",
+
+  "color-organizer-200": "#CCDDFD",
+  "color-organizer-500": "#0456f5",
+  "color-organizer-800": "#6899f9",
+
   "color-success-100": "#D5FDD5",
   "color-success-200": "#ABFBB2",
   "color-success-300": "#80F495",
@@ -38,7 +43,7 @@ const theme = {
   "color-warning-800": "#928506",
   "color-warning-900": "#786D03",
   "color-danger-100": "#FFDFCE",
-  "color-danger-200": "#FFB79E",
+  "color-danger-200": "#ffcfcf",
   "color-danger-300": "#FF876E",
   "color-danger-400": "#FF594A",
   "color-danger-500": "#ff0e0e",
@@ -47,6 +52,7 @@ const theme = {
   "color-danger-800": "#930429",
   "color-danger-900": "#7A022C",
   "color-basic-100": "#FFFFFF",
+  "color-basic-100-40": "rgba(255,255,255,0.4)",
   "color-basic-200": "#FCFCFC",
   "color-basic-300": "#FAFAFA",
   "color-basic-400": "#F1F1F1",
@@ -54,22 +60,36 @@ const theme = {
   "color-basic-600": "#D3D3D3",
   "color-basic-700": "#555555",
   "color-basic-800": "#333333",
+  "color-basic-800-40": "rgba(11, 11, 11, 0.8)",
+  "color-basic-800-10": "rgba(11, 11, 11, 0.4)",
 };
 
 const styles = StyleSheet.create({
   card: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    backgroundColor: "white",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+    backgroundColor: theme["color-basic-100"],
     paddingVertical: 15,
     paddingBottom: 20,
     paddingHorizontal: 15,
-    borderRadius: 5,
-    overflow: "hidden",
+    borderRadius: 10,
     borderBottomWidth: 5,
+    margin: 10,
+  },
+  cardBlank: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+    backgroundColor: theme["color-basic-100"],
+    paddingVertical: 15,
+    paddingBottom: 20,
+    paddingHorizontal: 15,
+    borderRadius: 10,
   },
   transparency: {
     lg: {
@@ -77,6 +97,9 @@ const styles = StyleSheet.create({
     },
     md: {
       opacity: 0.7,
+    },
+    sm: {
+      opacity: 0.85,
     },
   },
   text: {
@@ -91,6 +114,12 @@ const styles = StyleSheet.create({
     },
     primary: {
       color: theme["color-primary-500"],
+    },
+    organizerDark: {
+      color: theme["color-organizer-800"],
+    },
+    organizer: {
+      color: theme["color-organizer-500"],
     },
     danger: {
       color: theme["color-danger-500"],
@@ -109,6 +138,9 @@ const styles = StyleSheet.create({
     },
     semibold: {
       fontWeight: "600",
+    },
+    normal: {
+      fontWeight: "500",
     },
     light: {
       fontWeight: "300",
@@ -136,6 +168,12 @@ const styles = StyleSheet.create({
     },
     center: {
       textAlign: "center",
+    },
+    strike: {
+      textDecorationLine: "strike",
+    },
+    italic: {
+      fontStyle: "italic",
     },
   },
   input: {
@@ -379,6 +417,18 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
     backgroundColor: theme["color-basic-100"],
+  },
+  badge: {
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 5,
+    backgroundColor: theme["color-primary-500"],
+    shadowColor: theme["color-primary-300"],
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    alignSelf: "flex-start",
   },
 });
 

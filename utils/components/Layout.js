@@ -19,7 +19,9 @@ const ScrollContainer = ({
   scrollEventThrottle = 0,
   avoidKeyboard = false,
   style = {},
+  paddingHorizontal = 10,
   refreshControl = <></>,
+  _ref = null,
 }) => {
   const { width, height } = Dimensions.get("window");
   const { bottom } = useSafeAreaInsets();
@@ -29,11 +31,12 @@ const ScrollContainer = ({
     <SafeAreaView style={[{ height, width }]}>
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         <ScrollView
+          ref={_ref}
           contentOffset={{ x: offsetX, y: offsetY }}
           showsVerticalScrollIndicator={false}
           style={{
             width,
-            paddingHorizontal: 10,
+            paddingHorizontal: paddingHorizontal,
             backgroundColor: theme["color-basic-100"],
           }}
           contentContainerStyle={[
@@ -55,7 +58,7 @@ const ScrollContainer = ({
 
 export { ScrollContainer };
 
-export default function LayoutContainer({ children }) {
+export default function LayoutContainer({ children, paddingHorizontal = 10 }) {
   const { width, height } = Dimensions.get("window");
 
   return (
@@ -64,7 +67,7 @@ export default function LayoutContainer({ children }) {
         style={{
           height,
           width,
-          paddingHorizontal: 10,
+          paddingHorizontal: paddingHorizontal,
           backgroundColor: theme["color-basic-100"],
         }}
       >

@@ -11,11 +11,9 @@ export default function Page() {
     return <></>;
   }
 
-  SplashScreen.hideAsync();
-
-  // if (auth) {
-  //   return <Redirect href="/(app)/home" />;
-  // }
+  if (auth) {
+    return <Redirect href="/(app)/events" />;
+  }
 
   return <Redirect href="/login" />;
 }

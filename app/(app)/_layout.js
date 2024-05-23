@@ -1,28 +1,12 @@
 import React from "react";
-import { Redirect, Tabs, router } from "expo-router";
-import {
-  View,
-  Dimensions,
-  Text,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
-import {
-  Feather,
-  MaterialCommunityIcons,
-  MaterialIcons,
-  FontAwesome6,
-} from "@expo/vector-icons";
+import { Stack, router } from "expo-router";
+import { Platform, Text } from "react-native";
+import * as Notifications from "expo-notifications";
+import { useSession } from "../../utils/ctx";
 import Api from "../../utils/Api";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
-import ActionSheet, { SheetManager } from "react-native-actions-sheet";
-import Styles, { theme } from "../../utils/Styles";
-import { useSession } from "../../utils/ctx";
-import { useLocalization } from "../../locales/provider";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import SkeletonLoader from "expo-skeleton-loader";
-import { HoldItem } from "react-native-hold-menu";
+import * as SplashScreen from "expo-splash-screen";
+import Constants from "expo-constants";
 
 function useNotificationObserver() {
   React.useEffect(() => {
@@ -63,37 +47,22 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export default function AppLayout() {
-  const { session, signOut, isLoading, setSocket } = useSession();
-  const insets = useSafeAreaInsets();
-  const { i18n } = useLocalization();
-  const { width, height } = Dimensions.get("window");
+export default function RootAuthLayout() {
+  const {
+    session,
+    defaultOrganization,
+    signOut,
+    isLoading,
+    isGuest,
+    setName,
+    setOrganizations,
+    setActiveOrganization,
+    setPhoneNumber,
+  } = useSession();
   const [expoPushToken, setExpoPushToken] = React.useState("");
   const [notification, setNotification] = React.useState(false);
   const notificationListener = React.useRef();
   const responseListener = React.useRef();
-
-  const onCreatePretask = () => {
-    SheetManager.show("pretask-create-sheet");
-  };
-
-  const onCreateEmployee = () => {
-    SheetManager.show("employee-create-sheet");
-  };
-
-  const quickActionItems = [
-    { text: "Quick actions menu", isTitle: true },
-    {
-      text: "Pre-Task",
-      onPress: onCreatePretask,
-      icon: "hammer-screwdriver",
-    },
-    {
-      text: "Employee",
-      onPress: onCreateEmployee,
-      icon: "account-wrench",
-    },
-  ];
 
   useNotificationObserver(session);
 
@@ -114,44 +83,54 @@ export default function AppLayout() {
   }, [expoPushToken]);
 
   React.useEffect(() => {
-    if (!session) return;
+    if (!session || isGuest) {
+      SplashScreen.hideAsync();
+      return;
+    }
 
-    // Api.get("/users/profile", { auth: session })
-    //   .then((res) => {
-    //     if (res.isError) throw "no auth";
+    Api.get("/users/core", { auth: session })
+      .then((res) => {
+        if (res.isError) throw "no auth";
 
-    //     changeTeamName(res.data.teamName);
-    //   })
-    //   .then(() => {
-    //     registerForPushNotificationsAsync().then((token) =>
-    //       setExpoPushToken(token),
-    //     );
+        setName(res.data.name);
+        setPhoneNumber(res.data.phone);
+        setOrganizations(res.data.organizations);
+        setActiveOrganization(
+          res.data.organizations.find((o) => o.i === defaultOrganization),
+        );
 
-    //     notificationListener.current =
-    //       Notifications.addNotificationReceivedListener((notification) => {
-    //         setNotification(notification);
-    //       });
+        SplashScreen.hideAsync();
+      })
+      .then(() => {
+        registerForPushNotificationsAsync().then((token) =>
+          setExpoPushToken(token),
+        );
 
-    //     responseListener.current =
-    //       Notifications.addNotificationResponseReceivedListener((response) => {
-    //         console.log(response);
-    //       });
-    //   })
-    //   .catch((e) => console.log(e));
+        notificationListener.current =
+          Notifications.addNotificationReceivedListener((notification) => {
+            setNotification(notification);
+          });
 
-    // return () => {
-    //   if (notificationListener?.current) {
-    //     Notifications?.removeNotificationSubscription(
-    //       notificationListener?.current,
-    //     );
-    //   }
-    //   if (responseListener?.current) {
-    //     Notifications?.removeNotificationSubscription(
-    //       responseListener?.current,
-    //     );
-    //   }
-    // };
-  }, [session]);
+        responseListener.current =
+          Notifications.addNotificationResponseReceivedListener((response) => {
+            console.log(response);
+          });
+      })
+      .catch((e) => console.log(e));
+
+    return () => {
+      if (notificationListener?.current) {
+        Notifications?.removeNotificationSubscription(
+          notificationListener?.current,
+        );
+      }
+      if (responseListener?.current) {
+        Notifications?.removeNotificationSubscription(
+          responseListener?.current,
+        );
+      }
+    };
+  }, [session, isGuest]);
 
   // You can keep the splash screen open, or render a loading screen like we do here.
   if (isLoading) {
@@ -160,269 +139,37 @@ export default function AppLayout() {
 
   // Only require authentication within the (app) group's layout as users
   // need to be able to access the (auth) group and sign in again.
-  if (!session) {
-    // On web, static rendering will stop here as the user is not authenticated
-    // in the headless Node process that the pages are rendered in.
-    return <Redirect href="/login" />;
-  }
+  // if (!session) {
+  //   // On web, static rendering will stop here as the user is not authenticated
+  //   // in the headless Node process that the pages are rendered in.
+  //   return <Redirect href="/login" />;
+  // }
 
-  const TAB_STYLE = {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    position: "absolute",
-    borderTopColor: theme["color-primary-500"],
-    borderColor: "transparent",
-    borderWidth: 2,
-    borderTopWidth: 2,
-    borderBottomWidth: 0,
-    bottom: 0,
-  };
+  return <RootLayoutNav />;
+}
 
-  // This layout can be deferred because it's not the root layout.
+function RootLayoutNav() {
   return (
-    <>
-      <Tabs
-        screenOptions={{
-          tabBarStyle: TAB_STYLE,
-          headerStyle: { backgroundColor: "#fff" },
-          header: () => (
-            <View
-              style={[
-                Styles.containers.row,
-                {
-                  paddingTop: insets.top,
-                  paddingHorizontal: 10,
-                  backgroundColor: theme["color-basic-100"],
-                  paddingBottom: 10,
-                },
-              ]}
-            >
-              <HoldItem
-                closeOnTap
-                activateOn="tap"
-                hapticFeedback="Heavy"
-                items={quickActionItems}
-              >
-                <View style={[Styles.containers.column]}>
-                  <Text
-                    style={[
-                      Styles.text.semibold,
-                      Styles.transparency.md,
-                      Styles.text.sm,
-                      Styles.text.dark,
-                    ]}
-                  >
-                    Actions
-                  </Text>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={[Styles.text.semibold, Styles.text.dark]}>
-                      Quick Create
-                    </Text>
-                    <Feather
-                      name="chevron-down"
-                      size={20}
-                      color={theme["color-basic-700"]}
-                    />
-                  </View>
-                </View>
-              </HoldItem>
-              {/* <TouchableOpacity onPress={onChangeTeam}>
-                <Text
-                  style={[
-                    Styles.text.semibold,
-                    Styles.transparency.md,
-                    Styles.text.sm,
-                    Styles.text.dark,
-                  ]}
-                >
-                  Actions
-                </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={[Styles.text.semibold, Styles.text.dark]}>
-                    Quick Create
-                  </Text>
-                  <Feather
-                    name="chevron-down"
-                    size={20}
-                    color={theme["color-basic-700"]}
-                  />
-                </View>
-              </TouchableOpacity> */}
-              <View style={{ flex: 1 }} />
-              <TouchableOpacity
-                onPress={() => router.push("/map")}
-                style={[Styles.button.round]}
-              >
-                <Feather
-                  name="map"
-                  size={16}
-                  color={theme["color-basic-700"]}
-                />
-              </TouchableOpacity>
-            </View>
-          ),
-          headerShadowVisible: false,
-        }}
-        initialRouteName="quotes"
-      >
-        <Tabs.Screen
-          name="home"
-          options={{
-            tabBarLabel: i18n.t("home"),
-            tabBarLabelPosition: "below-icon",
-            tabBarActiveTintColor: theme["color-primary-500"],
-            tabBarLabelStyle: {
-              fontWeight: 700,
-            },
-            tabBarShowLabel: true,
-            tabBarIcon: ({ focused }) => (
-              <Feather
-                name="home"
-                size={24}
-                color={
-                  focused
-                    ? theme["color-primary-500"]
-                    : theme["color-basic-700"]
-                }
-              />
-            ),
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="receiving"
-          options={{
-            tabBarLabel: "Receiving",
-            tabBarLabelPosition: "below-icon",
-            tabBarActiveTintColor: theme["color-primary-500"],
-            tabBarLabelStyle: {
-              fontWeight: 700,
-            },
-            tabBarShowLabel: true,
-            tabBarIcon: ({ focused }) => (
-              <MaterialCommunityIcons
-                name="download-box-outline"
-                size={24}
-                color={
-                  focused
-                    ? theme["color-primary-500"]
-                    : theme["color-basic-700"]
-                }
-              />
-            ),
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="quotes"
-          options={{
-            tabBarLabel: "Quotes",
-            tabBarLabelPosition: "below-icon",
-            tabBarActiveTintColor: theme["color-primary-500"],
-            tabBarLabelStyle: {
-              fontWeight: 700,
-            },
-            tabBarShowLabel: true,
-            tabBarIcon: ({ focused }) => (
-              <MaterialIcons
-                name="request-quote"
-                size={24}
-                color={
-                  focused
-                    ? theme["color-primary-500"]
-                    : theme["color-basic-700"]
-                }
-              />
-            ),
-            href: "/quotes",
-          }}
-        />
-        <Tabs.Screen
-          name="jobs"
-          options={{
-            tabBarLabel: "Jobs",
-            tabBarLabelPosition: "below-icon",
-            tabBarActiveTintColor: theme["color-primary-500"],
-            tabBarLabelStyle: {
-              fontWeight: 700,
-            },
-            tabBarShowLabel: true,
-            tabBarIcon: ({ focused }) => (
-              <MaterialCommunityIcons
-                name="hammer-screwdriver"
-                size={24}
-                color={
-                  focused
-                    ? theme["color-primary-500"]
-                    : theme["color-basic-700"]
-                }
-              />
-            ),
-            href: "/jobs",
-          }}
-        />
-        <Tabs.Screen
-          name="jobsite"
-          options={{
-            tabBarLabel: "Jobsite",
-            tabBarLabelPosition: "below-icon",
-            tabBarActiveTintColor: theme["color-primary-500"],
-            tabBarLabelStyle: {
-              fontWeight: 700,
-            },
-            tabBarShowLabel: true,
-            tabBarIcon: ({ focused }) => (
-              <FontAwesome6
-                name="helmet-safety"
-                size={20}
-                color={
-                  focused
-                    ? theme["color-primary-500"]
-                    : theme["color-basic-700"]
-                }
-              />
-            ),
-            href: "/jobsite",
-          }}
-        />
-        <Tabs.Screen
-          name="map"
-          options={{
-            tabBarLabel: "Jobsite",
-            tabBarLabelPosition: "below-icon",
-            tabBarActiveTintColor: theme["color-primary-500"],
-            tabBarLabelStyle: {
-              fontWeight: 700,
-            },
-            tabBarShowLabel: true,
-            tabBarIcon: ({ focused }) => (
-              <FontAwesome6
-                name="helmet-safety"
-                size={20}
-                color={
-                  focused
-                    ? theme["color-primary-500"]
-                    : theme["color-basic-700"]
-                }
-              />
-            ),
-            href: null,
-          }}
-        />
-      </Tabs>
-    </>
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(organization)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="event/[eid]"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="organization/event/[eid]"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="tickets/verify"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="blogs/[bid]"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+    </Stack>
   );
 }
 
@@ -443,7 +190,14 @@ async function registerForPushNotificationsAsync() {
       await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowAnnouncements: true,
+        },
+      });
       finalStatus = status;
     }
     if (finalStatus !== "granted") {
@@ -454,7 +208,7 @@ async function registerForPushNotificationsAsync() {
     // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
     token = (
       await Notifications.getExpoPushTokenAsync({
-        projectId: "8c6a3efb-b7b7-41be-991c-c589e4280025",
+        projectId: Constants.expoConfig.extra.eas.projectId,
       })
     ).data;
   } else {
