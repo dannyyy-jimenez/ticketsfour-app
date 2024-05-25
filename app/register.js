@@ -19,6 +19,9 @@ import Styles, { theme } from "../utils/Styles";
 import { HoldItem } from "react-native-hold-menu";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { useLocalization } from "../locales/provider";
+import { ReplaceWithStyle } from "../utils/Formatters";
+import LottieView from "lottie-react-native";
+import { useFonts } from "expo-font";
 
 const blurhash =
   "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
@@ -35,6 +38,9 @@ export default function RegisterScreen() {
   const lastNameInput = React.useRef(null);
   const phoneInput = React.useRef(null);
   const companyCodeInput = React.useRef(null);
+  const [fontsLoaded, fontError] = useFonts({
+    "Flix-Normal": require("../assets/Flix-Normal.otf"),
+  });
 
   const [error, setError] = React.useState(null);
   const [firstName, setFirstName] = React.useState("");
@@ -100,8 +106,23 @@ export default function RegisterScreen() {
         onPress={Keyboard.dismiss}
       >
         <View
-          style={{ height, width, backgroundColor: theme["color-primary-200"] }}
+          style={{ height, width, backgroundColor: theme["color-primary-500"] }}
         >
+          <Text
+            style={[
+              Styles.text.basic,
+              Styles.text.xxl,
+              {
+                fontFamily: "Flix-Normal",
+                alignSelf: "center",
+                letterSpacing: 1.5,
+                fontSize: 40,
+                top: height * 0.08,
+              },
+            ]}
+          >
+            Tickets Four
+          </Text>
           <ActionSheet
             keyboardHandlerEnabled={false}
             gestureEnabled={false}
@@ -127,15 +148,34 @@ export default function RegisterScreen() {
                   alignItems: "center",
                 }}
               >
-                <Image
-                  style={{ width: 250, height: 70 }}
-                  contentFit="contain"
-                  source={require("../assets/wordmark-red.png")}
-                />
                 <Text
-                  style={[Styles.text.lg, Styles.text.bold, { marginTop: 10 }]}
+                  style={[
+                    Styles.text.lg,
+                    Styles.text.primary,
+                    Styles.text.normal,
+                    { marginTop: 10, alignSelf: "flex-start" },
+                  ]}
                 >
                   {i18n.t("joinTheParty")}
+                </Text>
+                <Text
+                  style={[
+                    Styles.text.bold,
+                    Styles.text.dark,
+                    {
+                      marginVertical: 10,
+                      alignSelf: "flex-start",
+                      fontSize: 42,
+                    },
+                  ]}
+                >
+                  {ReplaceWithStyle(
+                    i18n.t("createToParty"),
+                    "{accountParty}",
+                    <Text style={[Styles.text.primary, Styles.text.semibold]}>
+                      {i18n.t("accountParty")}
+                    </Text>,
+                  )}
                 </Text>
 
                 {error && (
@@ -271,7 +311,7 @@ export default function RegisterScreen() {
                     {
                       width: width - 40,
                       marginVertical: 5,
-                      marginBottom: 60,
+                      marginBottom: 30,
                     },
                   ]}
                 >
@@ -312,6 +352,7 @@ export default function RegisterScreen() {
                     style={[
                       Styles.text.semibold,
                       Styles.text.sm,
+                      Styles.text.dark,
                       { textAlign: "center" },
                     ]}
                   >
@@ -321,9 +362,9 @@ export default function RegisterScreen() {
 
                 <TouchableOpacity
                   onPress={() => router.push("/login")}
-                  style={[{ marginTop: 20, marginBottom: 10 }]}
+                  style={[{ marginTop: 20 }]}
                 >
-                  <Text style={[Styles.text.semibold]}>
+                  <Text style={[Styles.text.semibold, Styles.text.dark]}>
                     {i18n.t("haveAccount")}{" "}
                     <Text style={[Styles.text.primary, Styles.text.semibold]}>
                       {i18n.t("signIn")}

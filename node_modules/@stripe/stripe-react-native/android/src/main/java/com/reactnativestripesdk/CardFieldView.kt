@@ -1,5 +1,6 @@
 package com.reactnativestripesdk
 
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
@@ -166,10 +167,11 @@ class CardFieldView(context: ThemedReactContext) : FrameLayout(context) {
 
   private fun setCardBrandTint(color: Int) {
     try {
-      cardInputWidgetBinding.cardBrandView::class.java.getDeclaredField("tintColorInt").let { internalTintColor ->
-        internalTintColor.isAccessible = true
-        internalTintColor.set(cardInputWidgetBinding.cardBrandView, color)
-      }
+      cardInputWidgetBinding.cardBrandView::class.java
+        .getDeclaredMethod("setTintColorInt\$payments_core_release", Int::class.java)
+        .let {
+          it(cardInputWidgetBinding.cardBrandView, color)
+        }
     } catch (e: Exception) {
       Log.e(
         "StripeReactNative",
@@ -204,7 +206,7 @@ class CardFieldView(context: ThemedReactContext) : FrameLayout(context) {
   fun setPostalCodeEnabled(isEnabled: Boolean) {
     mCardWidget.postalCodeEnabled = isEnabled
 
-    if (isEnabled === false) {
+    if (isEnabled == false) {
       mCardWidget.postalCodeRequired = false
     }
   }
@@ -213,10 +215,15 @@ class CardFieldView(context: ThemedReactContext) : FrameLayout(context) {
     mCardWidget.isEnabled = !isDisabled
   }
 
+  fun setPreferredNetworks(preferredNetworks: ArrayList<Int>?) {
+    mCardWidget.setPreferredNetworks(mapToPreferredNetworks(preferredNetworks))
+  }
+
   /**
    * We can reliable assume that setPostalCodeEnabled is called before
    * setCountryCode because of the order of the props in CardField.tsx
    */
+  @SuppressLint("RestrictedApi")
   fun setCountryCode(countryString: String?) {
     if (mCardWidget.postalCodeEnabled) {
       val countryCode = CountryCode.create(value = countryString ?: LocaleListCompat.getAdjustedDefault()[0]?.country ?: "US")
@@ -354,6 +361,7 @@ class CardFieldView(context: ThemedReactContext) : FrameLayout(context) {
     )
   }
 
+  @SuppressLint("RestrictedApi")
   private fun createPostalCodeInputFilter(countryCode: CountryCode): InputFilter {
     return InputFilter { charSequence, start, end, _, _, _ ->
       for (i in start until end) {

@@ -69,15 +69,12 @@ export default function RootAuthLayout() {
   React.useEffect(() => {
     if (expoPushToken == "") return;
 
-    // Api.post("/profile/token", {
+    // Api.post("/users/profile/token", {
     //   auth: session,
     //   token: expoPushToken,
     // })
     //   .then((res) => {
     //     let { data } = res;
-    //     let { socket } = data;
-
-    //     setSocket(socket);
     //   })
     //   .catch((e) => console.log(e));
   }, [expoPushToken]);
@@ -116,7 +113,9 @@ export default function RootAuthLayout() {
             console.log(response);
           });
       })
-      .catch((e) => console.log(e));
+      .catch((e) => {
+        SplashScreen.hideAsync();
+      });
 
     return () => {
       if (notificationListener?.current) {
@@ -166,7 +165,15 @@ function RootLayoutNav() {
         options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
+        name="tickets/[tbid]"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
         name="blogs/[bid]"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="venues/scanner"
         options={{ presentation: "modal", headerShown: false }}
       />
     </Stack>

@@ -28,6 +28,8 @@ import Ticket from "../../../models/Ticket";
 import PagerView from "react-native-pager-view";
 import TicketComponent from "../../../utils/components/Ticket";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ReplaceWithStyle } from "../../../utils/Formatters";
+import { TypeAnimation } from "react-native-type-animation";
 
 export default function TicketBundlerScreen() {
   const { i18n } = useLocalization();
@@ -40,7 +42,9 @@ export default function TicketBundlerScreen() {
   const [eventId, setEventId] = React.useState(eid);
   const [isError, setIsError] = React.useState(false);
   const [isIssue, setIsIssue] = React.useState(false);
-  const { tbid } = useLocalSearchParams();
+  const { tbid, eid, k } = useLocalSearchParams();
+  const [activePager, setActivePager] = React.useState(0);
+  const { height, width } = Dimensions.get("window");
 
   const loadTalent = async () => {
     try {
@@ -76,8 +80,11 @@ export default function TicketBundlerScreen() {
         setEventId(res.data.eid);
         setTickets(res.data.tickets.map((t) => new Ticket({ ...t })));
       }
+
+      console.log(res);
       setIsLoading(false);
     } catch (e) {
+      console.log(e);
       setError(e);
       setIsLoading(false);
     }
@@ -89,40 +96,6 @@ export default function TicketBundlerScreen() {
     load();
   }, [tbid, auth]);
 
-  const getError = () => {
-    if (error === "NO_TTKN") {
-      return (
-        <>
-          <Text h1 align="center">
-            Oh oh! This tickets link is{" "}
-            <span style={{ color: theme.colors.error.value }}>lost</span>!
-          </Text>
-          <Text h3 color="grey" align="center">
-            Please use the most recent link sent to your phone number to view
-            your tickets. Tickets will only be accesible using the link that was
-            sent to your phone number. Each link is only associated with the
-            respective purchase made.
-          </Text>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <Text h1 align="center">
-          Oh oh! Looks like there was an issue{" "}
-          <span style={{ color: theme.colors.error.value }}>retrieving</span>{" "}
-          your tickets!
-        </Text>
-        <Text h3 color="grey" align="center">
-          If you believe this was an error, please get in contact with support.
-          Please have the phone number you used to create your purchase ready to
-          go to facilitate the process.
-        </Text>
-      </>
-    );
-  };
-
   if (isLoading)
     return (
       <LayoutContainer>
@@ -131,6 +104,50 @@ export default function TicketBundlerScreen() {
         </View>
       </LayoutContainer>
     );
+
+  if (error === "NO_TTKN") {
+    return (
+      <LayoutContainer>
+        <View style={[{ paddingVertical: 30 }, Style.containers.column]}>
+          <Text
+            style={[
+              Style.text.danger,
+              Style.text.semibold,
+              { textAlign: "center", fontSize: 64, marginBottom: 20 },
+            ]}
+          >
+            😭
+          </Text>
+          <Text
+            style={[
+              Style.text.danger,
+              Style.text.xl,
+              Style.text.semibold,
+              { textAlign: "center" },
+            ]}
+          >
+            {ReplaceWithStyle(
+              i18n.t("ticketLinkLost"),
+              "{lost}",
+              <Text style={[Style.text.primary, Style.text.semibold]}>
+                {i18n.t("lost")}
+              </Text>,
+            )}
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.lg,
+              Style.text.semibold,
+              { textAlign: "center", marginTop: 20 },
+            ]}
+          >
+            {i18n.t("useRecentLink")}
+          </Text>
+        </View>
+      </LayoutContainer>
+    );
+  }
 
   if (isError && !isIssue)
     return (
@@ -208,55 +225,41 @@ export default function TicketBundlerScreen() {
 
   return (
     <ScrollContainer
-      style={{ paddingVertical: 20, flex: 1, paddingBottom: 75 }}
+      style={{
+        paddingVertical: 20,
+        flex: 1,
+        paddingBottom: 75,
+      }}
     >
+      <TypeAnimation
+        sequence={[{ text: i18n.t("quoteHellen") }]}
+        style={{
+          ...Style.text.primary,
+          ...Style.text.xxl,
+          ...Style.text.bold,
+          ...{ textAlign: "center", fontStyle: "italic", paddingVertical: 2 },
+        }}
+      />
       <Text
         style={[
-          Style.text.danger,
+          Style.text.organizer,
           Style.text.semibold,
-          { textAlign: "center", fontSize: 64, marginBottom: 20 },
+          {
+            textAlign: "right",
+            marginTop: 6,
+            paddingVertical: 2,
+          },
         ]}
       >
-        🥳
+        - Hellen Keller
       </Text>
-      <Text
-        style={[
-          Style.text.dark,
-          Style.text.xxl,
-          Style.text.semibold,
-          { textAlign: "center", paddingVertical: 2 },
-        ]}
-      >
-        {i18n.t("ticketsNextStep")}
-      </Text>
-      <Text
-        style={[
-          Style.text.primary,
-          Style.text.xxl,
-          Style.text.semibold,
-          { textAlign: "center", paddingVertical: 2 },
-        ]}
-      >
-        {i18n.t("danceNoOneWatching")}
-      </Text>
-      <Text
-        style={[
-          Style.text.dark,
-          Style.text.lg,
-          Style.text.semibold,
-          { textAlign: "center", marginTop: 10 },
-        ]}
-      >
-        {i18n.t("viewFromMobile")}
-      </Text>
-
       <PagerView
         onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
-        style={{ flex: 1, marginTop: 40, marginBottom: 10 }}
+        style={{ flex: 1, width, left: -10, marginTop: 10, marginBottom: 10 }}
         initialPage={0}
       >
         {tickets.map((ticket, tidx) => (
-          <TicketComponent key={tidx} hidden ticket={ticket} />
+          <TicketComponent key={tidx} ticket={ticket} />
         ))}
       </PagerView>
       <View style={[Style.containers.row, { marginTop: 5 }]}>

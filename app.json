@@ -24,9 +24,6 @@
         "CFBundleAllowMixedLocalizations": true,
         "LSApplicationQueriesSchemes": ["musics"]
       },
-      "locales": {
-        "es": "./locales/es-meta.json"
-      },
       "associatedDomains": [
         "applinks:ticketsfour.com",
         "applinks:www.ticketsfour.com",
@@ -62,7 +59,42 @@
       "expo-router",
       "expo-secure-store",
       "@react-native-voice/voice",
-      "expo-font"
+      "expo-font",
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.ticketsfour.app",
+          "enableGooglePay": true
+        }
+      ],
+      "expo-asset"
     ],
     "extra": {
       "router": {
@@ -75,40 +107,5 @@
     "runtimeVersion": {
       "policy": "appVersion"
     }
-  },
-  "plugins": [
-    [
-      "expo-camera",
-      {
-        "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
-        "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
-        "recordAudioAndroid": true
-      }
-    ],
-    [
-      "expo-image-picker",
-      {
-        "photosPermission": "The app accesses your photos to let you share them with your friends."
-      }
-    ],
-    [
-      "expo-location",
-      {
-        "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
-      }
-    ],
-    [
-      "expo-document-picker",
-      {
-        "iCloudContainerEnvironment": "Production"
-      }
-    ],
-    [
-      "@stripe/stripe-react-native",
-      {
-        "merchantIdentifier": "merchant.com.ticketsfour.app",
-        "enableGooglePay": true
-      }
-    ]
-  ]
+  }
 }

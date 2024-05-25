@@ -18,6 +18,7 @@ import EventModel from "../../../models/Event";
 import Ticket from "../../../models/Ticket";
 import Api from "../../../utils/Api";
 import { EventPurchaseComponent } from "../../../utils/components/Event";
+import { RefreshControl } from "react-native";
 
 export default function TicketScreen() {
   const {
@@ -85,12 +86,20 @@ export default function TicketScreen() {
   }, [selectedEvent]);
 
   return (
-    <ScrollContainer>
+    <ScrollContainer
+      refreshControl={
+        <RefreshControl
+          tintColor={theme["color-primary-500"]}
+          refreshing={isLoading}
+          onRefresh={load}
+        />
+      }
+    >
       <View>
         <View
           style={[Style.containers.row, { marginTop: 6, marginBottom: 20 }]}
         >
-          <Text style={[Style.text.xxxl, Style.text.bold, Style.text.dark]}>
+          <Text style={[Style.text.xxl, Style.text.bold, Style.text.dark]}>
             {ReplaceWithStyle(
               i18n.t("purchaseHistory"),
               "{purchase}",

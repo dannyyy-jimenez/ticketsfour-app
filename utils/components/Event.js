@@ -146,7 +146,7 @@ export function OrgEventComponent({
                 height: 100,
                 borderRadius: 4,
               }}
-              cachePolicy={"memory"}
+              cachePolicy={"memory-disk"}
               contentFit="contain"
               source={{ uri: event.coverT }}
               width={300}
@@ -362,7 +362,12 @@ export function EventPurchaseComponent({
   };
 
   const onView = () => {
-    router.push("/event/" + event.id);
+    SheetManager.show("event-ticket-viewer", {
+      payload: {
+        event,
+        tickets,
+      },
+    });
   };
 
   const onShare = () => {
@@ -422,6 +427,7 @@ export function EventPurchaseComponent({
             height: 250,
             borderRadius: 4,
           }}
+          cachePolicy={"memory-disk"}
           contentFit="cover"
           source={{ uri: event.coverT }}
           width={500}
@@ -454,6 +460,7 @@ export function EventPurchaseComponent({
                 height: 100,
                 borderRadius: 4,
               }}
+              cachePolicy={"memory-disk"}
               contentFit="contain"
               source={{ uri: event.coverT }}
               width={300}
@@ -635,6 +642,7 @@ export default function EventComponent({
             height: 500,
             borderRadius: 4,
           }}
+          cachePolicy={"memory-disk"}
           contentFit="cover"
           source={{ uri: event.coverT }}
           width={500}
@@ -667,6 +675,7 @@ export default function EventComponent({
                 height: 100,
                 borderRadius: 4,
               }}
+              cachePolicy={"memory-disk"}
               contentFit="contain"
               source={{ uri: event.coverT }}
               width={300}

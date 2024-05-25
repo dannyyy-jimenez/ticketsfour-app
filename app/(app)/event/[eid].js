@@ -62,10 +62,6 @@ export default function EventScreen() {
   const [selectedNodes, setSelectedNodes] = React.useState([]);
   const [selectedLeaves, setSelectedLeaves] = React.useState([]);
   const [checkoutSection, setCheckoutSection] = React.useState(1);
-  const [MusicKitReady, setMusicKitReady] = React.useState(false);
-  const [MusicKitDevToken, setMusicKitDevToken] = React.useState("");
-  const [MusicKitInstance, setMusicKitInstance] = React.useState(null);
-  const [activeLineupPagerIdx, setActiveLineupPagerIdx] = React.useState(1);
 
   const [unexposedPager, setUnexposedPager] = React.useState(0);
   const unexposedPagerStartIdx = React.useMemo(() => {
@@ -269,16 +265,12 @@ export default function EventScreen() {
       let _pagers = 2;
 
       if (
-        res.data.event?.nodes?.filter((n) => !n.isDecorative).length > 1 &&
+        res.data.event?.nodes?.filter((n) => !n.isDecorative && n.available > 0)
+          .length > 1 &&
         res.data.event?.active
       ) {
         _pagers += 1;
       }
-
-      const redirectUrl = Linking.createURL("/event/" + res.data.event.id, {
-        queryParams: {},
-      });
-      console.log(redirectUrl);
 
       setPagers(new Array(_pagers + res.data.event.lineup.length).fill(0));
       MarkAsViewed();
@@ -360,8 +352,6 @@ export default function EventScreen() {
 
       if (res.isError) throw "error";
 
-      console.log(res);
-
       setEphemeralStripe(res.data.ephemeralKey);
       setCustomerStripe(res.data.customer);
       setCheckoutSection(2);
@@ -379,8 +369,6 @@ export default function EventScreen() {
     });
 
     if (verifyAvailability.isError) {
-      console.log(verifyAvailability);
-      alert("NO MORE TIX A");
       return;
     }
 
@@ -392,8 +380,6 @@ export default function EventScreen() {
     });
 
     if (proceedIntent.isError) {
-      console.log(proceedIntent);
-      alert("NO MORE TIX");
       return;
     }
 
@@ -409,10 +395,12 @@ export default function EventScreen() {
       // This point will only be reached if there is an immediate error when
       // confirming the payment. Show error to your customer (for example, payment
       // details incomplete)
+      //
+
+      setSelectedNodes([]);
+      setSelectedLeaves(null);
       setIsLoadingPricing(false);
     } else {
-      console.log(params?.eid, paymentIntent, paymentIntentSecret);
-
       router.replace({
         pathname: "tickets/verify",
         params: {
@@ -465,6 +453,9 @@ export default function EventScreen() {
       defaultBillingDetails: {
         name: firstName + " " + lastName,
       },
+      applePay: {
+        merchantCountryCode: "US",
+      },
       appearance: {
         shapes: {
           borderRadius: 8,
@@ -489,7 +480,7 @@ export default function EventScreen() {
       },
     })
       .then((res) => {
-        console.log("Re", res);
+        if (res.paymentOption == "undefined") return;
 
         handlePayment();
       })
@@ -562,7 +553,7 @@ export default function EventScreen() {
           setPhone(res.data.ph);
           setEmail(res.data.em);
           setEphemeralStripe(res.data.ephemeralKey);
-          setCustomerStripe(res.data.customerId);
+          setCustomerStripe(res.data.customer);
           setCheckoutSection(2);
         }
 
@@ -577,6 +568,7 @@ export default function EventScreen() {
         }
       })
       .catch((error) => {
+        console.log(error);
         setIsLoadingPricing(true);
       });
   }, [selectedLeaves]);
@@ -595,11 +587,15 @@ export default function EventScreen() {
     setSelectedNodes(new Set(nodes));
   };
 
-  // const handleLeafSelection = (e, idx) => {
-  //   let updated = [...selectedLeaves]
-  //   updated.splice(idx, 1, new Leaf({ ...selectedLeaves[idx], selected: Array.from(e)[0] }))
-  //   setSelectedLeaves(updated)
-  // }
+  const handleLeafSelection = (e, idx) => {
+    let updated = [...selectedLeaves];
+    updated.splice(
+      idx,
+      1,
+      new Leaf({ ...selectedLeaves[idx], selected: Array.from(e)[0] }),
+    );
+    setSelectedLeaves(updated);
+  };
 
   const onMapNavigate = () => {
     const scheme = Platform.select({

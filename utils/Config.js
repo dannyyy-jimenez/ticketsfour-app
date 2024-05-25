@@ -20,19 +20,19 @@ if (Updates.channel === "production") {
   Config.basePath = "https://www.ticketsfour.com";
   Config.cloudUri = "https://res.cloudinary.com/ticketsfour/image/upload/";
 } else if (Updates.channel === "preview") {
-  Config.apiUrl = "https://api.sandbox.ticketsfour.com";
+  Config.apiUrl = "https://api.sandbox.ticketsfour.com/";
   Config.enableHiddenFeatures = true;
   Config.isDev = true;
-  Config.key = "";
+  Config.key = "pdk_BBfHZxcHCD63ShXul7YrcrfuCwBAjGbq";
   Config.stripeKey =
     "pk_test_51ModcoA60uJAVJy3lAvcCZf59hZHewziAfKmPAFViIfPAMlb2adpnZoBUeWR0Z2eL4ZqBpoi1Qvr0F2fYw5o8El800yowWHL13";
-  Config.basePath = "https://www.ticketsfour.com";
+  Config.basePath = "https://sandbox.ticketsfour.com";
   Config.cloudUri = "https://res.cloudinary.com/lgxy/image/upload/";
 } else {
-  Config.apiUrl = "http://10.0.0.8:5000/";
+  Config.apiUrl = "https://api.sandbox.ticketsfour.com/";
   Config.enableHiddenFeatures = true;
   Config.isDev = true;
-  Config.key = "";
+  Config.key = "pdk_BBfHZxcHCD63ShXul7YrcrfuCwBAjGbq";
   Config.stripeKey =
     "pk_test_51ModcoA60uJAVJy3lAvcCZf59hZHewziAfKmPAFViIfPAMlb2adpnZoBUeWR0Z2eL4ZqBpoi1Qvr0F2fYw5o8El800yowWHL13";
   Config.basePath = "https://sandbox.ticketsfour.com";

@@ -17,6 +17,7 @@ import {
 } from "@expo/vector-icons";
 import { useLocalization } from "../../locales/provider";
 import { useFonts } from "expo-font";
+import QRCode from "react-native-qrcode-svg";
 
 export default function TicketComponent({ ticket, hidden = false }) {
   const [fontsLoaded, fontError] = useFonts({
@@ -27,10 +28,13 @@ export default function TicketComponent({ ticket, hidden = false }) {
 
   return (
     <View
+      key={ticket.token}
       style={[
         Style.card,
         {
           alignSelf: "center",
+          height: 300,
+          maxWidth: 350,
           aspectRatio: "2/3",
           paddingHorizontal: 0,
           paddingVertical: 0,
@@ -267,15 +271,30 @@ export default function TicketComponent({ ticket, hidden = false }) {
       </View>
       {!hideQr && (
         <View
-          style={[Style.containers.row, { marginTop: 6, marginBottom: 10 }]}
+          style={[
+            Style.containers.row,
+            { flexGrow: 1, marginTop: 6, marginBottom: 10 },
+          ]}
           className="qr-holder"
         >
-          {ticket.codefy()}
+          <QRCode
+            value={ticket.token}
+            logo={require("../../assets/icon.png")}
+            logoBackgroundColor={theme["color-basic-100"]}
+            logoMargin={4}
+            logoBorderRadius={4}
+            color={theme["color-primary-500"]}
+            size={160}
+          />
         </View>
       )}
       {hideQr && (
-        <View style={[Style.containers.column, { paddingVertical: 15 }]}>
-          <Text style={[Style.text.semibold, Style.text.primary]}>
+        <View
+          style={[Style.containers.column, { flex: 1, paddingVertical: 15 }]}
+        >
+          <Text
+            style={[Style.text.semibold, Style.text.lg, Style.text.primary]}
+          >
             Share to Social Media!
           </Text>
           <TouchableOpacity

@@ -90,15 +90,15 @@ export default function EventsScreen() {
           {locale == "en" && (
             <Text
               style={[
-                Style.text.xl,
+                Style.text.xxl,
                 Style.text.bold,
                 Style.text.dark,
-                { textAlign: "center" },
+                { textAlign: "left" },
               ]}
             >
               Find your next{" "}
               <Text
-                style={[Style.text.xl, Style.text.bold, Style.text.primary]}
+                style={[Style.text.xxl, Style.text.bold, Style.text.primary]}
               >
                 wild night out
               </Text>{" "}

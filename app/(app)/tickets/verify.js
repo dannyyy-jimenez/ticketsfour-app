@@ -180,15 +180,6 @@ export default function TicketVerifierScreen() {
     >
       <Text
         style={[
-          Style.text.danger,
-          Style.text.semibold,
-          { textAlign: "center", fontSize: 64, marginBottom: 20 },
-        ]}
-      >
-        🥳
-      </Text>
-      <Text
-        style={[
           Style.text.dark,
           Style.text.xxl,
           Style.text.semibold,
@@ -207,20 +198,10 @@ export default function TicketVerifierScreen() {
       >
         {i18n.t("danceNoOneWatching")}
       </Text>
-      <Text
-        style={[
-          Style.text.dark,
-          Style.text.lg,
-          Style.text.semibold,
-          { textAlign: "center", marginTop: 10 },
-        ]}
-      >
-        {i18n.t("viewFromMobile")}
-      </Text>
 
       <PagerView
         onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
-        style={{ flex: 1, marginTop: 40, marginBottom: 10 }}
+        style={{ flex: 1, marginTop: 10, marginBottom: 10 }}
         initialPage={0}
       >
         {tickets.map((ticket, tidx) => (

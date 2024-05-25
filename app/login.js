@@ -20,8 +20,11 @@ import Styles, { theme } from "../utils/Styles";
 import { HoldItem } from "react-native-hold-menu";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { useLocalization } from "../locales/provider";
-import { PhoneFormatter } from "../utils/Formatters";
+import { PhoneFormatter, ReplaceWithStyle } from "../utils/Formatters";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import LottieView from "lottie-react-native";
+import { useFonts } from "expo-font";
 
 const blurhash =
   "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
@@ -50,6 +53,9 @@ export default function LoginScreen() {
   const codeFields = React.useMemo(() => {
     return otp.slice(0, 8).padEnd(8, " ").split("");
   }, [otp]);
+  const [fontsLoaded, fontError] = useFonts({
+    "Flix-Normal": require("../assets/Flix-Normal.otf"),
+  });
 
   const countryCodeItems = [
     { text: "Change Country Code", isTitle: true },
@@ -127,13 +133,40 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView behavior="position">
+      <StatusBar style="light" />
       <TouchableWithoutFeedback
         style={{ height, width }}
         onPress={Keyboard.dismiss}
       >
         <View
-          style={{ height, width, backgroundColor: theme["color-primary-200"] }}
+          style={{ height, width, backgroundColor: theme["color-primary-500"] }}
         >
+          <Text
+            style={[
+              Styles.text.basic,
+              Styles.text.xxl,
+              {
+                fontFamily: "Flix-Normal",
+                alignSelf: "center",
+                letterSpacing: 1.5,
+                fontSize: 40,
+                top: height * 0.08,
+              },
+            ]}
+          >
+            Tickets Four
+          </Text>
+          <LottieView
+            autoPlay
+            style={{
+              width: 300,
+              height: 300,
+              top: height * 0.06,
+              alignSelf: "center",
+            }}
+            // Find more Lottie files at https://lottiefiles.com/featured
+            source={require("../assets/lottie-register.json")}
+          />
           <ActionSheet
             keyboardHandlerEnabled={false}
             gestureEnabled={false}
@@ -159,11 +192,11 @@ export default function LoginScreen() {
                   alignItems: "center",
                 }}
               >
-                <Image
+                {/* <Image
                   style={{ width: 250, height: 70 }}
                   contentFit="contain"
                   source={require("../assets/wordmark-red.png")}
-                />
+                /> */}
                 {awaitingOTP && (
                   <>
                     <Text
@@ -265,27 +298,22 @@ export default function LoginScreen() {
                   <>
                     <Text
                       style={[
-                        Styles.text.lg,
                         Styles.text.bold,
-                        { marginTop: 10 },
+                        Styles.text.dark,
+                        { marginVertical: 10, fontSize: 42 },
                       ]}
                     >
-                      {i18n.t("welcome")}
-                    </Text>
-                    <Text
-                      style={[
-                        Styles.text.xxl,
-                        Styles.transparency.md,
-                        Styles.text.semibold,
-                        { width: width * 0.85, marginTop: 30 },
-                      ]}
-                    >
-                      {i18n.t("enterPhone")}
+                      {i18n.t("helloAgain")}
                     </Text>
                     <Text
                       style={[
                         Styles.transparency.lg,
-                        { width: width * 0.85, marginTop: 8 },
+                        Styles.text.lg,
+                        {
+                          width: width * 0.85,
+                          textAlign: "center",
+                          marginTop: 8,
+                        },
                       ]}
                     >
                       {i18n.t("pleaseEnterPhone")}
@@ -367,7 +395,7 @@ export default function LoginScreen() {
                   onPress={() => router.push("/register")}
                   style={[{ marginTop: 20, marginBottom: 10 }]}
                 >
-                  <Text style={[Styles.text.semibold]}>
+                  <Text style={[Styles.text.semibold, Styles.text.dark]}>
                     {i18n.t("noAccount")}{" "}
                     <Text style={[Styles.text.primary, Styles.text.semibold]}>
                       {i18n.t("signUp")}

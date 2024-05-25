@@ -1,8 +1,0 @@
-{
-  "CFBundleDisplayName": "Mi Bodega",
-  "NSCameraUsageDescription": "Permitir acceso a la cámara para escanear",
-  "NSBluetoothAlwaysUsageDescription": "Nuestra aplicación utiliza Bluetooth para encontrar un escáner de código de barras compatible",
-  "NSBluetoothPeripheralUsageDescription": "Nuestra aplicación utiliza Bluetooth para encontrar un escáner de código de barras compatible",
-  "NSSpeechRecognitionUsageDescription": "Nuestra aplicación utiliza reconocimiento de voz para hacer que encontrar el producto que estás buscando sea súper fácil",
-  "NSMicrophoneUsageDescription": "Nuestra aplicación utiliza la función de micrófono para permitir la entrada de audio al reconocer el producto que estás buscando"
-}

@@ -29,6 +29,8 @@ import { ScrollView } from "react-native";
 import moment from "moment/moment";
 import { Pressable } from "react-native";
 import { ActivityIndicator } from "react-native";
+import PagerView from "react-native-pager-view";
+import TicketComponent from "../components/Ticket";
 
 const blurhash = "L6Pj0^jE.AyE_3t7t7R**0o#DgR4";
 
@@ -1030,20 +1032,24 @@ function EventTierSheet({ sheetId, payload }) {
 }
 
 function EventTicketViewerSheet({ sheetId, payload }) {
+  const { tickets, event } = payload;
+  const [activePager, setActivePager] = React.useState(0);
+  const { height, width } = Dimensions.get("window");
+
   return (
     <ActionSheet
       id={sheetId}
       isModal={false}
       keyboardHandlerEnabled={false}
       useBottomSafeAreaPadding={false}
-      gestureEnabled={false}
-      indicatorStyle={{ backgroundColor: theme["color-organizer-500"] }}
+      gestureEnabled={true}
+      indicatorStyle={{ backgroundColor: theme["color-primary-500"] }}
       containerStyle={{
         padding: 10,
         justifyContent: "center",
         alignItems: "center",
         display: "flex",
-        width: "100%",
+        width: width,
       }}
     >
       <View
@@ -1054,9 +1060,42 @@ function EventTicketViewerSheet({ sheetId, payload }) {
             marginTop: 10,
             width: "100%",
             paddingHorizontal: 10,
+            height: height * 0.8,
           },
         ]}
-      ></View>
+      >
+        <PagerView
+          onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
+          style={{
+            flex: 1,
+            width: width,
+            marginTop: 10,
+            marginBottom: 20,
+          }}
+          initialPage={0}
+        >
+          {tickets.map((ticket, tidx) => (
+            <TicketComponent key={tidx} ticket={ticket} />
+          ))}
+        </PagerView>
+        <View style={[Style.containers.row, { marginTop: 5 }]}>
+          {tickets.map((_p, pidx) => (
+            <View
+              key={"_pager-" + pidx}
+              style={{
+                height: 8,
+                width: 8,
+                borderRadius: 4,
+                marginHorizontal: 4,
+                backgroundColor:
+                  pidx == activePager
+                    ? theme["color-primary-500"]
+                    : theme["color-basic-500"],
+              }}
+            />
+          ))}
+        </View>
+      </View>
     </ActionSheet>
   );
 }

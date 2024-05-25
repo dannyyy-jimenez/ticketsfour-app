@@ -324,210 +324,35 @@ export default function AccountScreen() {
             </View>
           </>
         )}
+        {isGuest && (
+          <>
+            <View
+              style={[Style.containers.row, { marginTop: 6, marginBottom: 20 }]}
+            >
+              <Text style={[Style.text.xxxl, Style.text.bold, Style.text.dark]}>
+                {i18n.t("guestMode")}
+              </Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={() =>
+                  SheetManager.show("helper-sheet", {
+                    payload: { text: "guestModeDesc" },
+                  })
+                }
+                style={{ padding: 10 }}
+              >
+                <Feather
+                  name="info"
+                  size={20}
+                  color={theme["color-basic-700"]}
+                />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
         {isLoading && (
           <ActivityIndicator size="small" color={theme["color-primary-500"]} />
         )}
-        {/* {teammates.map((teammate, tidx) => (
-          <TouchableOpacity
-            key={tidx}
-            style={{
-              paddingVertical: 15,
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 20,
-            }}
-          >
-            {teammate.role == "driver" && (
-              <Feather
-                name="truck"
-                size={20}
-                color={theme["color-basic-700"]}
-              />
-            )}
-            {teammate.role == "manager" && (
-              <Feather
-                name="heart"
-                size={20}
-                color={theme["color-basic-700"]}
-              />
-            )}
-            {teammate.role == "salesperson" && (
-              <Octicons
-                name="code-of-conduct"
-                size={20}
-                color={theme["color-basic-700"]}
-              />
-            )}
-            <View>
-              <Text
-                style={[
-                  { marginLeft: 20 },
-                  Style.text.xs,
-                  Style.text.semibold,
-                  Style.transparency.md,
-                  Style.text.dark,
-                ]}
-              >
-                {i18n.t(teammate.role)}
-              </Text>
-              <Text
-                style={[
-                  { marginLeft: 20 },
-                  Style.text.md,
-                  Style.text.semibold,
-                  Style.text.dark,
-                ]}
-              >
-                {teammate.user?.firstName} {teammate.user?.lastName}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-        {teammates.length == 0 && !isLoading && (
-          <View style={Style.containers.row}>
-            <Text
-              style={[
-                Style.text.dark,
-                Style.transparency.md,
-                Style.text.semibold,
-              ]}
-            >
-              {i18n.t("noTeammates")}
-            </Text>
-          </View>
-        )} */}
-        {/* {!isDriver && (
-          <TouchableOpacity
-            onPress={onAddTeammate}
-            style={{
-              paddingVertical: 15,
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 20,
-            }}
-          >
-            <Feather
-              name="users"
-              size={20}
-              color={theme["color-primary-500"]}
-            />
-            <View>
-              <Text
-                style={[
-                  { marginLeft: 20 },
-                  Style.text.md,
-                  Style.text.semibold,
-                  Style.text.primary,
-                ]}
-              >
-                {i18n.t("addTeammate")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )} */}
-        {/* <View style={[Style.divider, { marginVertical: 8 }]}></View>
-        <View style={{ marginVertical: 20, paddingHorizontal: 20 }}>
-          <View
-            style={[Style.containers.row, { justifyContent: "flex-start" }]}
-          >
-            <MaterialCommunityIcons
-              name="puzzle-heart-outline"
-              size={20}
-              color={theme["color-basic-800"]}
-            />
-            <Text
-              style={[
-                { marginLeft: 20 },
-                Style.text.md,
-                Style.text.semibold,
-                Style.text.dark,
-              ]}
-            >
-              {i18n.t("madeBy")}
-            </Text>
-          </View>
-        </View>
-        <View style={[Style.containers.column, { marginBottom: 15 }]}>
-          <Pressable
-            onPress={() => Linking.openURL("https://www.jabonmex.com")}
-            style={[
-              Style.cards.cover,
-              { width: width - 20, marginHorizontal: 5 },
-            ]}
-          >
-            <Image
-              style={{ height: "100%", width: "100%" }}
-              source={{
-                uri: "https://res.cloudinary.com/labodegaltd/image/upload/f_auto/ads/template_primary.jpg",
-              }}
-            />
-          </Pressable>
-          <View
-            style={[
-              {
-                width: width - 20,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                marginTop: 10,
-              },
-            ]}
-          >
-            <Pressable
-              onPress={() => Linking.openURL("http://www.lahaciendabrands.com")}
-              style={[Style.cards.half, { width: width * 0.46 }]}
-            >
-              <Image
-                style={{ height: "100%", width: "100%" }}
-                source={{
-                  uri: "https://res.cloudinary.com/labodegaltd/image/upload/f_auto/ads/HNDA.png",
-                }}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => Linking.openURL("http://www.labodegabakery.com")}
-              style={[Style.cards.half, { width: width * 0.46 }]}
-            >
-              <Image
-                style={{ height: "100%", width: "100%" }}
-                source={{
-                  uri: "https://res.cloudinary.com/labodegaltd/image/upload/f_auto/ads/gallito.png",
-                }}
-              />
-            </Pressable>
-          </View>
-        </View> */}
-        {/* <View style={[Style.divider, { marginVertical: 8 }]}></View> */}
-        {/* <View
-          style={{
-            paddingVertical: 15,
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 20,
-          }}
-        >
-          <MaterialCommunityIcons
-            name="text-recognition"
-            size={20}
-            color={theme["color-basic-700"]}
-          />
-          <View style={{ flex: 1, marginHorizontal: 20 }}>
-            <Text style={[Style.text.md, Style.text.semibold, Style.text.dark]}>
-              {i18n.t("enlargedText")}
-            </Text>
-          </View>
-          <Switch
-            trackColor={{
-              false: theme["color-basic-200"],
-              true: theme["color-primary-200"],
-            }}
-            thumbColor={enlargedText ? theme["color-primary-400"] : "#f4f3f4"}
-            ios_backgroundColor={theme["color-basic-200"]}
-            onValueChange={() => {
-              setEnlargedText(!enlargedText);
-            }}
-            value={enlargedText}
-          />
-        </View> */}
         <View style={[Style.divider, { marginVertical: 8 }]}></View>
         <TouchableOpacity
           onPress={() =>

@@ -28,15 +28,6 @@ export default class Ticket {
     this.token = token;
     this.buyer_age = owner_age;
     this.qr = null;
-
-    if (this.token) {
-      QRCode.toString(this.token, {
-        type: "svg",
-        color: { dark: "#fb0622" },
-      }).then((url) => {
-        this.qr = url;
-      });
-    }
   }
 
   getEvent() {
@@ -61,9 +52,5 @@ export default class Ticket {
 
   getDate() {
     return this.date.format("MMM Do, YYYY");
-  }
-
-  codefy() {
-    return this.qr;
   }
 }

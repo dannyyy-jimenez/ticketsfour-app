@@ -40,10 +40,13 @@ export function SessionProvider(props) {
   const url = Linking.useURL();
 
   React.useEffect(() => {
+    console.log(url);
+
     if (!url || typeof url == "undefined" || isLoadingOrg || isLoadingAuth)
       return;
 
     let parsed = "";
+    let params = {};
 
     try {
       if (url.startsWith("com.ticketsfour.app://")) {
@@ -59,6 +62,7 @@ export function SessionProvider(props) {
         // Extract the pathname from the parsed URL
         const path = parsedUrl.pathname;
         // Remove leading slash if present
+        params = parsedUrl.search;
         parsed = path.startsWith("/") ? path.substring(1) : path;
       }
     } catch (e) {
@@ -66,14 +70,32 @@ export function SessionProvider(props) {
       return;
     }
 
-    console.log(parsed);
+    if (parsed == "events" || parsed == "blogs" || parsed == "settings") {
+      if (!auth) {
+        setSession("GUEST");
+      }
+      return router.replace("/(tabs)/" + parsed);
+    }
 
     if (
-      (parsed == "events" || parsed == "blogs" || parsed == "settings") &&
-      !auth
+      (parsed.includes("t/") && parsed != "t/verify") ||
+      (parsed.includes("tickets/") && parsed != "tickets/verify")
     ) {
-      setSession("GUEST");
-      return router.replace("/(tabs)/" + parsed);
+      if (!auth) {
+        setSession("GUEST");
+      }
+
+      let tbid = parsed.split("/")[1];
+
+      return router.push("/tickets/" + tbid + params);
+    }
+
+    if (parsed.includes("venues/scanner")) {
+      if (!auth) {
+        setSession("GUEST");
+      }
+
+      return router.push("/venues/scanner" + params);
     }
 
     if ((parsed == "login" || parsed == "register") && isGuest) {

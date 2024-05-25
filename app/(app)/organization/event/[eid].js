@@ -53,6 +53,7 @@ import moment from "moment/moment";
 import Purchase from "../../../../models/Purchase";
 import { BarChart, PieChart, XAxis } from "react-native-svg-charts";
 import { Text as SvgText } from "react-native-svg";
+import { CameraView } from "expo-camera";
 
 export default function EventScreen() {
   const { auth, defaultOrganization: oid, isGuest, signOut } = useSession();
@@ -74,7 +75,6 @@ export default function EventScreen() {
 
   const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
 
-  const scannerVideoRef = React.useRef(null);
   const [ev, setEvent] = React.useState(null);
   const [physicalTickets, setPhysicalTickets] = React.useState([]);
   const [section, setSection] = React.useState(0);
@@ -171,7 +171,6 @@ export default function EventScreen() {
   const [isLoadingScan, setIsLoadingScan] = React.useState(false);
   const [scannerResult, setScannerResult] = React.useState(null);
 
-  const [scanner, setScanner] = React.useState(null);
   const [scannedCode, setScannedCode] = React.useState(null);
 
   const enoughSalesDataPoints = React.useMemo(() => {
@@ -212,29 +211,11 @@ export default function EventScreen() {
 
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [cover, setCover] = React.useState(null);
   const [tags, setTags] = React.useState([]);
-  const [tag, setTag] = React.useState("");
   const [privacy, setPrivacy] = React.useState("");
   const [startDateTime, setStartDateTime] = React.useState("");
   const [endDateTime, setEndDateTime] = React.useState("");
   const [startDate, setStartDate] = React.useState("");
-  const [startTime, setStartTime] = React.useState("");
-  const [endDate, setEndDate] = React.useState("");
-  const [endTime, setEndTime] = React.useState("");
-  const [startTimeVisibility, setStartTimeVisibility] = React.useState(true);
-  const [endTimeVisibility, setEndTimeVisibility] = React.useState(true);
-  const [error, setError] = React.useState("");
-
-  const aboutComplete = React.useMemo(() => {
-    return name !== "" && description !== "";
-  }, [name, description]);
-  const visibilityComplete = React.useMemo(() => {
-    return privacy !== "";
-  }, [privacy]);
-  const dateComplete = React.useMemo(() => {
-    return startDateTime !== "" && endDateTime !== "";
-  }, [startDateTime, endDateTime]);
 
   const availableHolds = React.useMemo(() => {
     if (!ev || !ev?.nodes) return 0;
@@ -281,13 +262,13 @@ export default function EventScreen() {
   const [holdingsAmount, setHoldingsAmount] = React.useState("Default");
   const [capacityAmount, setCapacityAmount] = React.useState("Default");
   const [deleteConfirmValue, setDeleteConfirmValue] = React.useState("Default");
-  const [physicalTicketsAmount, setPhysicalTicketsAmount] =
-    React.useState("Default");
   const [holdsTransferPhone, setHoldsTransferPhone] = React.useState("Default");
   const [scannerSearchQuery, setScannerSearchQuery] = React.useState("Default");
 
   const [scannerSearchResults, setScannerSearchResults] = React.useState([]);
   const [holdsTransferError, setHoldsTransferError] = React.useState("");
+
+  const [scannerResultsDatum, setScannerResultsDatum] = React.useState(null);
 
   const holdingsHelper = React.useMemo(() => {
     if (!ev?.nodes)
@@ -479,43 +460,6 @@ export default function EventScreen() {
   }, [eid]);
 
   React.useEffect(() => {
-    if (!scannerVideoRef.current) return;
-    if (section !== 4) {
-      scanner?.stop();
-      return;
-    }
-
-    const qrScanner = new QrScanner(
-      scannerVideoRef.current,
-      (result) => setScannedCode(result.data),
-      {
-        highlightScanRegion: true,
-        preferredCamera: "environment",
-        highlightCodeOutline: true,
-        onDecodeError: () => setScannedCode(null),
-      },
-    );
-    scannerVideoRef.current?.pause();
-    scannerVideoRef.current?.play();
-    qrScanner.start();
-    setScanner(qrScanner);
-
-    return () => {
-      qrScanner?.stop();
-      scanner?.stop();
-      scanner?.destroy();
-    };
-  }, [scannerVideoRef, section]);
-
-  React.useEffect(() => {
-    if (!scannedCode) {
-      scannerVideoRef.current?.pause();
-      scannerVideoRef.current?.play();
-      scanner?.start();
-      return;
-    }
-
-    scanner?.stop();
     onScan();
   }, [scannedCode]);
 
@@ -523,6 +467,7 @@ export default function EventScreen() {
     if (!scannerResult) return;
 
     setTimeout(() => {
+      setScannerResultsDatum(null);
       setScannerResult(null);
       setIsLoadingScan(false);
       setScannedCode(null);
@@ -720,7 +665,7 @@ export default function EventScreen() {
   }, [ev]);
 
   const onScan = async () => {
-    if (isLoadingScan || scannerResult) return;
+    if (isLoadingScan || scannerResult || scannerResultsDatum == null) return;
     setIsLoadingScan(true);
 
     try {
@@ -740,6 +685,17 @@ export default function EventScreen() {
       if (e === "NO_EVENT") load();
       setIsLoadingScan(false);
     }
+  };
+
+  const handleScannerResponse = async (res) => {
+    if (isLoadingScan || scannerResultsDatum != null) return;
+
+    let { bounds, data, cornerPoints } = res;
+
+    // tl, tr, bl, br = cornerPoints
+
+    setScannerResultsDatum(res);
+    setScannedCode(data);
   };
 
   const onValidateTickets = async (tickets) => {
@@ -1163,64 +1119,66 @@ export default function EventScreen() {
   };
 
   const onShare = async (type) => {
-    if (type === "facebook") {
-      Share.shareSingle({
-        title: ev?.name,
-        message: ev?.description,
-        url: ev?.getShareables(type),
-        social: Share.Social.FACEBOOK,
-        type: "url",
-      })
-        .then((res) => {
-          console.log(res);
+    try {
+      if (type === "facebook") {
+        Share.shareSingle({
+          title: ev?.name,
+          message: ev?.description,
+          url: ev?.getShareables(type),
+          social: Share.Social.FACEBOOK,
+          type: "url",
         })
-        .catch((err) => {
-          err && console.log(err);
-        });
-    } else if (type === "messenger") {
-      Share.shareSingle({
-        title: ev?.name,
-        message: ev?.description,
-        url: ev?.getShareables(type),
-        social: Share.Social.MESSENGER,
-        type: "url",
-      })
-        .then((res) => {
-          console.log(res);
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            err && console.log(err);
+          });
+      } else if (type === "messenger") {
+        Share.shareSingle({
+          title: ev?.name,
+          message: ev?.description,
+          url: ev?.getShareables(type),
+          social: Share.Social.MESSENGER,
+          type: "url",
         })
-        .catch((err) => {
-          err && console.log(err);
-        });
-    } else if (type === "twitter") {
-      Share.shareSingle({
-        title: ev?.name,
-        message: ev?.description,
-        url: ev?.getShareables(type),
-        social: Share.Social.TWITTER,
-        type: "url",
-      })
-        .then((res) => {
-          console.log(res);
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            err && console.log(err);
+          });
+      } else if (type === "twitter") {
+        Share.shareSingle({
+          title: ev?.name,
+          message: ev?.description,
+          url: ev?.getShareables(type),
+          social: Share.Social.TWITTER,
+          type: "url",
         })
-        .catch((err) => {
-          err && console.log(err);
-        });
-    } else if (type === "email") {
-      Linking.openURL(ev?.getShareables(type), "_blank");
-    } else if (type === "qr") {
-      let blob = await ev?.getShareables(type);
-      const element = document.createElement("a");
-      element.download = ev?.id + "-qr.svg";
-      element.href = window.URL.createObjectURL(blob);
-      element.click();
-      element.remove();
-    } else if (type === "copy") {
-      try {
-        await navigator.clipboard.writeText(ev?.getShareables());
-      } catch (err) {
-        console.error("Failed to copy: ", err);
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            err && console.log(err);
+          });
+      } else if (type === "email") {
+        Linking.openURL(ev?.getShareables(type), "_blank");
+      } else if (type === "qr") {
+        let blob = await ev?.getShareables(type);
+        const element = document.createElement("a");
+        element.download = ev?.id + "-qr.svg";
+        element.href = window.URL.createObjectURL(blob);
+        element.click();
+        element.remove();
+      } else if (type === "copy") {
+        try {
+          await navigator.clipboard.writeText(ev?.getShareables());
+        } catch (err) {
+          console.error("Failed to copy: ", err);
+        }
       }
-    }
+    } catch (e) {}
   };
 
   const onShareScanner = async () => {
@@ -1229,7 +1187,9 @@ export default function EventScreen() {
       url: scannerShareLink,
       subject: i18n.t("eventLinkSubject", { name: ev?.name }), //  for email
     };
-    Share.open(shareLink);
+    try {
+      Share.open(shareLink);
+    } catch (e) {}
   };
 
   const AgeLabels = ({ slices, height, width }) => {
@@ -1263,7 +1223,11 @@ export default function EventScreen() {
   };
 
   const onClose = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("(organization)/events");
+    }
   };
 
   if (!isLoading && !hasPermission) {
@@ -4627,94 +4591,85 @@ export default function EventScreen() {
               )}
               {true && (
                 <View style={[Style.containers.column, { marginVertical: 30 }]}>
-                  {/* <Card variant="flat" css={{ "@xsMax": { minHeight: 500 } }}>
-                    <Card.Body
-                      css={{ p: 0 }}
-                      justify="center"
-                      align="center"
-                      className={
-                        isLoadingScan || scannerResult
-                          ? "scan-loading-active"
-                          : ""
-                      }
-                    >
-                      <video
-                        style={{ objectFit: "fill" }}
-                        autoPlay
-                        playsInline
-                        ref={scannerVideoRef}
-                      ></video>
-                      {scannerResult && (
-                        <>
-                          <Row
-                            justify="center"
-                            align="center"
-                            css={{
-                              position: "absolute",
-                              h: "100%",
-                              t: 0,
-                              flexDirection: "column",
+                  <CameraView
+                    onBarcodeScanned={handleScannerResponse}
+                    barcodeScannerSettings={{
+                      barcodeTypes: ["qr"],
+                      isHighlightingEnabled: true,
+                    }}
+                    style={{ height: height * 0.65, width }}
+                  >
+                    {scannerResultsDatum != null && (
+                      <View
+                        style={[
+                          Style.badge,
+                          {
+                            backgroundColor: isLoadingScan
+                              ? theme["color-basic-700"]
+                              : scannerResult == "VALID"
+                                ? theme["color-success-500"]
+                                : theme["color-primary-500"],
+                            shadowColor: isLoadingScan
+                              ? theme["color-basic-700"]
+                              : scannerResult == "VALID"
+                                ? theme["color-success-500"]
+                                : theme["color-primary-500"],
+                            position: "absolute",
+                            alignSelf: "center",
+                            bottom: 50,
+                          },
+                        ]}
+                      >
+                        {isLoadingScan && (
+                          <ActivityIndicator
+                            size={10}
+                            style={{
+                              paddingVertical: 10,
+                              paddingHorizontal: 20,
                             }}
-                          >
-                            <Col>
-                              {scannerResult === "VALID" && (
-                                <>
-                                  <Text
-                                    h1
-                                    size={84}
-                                    css={{ opacity: 0.6 }}
-                                    color="primary"
-                                    align="center"
-                                  >
-                                    Valid Ticket
-                                  </Text>
-                                </>
-                              )}
-                              {scannerResult === "USED_VALID_TICKET" && (
-                                <>
-                                  <Text
-                                    h1
-                                    size={84}
-                                    css={{ opacity: 0.6 }}
-                                    color="error"
-                                    align="center"
-                                  >
-                                    Ticket Scanned
-                                  </Text>
-                                </>
-                              )}
-                              {scannerResult === "INVALID_TICKET" && (
-                                <>
-                                  <Text
-                                    h1
-                                    size={84}
-                                    css={{ opacity: 0.6 }}
-                                    color="error"
-                                    align="center"
-                                  >
-                                    Invalid Ticket
-                                  </Text>
-                                </>
-                              )}
-                            </Col>
-                          </Row>
-                        </>
-                      )}
-                    </Card.Body>
-                    <Card.Footer css={{ p: "$8" }}>
-                      <Row justify="center">
-                        <Col>
-                          <Text h4 align="center">
-                            {ev.attendees + -ev.scanned} Remaining
-                          </Text>
-                          <Progress
-                            color="primary"
-                            value={(ev.scanned / ev.attendees) * 100}
+                            color={theme["color-basic-100"]}
                           />
-                        </Col>
-                      </Row>
-                    </Card.Footer>
-                  </Card> */}
+                        )}
+                        {!isLoadingScan && scannerResult && (
+                          <Text
+                            style={[
+                              Style.text.basic,
+                              Style.text.lg,
+                              Style.text.semibold,
+                            ]}
+                          >
+                            {i18n.t(scannerResult)}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                    {scannerResultsDatum == null && (
+                      <View
+                        style={[
+                          Style.badge,
+                          {
+                            backgroundColor: theme["color-basic-700"],
+                            shadowColor: theme["color-basic-700"],
+                            position: "absolute",
+                            alignSelf: "center",
+                            bottom: 50,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            Style.text.basic,
+                            Style.text.lg,
+                            Style.text.semibold,
+                          ]}
+                        >
+                          {i18n.t("xTicketsRemaining", {
+                            x: ev.attendees + -ev.scanned,
+                          })}
+                        </Text>
+                      </View>
+                    )}
+                  </CameraView>
                   <Text
                     style={[
                       Style.text.dark,

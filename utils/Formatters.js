@@ -88,7 +88,7 @@ const ReplaceWithStyle = (string, replacer, component) => {
   return parts.map((p, pidx) => (
     <>
       {pidx % 2 == 1 && <Text key={"pos-j-" + pidx}>{component}</Text>}
-      <Text key={"pos-" + pidx} style={[Style.text.dark, Style.text.semibold]}>
+      <Text key={"pos-" + pidx} style={[Style.text.bold]}>
         {p}
       </Text>
     </>
