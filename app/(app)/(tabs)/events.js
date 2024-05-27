@@ -17,6 +17,7 @@ import { useLocalization } from "../../../locales/provider";
 import Api from "../../../utils/Api";
 import EventComponent from "../../../utils/components/Event";
 import { router } from "expo-router";
+import { ReplaceWithStyle } from "../../../utils/Formatters";
 
 export default function EventsScreen() {
   const { session, signOut } = useSession();
@@ -87,24 +88,18 @@ export default function EventsScreen() {
             { alignItems: "center", marginTop: 10, marginBottom: 20 },
           ]}
         >
-          {locale == "en" && (
-            <Text
-              style={[
-                Style.text.xxl,
-                Style.text.bold,
-                Style.text.dark,
-                { textAlign: "left" },
-              ]}
-            >
-              Find your next{" "}
+          <Text style={[Style.text.xxl, Style.text.bold, Style.text.dark]}>
+            {ReplaceWithStyle(
+              i18n.t("findNextNight"),
+              "{wildNightOut}",
               <Text
-                style={[Style.text.xxl, Style.text.bold, Style.text.primary]}
+                key={"repl"}
+                style={[Style.text.primary, Style.text.semibold]}
               >
-                wild night out
-              </Text>{" "}
-              with friends
-            </Text>
-          )}
+                {i18n.t("wildNightOut")}
+              </Text>,
+            )}
+          </Text>
           <View
             style={[
               Style.input.container,

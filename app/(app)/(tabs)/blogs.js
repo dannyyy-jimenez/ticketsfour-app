@@ -22,6 +22,7 @@ import SkeletonLoader from "expo-skeleton-loader";
 import { Categories, Blog } from "../../../models/Blog";
 import BlogComponent from "../../../utils/components/Blog";
 import { SheetManager } from "react-native-actions-sheet";
+import { ReplaceWithStyle } from "../../../utils/Formatters";
 
 export default function BlogScreen() {
   const { session, signOut } = useSession();
@@ -91,24 +92,25 @@ export default function BlogScreen() {
             },
           ]}
         >
-          {locale == "en" && (
-            <Text
-              style={[
-                Style.text.xxl,
-                Style.text.bold,
-                Style.text.dark,
-                { marginRight: 6 },
-              ]}
-            >
-              Stay in the{" "}
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.bold,
+              Style.text.dark,
+              { marginRight: 6 },
+            ]}
+          >
+            {ReplaceWithStyle(
+              i18n.t("stayInBlogs"),
+              "{loop}",
               <Text
-                style={[Style.text.xxl, Style.text.bold, Style.text.primary]}
+                key={"repl"}
+                style={[Style.text.primary, Style.text.semibold]}
               >
-                loop
-              </Text>{" "}
-              with our blogs!
-            </Text>
-          )}
+                {i18n.t("loop")}
+              </Text>,
+            )}
+          </Text>
           <View style={{ flex: 1 }} />
           <TouchableOpacity
             onPress={() =>

@@ -41,7 +41,6 @@
     },
     "production": {
       "channel": "production",
-      "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_ENDPOINT": "https://api.ticketsfour.com/",
         "EXPO_PUBLIC_STRIPE_KEY": "pk_live_51ModcoA60uJAVJy3rYJnMXYon10xTdtpm0WwbF0RLD7Br8OBh1Yv0bX3DKVgLuSP2g3iMJmZSym0B0lzXUzz3UOd005fZRQUcS",

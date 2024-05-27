@@ -23,6 +23,7 @@
     "@stripe/stripe-react-native": "0.37.2",
     "axios": "^1.6.7",
     "expo": "^51.0.0",
+    "expo-asset": "~10.0.6",
     "expo-av": "~14.0.5",
     "expo-blur": "~13.0.2",
     "expo-calendar": "~13.0.5",
@@ -72,9 +73,9 @@
     "react-native-svg": "15.2.0",
     "react-native-svg-charts": "^5.4.0",
     "react-native-type-animation": "^0.3.0",
+    "react-native-wallet-pass": "^1.0.5",
     "react-native-webview": "13.8.6",
-    "xlsx": "^0.18.5",
-    "expo-asset": "~10.0.6"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

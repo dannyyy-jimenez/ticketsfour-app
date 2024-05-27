@@ -136,7 +136,7 @@ export default function AccountScreen() {
             <View
               style={[Style.containers.row, { marginTop: 6, marginBottom: 20 }]}
             >
-              <Text style={[Style.text.xxxl, Style.text.bold, Style.text.dark]}>
+              <Text style={[Style.text.xxl, Style.text.bold, Style.text.dark]}>
                 {ReplaceWithStyle(
                   i18n.t("accountSettings"),
                   "{settings}",

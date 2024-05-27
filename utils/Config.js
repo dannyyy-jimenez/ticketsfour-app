@@ -39,13 +39,4 @@ if (Updates.channel === "production") {
   Config.cloudUri = "https://res.cloudinary.com/lgxy/image/upload/";
 }
 
-Config.apiUrl = "https://api.sandbox.ticketsfour.com/";
-Config.enableHiddenFeatures = true;
-Config.isDev = true;
-Config.key = "pdk_BBfHZxcHCD63ShXul7YrcrfuCwBAjGbq";
-Config.stripeKey =
-  "pk_test_51ModcoA60uJAVJy3lAvcCZf59hZHewziAfKmPAFViIfPAMlb2adpnZoBUeWR0Z2eL4ZqBpoi1Qvr0F2fYw5o8El800yowWHL13";
-Config.basePath = "https://sandbox.ticketsfour.com";
-Config.cloudUri = "https://res.cloudinary.com/lgxy/image/upload/";
-
 export default Config;

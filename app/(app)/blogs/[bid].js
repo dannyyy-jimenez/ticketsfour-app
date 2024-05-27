@@ -326,7 +326,6 @@ export default function EventScreen() {
                       { alignSelf: "flex-start", marginHorizontal: 5 },
                     ]}
                   >
-                    {console.log(ev)}
                     <Image
                       placeholder={blurhash}
                       style={{

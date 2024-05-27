@@ -40,8 +40,6 @@ export function SessionProvider(props) {
   const url = Linking.useURL();
 
   React.useEffect(() => {
-    console.log(url);
-
     if (!url || typeof url == "undefined" || isLoadingOrg || isLoadingAuth)
       return;
 

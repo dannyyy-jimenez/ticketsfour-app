@@ -1,22 +1,8 @@
 import React from "react";
-import { useSession } from "../ctx";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Dimensions,
-  RefreshControl,
-  ActivityIndicator,
-  Linking,
-} from "react-native";
+import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import Style, { theme } from "../Styles";
-import {
-  FontAwesome6,
-  Feather,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useLocalization } from "../../locales/provider";
-import { useFonts } from "expo-font";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 

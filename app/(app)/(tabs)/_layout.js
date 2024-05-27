@@ -136,7 +136,7 @@ export default function AppLayout() {
                         Styles.text.dark,
                       ]}
                     >
-                      Guest Mode
+                      {i18n.t("guestMode")}
                     </Text>
                     <View
                       style={{
@@ -146,7 +146,7 @@ export default function AppLayout() {
                       }}
                     >
                       <Text style={[Styles.text.semibold, Styles.text.dark]}>
-                        Login / Register
+                        {i18n.t("loginRegister")}
                       </Text>
                       <Feather
                         name="chevron-down"

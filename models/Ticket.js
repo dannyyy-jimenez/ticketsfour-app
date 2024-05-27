@@ -9,6 +9,7 @@ export default class Ticket {
     ev,
     total,
     date,
+    id = "",
     token = "",
     node = "",
     owner = "N/A",
@@ -24,6 +25,7 @@ export default class Ticket {
     if (node.type == "seat") this.node = new Seat({ ...node });
     if (node.type == "physical") this.node = new Paper({ ...node });
 
+    this.id = id;
     this.buyer = owner;
     this.token = token;
     this.buyer_age = owner_age;

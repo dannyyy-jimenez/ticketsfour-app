@@ -307,5 +307,10 @@
   "INVALID_TICKET": "Invalid Ticket",
   "xTicketsRemaining": "{{x}} Remaining",
   "guestModeDesc": "In guest mode you can view all our events, shop tickets, read our blogs, but you won't have access to the rewards our registered users do!",
-  "helloAgain": "Hello Again!"
+  "helloAgain": "Hello Again!",
+  "loginRegister": "Login / Register",
+  "findNextNight": "Find your next {wildNightOut} with friends",
+  "wildNightOut": "wild night out",
+  "stayInBlogs": "Stay in the {loop} with our blogs!",
+  "loop": "loop"
 }
