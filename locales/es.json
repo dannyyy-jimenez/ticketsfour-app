@@ -313,5 +313,7 @@
   "wildNightOut": "noche loca afuera",
   "stayInBlogs": "¡Mantente en el {loop} con nuestros blogs!",
   "loop": "bucle",
-  "noTickets": "No has comprado ninguna entrada"
+  "noTickets": "No has comprado ninguna entrada",
+  "ACCOUNT_EXISTS": "Hay una cuenta con este número, intenta iniciar sesión",
+  "TOO_YOUNG": "Debes tener al menos 13 años para crear una cuenta"
 }

@@ -19,9 +19,15 @@ import Styles, { theme } from "../utils/Styles";
 import { HoldItem } from "react-native-hold-menu";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { useLocalization } from "../locales/provider";
-import { ReplaceWithStyle } from "../utils/Formatters";
+import {
+  DateFormatter,
+  EmailValidator,
+  PhoneFormatter,
+  ReplaceWithStyle,
+} from "../utils/Formatters";
 import LottieView from "lottie-react-native";
 import { useFonts } from "expo-font";
+import moment from "moment";
 
 const blurhash =
   "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
@@ -38,6 +44,8 @@ export default function RegisterScreen() {
   const lastNameInput = React.useRef(null);
   const phoneInput = React.useRef(null);
   const companyCodeInput = React.useRef(null);
+  const emailInput = React.useRef(null);
+  const dobInput = React.useRef(null);
   const [fontsLoaded, fontError] = useFonts({
     "Flix-Normal": require("../assets/Flix-Normal.otf"),
   });
@@ -45,8 +53,10 @@ export default function RegisterScreen() {
   const [error, setError] = React.useState(null);
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
+  const [dob, setDob] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [companyCode, setCompanyCode] = React.useState("");
+  const [email, setEmail] = React.useState("");
+
   const [countryCode, setCountryCode] = React.useState("US");
   const countryCodeEmoji = React.useMemo(() => {
     if (countryCode == "MX") return "🇲🇽";
@@ -60,31 +70,51 @@ export default function RegisterScreen() {
     { text: "+1 - Canda", onPress: () => setCountryCode("CA") },
     { text: "+52 - Mexico", onPress: () => setCountryCode("MX") },
   ];
+
   const canRegister = React.useMemo(() => {
+    if (!moment(dob, "MM-DD-YYYY").isValid()) return false;
+
+    try {
+      let bday = moment(dob, "MM-DD-YYYY");
+      let today = moment();
+
+      if (today.diff(bday, "y") < 13) throw "AGE";
+    } catch (e) {
+      return false;
+    }
+
     return (
-      firstName != "" &&
-      lastName != "" &&
+      firstName !== "" &&
+      lastName !== "" &&
+      email !== "" &&
+      EmailValidator(email) &&
       phoneNumber != "" &&
-      companyCode != ""
+      phoneNumber.replace(/[^0-9\.]+/g, "").length == 10
     );
-  }, [firstName, lastName, phoneNumber, companyCode]);
+  }, [firstName, lastName, phoneNumber, email, dob]);
 
   const onRegister = async () => {
     setError(null);
     setIsLoading(true);
+    let dobF = moment(dob, "MM-DD-YYYY").format("YYYY-MM-DD");
+
     try {
-      const res = await Api.post("/auth/register", {
+      const res = await Api.post("/register", {
         firstName,
         lastName,
-        phoneNumber,
-        companyCode,
+        phone: phoneNumber,
+        email,
+        dob: dobF,
         countryCode,
+        type: "app",
       });
-      if (res.isError) throw "e";
+      console.log(res);
+      if (res.isError) throw res.data.message;
 
       setIsLoading(false);
       signIn(res.data.usid);
     } catch (e) {
+      setError(e);
       setIsLoading(false);
     }
   };
@@ -98,6 +128,14 @@ export default function RegisterScreen() {
   React.useEffect(() => {
     actionSheetRef.current?.show();
   }, []);
+
+  React.useEffect(() => {
+    setPhoneNumber(PhoneFormatter(phoneNumber));
+  }, [phoneNumber]);
+
+  React.useEffect(() => {
+    setDob(DateFormatter(dob));
+  }, [dob]);
 
   return (
     <KeyboardAvoidingView behavior="position">
@@ -270,7 +308,7 @@ export default function RegisterScreen() {
                     </HoldItem>
                     <TextInput
                       ref={phoneInput}
-                      onSubmitEditing={() => companyCodeInput.current.focus()}
+                      onSubmitEditing={() => dobInput.current.focus()}
                       autoComplete="tel"
                       enterKeyHint="next"
                       style={[Styles.input.text]}
@@ -291,16 +329,15 @@ export default function RegisterScreen() {
                     ]}
                   >
                     <TextInput
-                      ref={lastNameInput}
-                      onSubmitEditing={() => phoneInput.current.focus()}
-                      autoCapitalize="words"
-                      autoComplete="family-name"
+                      ref={dobInput}
+                      onSubmitEditing={() => emailInput.current.focus()}
+                      autoComplete="birthdate-full"
                       enterKeyHint="next"
                       style={[Styles.input.text]}
                       placeholder={i18n.t("dob")}
                       keyboardType="default"
-                      value={lastName}
-                      onChangeText={(val) => setLastName(val)}
+                      value={dob}
+                      onChangeText={(val) => setDob(val)}
                     />
                   </View>
                 </View>
@@ -316,13 +353,13 @@ export default function RegisterScreen() {
                   ]}
                 >
                   <TextInput
-                    ref={companyCodeInput}
-                    autoCapitalize="characters"
+                    ref={emailInput}
+                    keyboardType="email-address"
                     enterKeyHint="next"
                     style={[Styles.input.text]}
                     placeholder={i18n.t("email")}
-                    value={companyCode}
-                    onChangeText={(val) => setCompanyCode(val.toUpperCase())}
+                    value={email}
+                    onChangeText={(val) => setEmail(val)}
                   />
                 </View>
 

@@ -313,5 +313,7 @@
   "wildNightOut": "wild night out",
   "stayInBlogs": "Stay in the {loop} with our blogs!",
   "loop": "loop",
-  "noTickets": "You have not purchased any tickets"
+  "noTickets": "You have not purchased any tickets",
+  "ACCOUNT_EXISTS": "There is an account with this number, try signing in",
+  "TOO_YOUNG": "Must be at least 13 years old to create an account"
 }

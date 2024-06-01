@@ -55,7 +55,7 @@ export default {
     try {
       let lang = deviceLanguage;
       const res = await client.get(query, {
-        params: { ...data, lang, key: Config.key },
+        params: { ...data, lang, key: Config.key, isApp: true },
       });
       return onSuccess(res);
     } catch (error) {
@@ -67,6 +67,7 @@ export default {
       const res = await client.post(uri, {
         ...data,
         key: Config.key,
+        isApp: true,
       });
 
       return onSuccess(res);
