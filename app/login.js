@@ -156,17 +156,19 @@ export default function LoginScreen() {
           >
             Tickets Four
           </Text>
-          <LottieView
-            autoPlay
-            style={{
-              width: 300,
-              height: 300,
-              top: height * 0.06,
-              alignSelf: "center",
-            }}
-            // Find more Lottie files at https://lottiefiles.com/featured
-            source={require("../assets/lottie-register.json")}
-          />
+          {height > 740 && (
+            <LottieView
+              autoPlay
+              style={{
+                minWidth: 300,
+                height: 300,
+                top: height * 0.06,
+                alignSelf: "center",
+              }}
+              // Find more Lottie files at https://lottiefiles.com/featured
+              source={require("../assets/lottie-register.json")}
+            />
+          )}
           <ActionSheet
             keyboardHandlerEnabled={false}
             gestureEnabled={false}

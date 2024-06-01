@@ -112,7 +112,7 @@ export default function EventScreen() {
   };
 
   const onCheckoutEvent = (_event) => {
-    router.push("/event/" + _event.id);
+    router.push("/events/" + _event.id);
   };
 
   const celebrate = async () => {
@@ -195,13 +195,13 @@ export default function EventScreen() {
       <View>
         <Image
           style={{
-            width: width,
+            width: "100%",
             borderTopLeftRadius: 4,
             borderTopRightRadius: 4,
           }}
           contentFit="cover"
           source={{ uri: blog.cover }}
-          width={width}
+          width={"100%"}
           height={height * 0.4}
           allowDownscaling
           contentPosition={"top"}
@@ -212,7 +212,7 @@ export default function EventScreen() {
             Style.containers.column,
             {
               paddingHorizontal: 10,
-              width,
+              width: "100%",
               height: height * 0.4,
               paddingVertical: 10,
               alignItems: "center",
@@ -227,15 +227,14 @@ export default function EventScreen() {
             style={{
               maxWidth: "90%",
               flex: 1,
-              borderTopLeftRadius: 4,
-              borderTopRightRadius: 4,
+              borderRadius: 4,
               alignSelf: "center",
               marginTop: 15,
               marginBottom: 35,
             }}
             contentFit="cover"
             source={{ uri: blog.cover }}
-            width={width}
+            width={"100%"}
             contentPosition={"center"}
           />
         </BlurView>

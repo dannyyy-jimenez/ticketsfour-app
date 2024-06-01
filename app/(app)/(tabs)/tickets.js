@@ -123,6 +123,18 @@ export default function TicketScreen() {
         {isLoading && (
           <ActivityIndicator size="small" color={theme["color-primary-500"]} />
         )}
+        {!isLoading && events.length == 0 && (
+          <Text
+            style={[
+              Style.text.dark,
+              Style.transparency.sm,
+              Style.text.normal,
+              { alignSelf: "center" },
+            ]}
+          >
+            {i18n.t("noTickets")}
+          </Text>
+        )}
         {events.map((event, tbidx) => (
           <EventPurchaseComponent
             key={event.id + "-" + tbidx}

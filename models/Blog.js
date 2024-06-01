@@ -26,7 +26,7 @@ export default class Blog {
     if (this.cover && this.cover.includes("image/upload/")) {
       this.cover = this.cover;
     } else {
-      this.cover = Config.cloudUri + "/metacover-ticketsfour_y0hbb4.png";
+      this.cover = Config.cloudUri + "metacover-ticketsfour_tunr6k.jpg";
     }
     this.title = title;
     this.category = category;

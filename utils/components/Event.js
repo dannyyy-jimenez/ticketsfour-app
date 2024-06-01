@@ -51,7 +51,7 @@ export function OrgEventComponent({
   };
 
   const onView = () => {
-    router.push("/organization/event/" + event.id);
+    router.push("/organization/events/" + event.id);
   };
 
   const onShare = () => {
@@ -113,7 +113,7 @@ export function OrgEventComponent({
             height: 400,
             borderRadius: 4,
           }}
-          cachePolicy="memory"
+          cachePolicy="memory-disk"
           contentFit="cover"
           source={{ uri: event.coverT }}
           width={500}
@@ -581,7 +581,7 @@ export default function EventComponent({
   };
 
   const onView = () => {
-    router.push("/event/" + event.id);
+    router.push("/events/" + event.id);
   };
 
   const onShare = () => {
@@ -666,7 +666,7 @@ export default function EventComponent({
           <View
             style={[
               Style.containers.row,
-              { maxWidth: 380, width: width - 100 },
+              { paddingHorizontal: 10, width: "100%" },
             ]}
           >
             <Image
@@ -684,10 +684,17 @@ export default function EventComponent({
             <View
               style={[
                 Style.containers.column,
-                { alignItems: "flex-start", marginHorizontal: 12 },
+                {
+                  alignItems: "flex-start",
+                  flex: 1,
+                  marginLeft: 12,
+                },
               ]}
             >
-              <Text style={[Style.text.xl, Style.text.bold, Style.text.basic]}>
+              <Text
+                numberOfLines={3}
+                style={[Style.text.xl, Style.text.bold, Style.text.basic]}
+              >
                 {event.name}
               </Text>
               <Text

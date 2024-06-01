@@ -72,7 +72,8 @@ export default function TicketComponent({ ticket, hidden = false }) {
           <View
             style={{
               paddingTop: 20,
-              paddingBottom: 100,
+              paddingBottom: 20,
+              flexGrow: 1,
               justifyContent: "flex-start",
               alignItems: "center",
               backgroundColor: theme["color-primary-500"],
@@ -94,7 +95,7 @@ export default function TicketComponent({ ticket, hidden = false }) {
         {!ticket?.node?.isExposed && (
           <View
             style={{
-              paddingTop: 20,
+              paddingVertical: 20,
               justifyContent: "center",
               alignItems: "center",
               backgroundColor: theme["color-basic-100"],

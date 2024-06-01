@@ -23,7 +23,7 @@ import {
 import { useLocalization } from "../../../locales/provider";
 import Api from "../../../utils/Api";
 import SkeletonLoader from "expo-skeleton-loader";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import Ticket from "../../../models/Ticket";
 import PagerView from "react-native-pager-view";
 import TicketComponent from "../../../utils/components/Ticket";
@@ -58,12 +58,6 @@ export default function TicketBundlerScreen() {
     }
   };
 
-  React.useEffect(() => {
-    if (!eventId) return;
-
-    loadTalent();
-  }, [eventId]);
-
   const load = async () => {
     setError(null);
     setIsLoading(true);
@@ -89,6 +83,20 @@ export default function TicketBundlerScreen() {
       setIsLoading(false);
     }
   };
+
+  const onClose = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/events");
+    }
+  };
+
+  React.useEffect(() => {
+    if (!eventId) return;
+
+    loadTalent();
+  }, [eventId]);
 
   React.useEffect(() => {
     if (!tbid) return;
@@ -226,11 +234,21 @@ export default function TicketBundlerScreen() {
   return (
     <ScrollContainer
       style={{
-        paddingVertical: 20,
+        paddingTop: 20,
         flex: 1,
-        paddingBottom: 75,
+        paddingBottom: 0,
       }}
     >
+      <TouchableOpacity
+        style={[
+          Style.button.round,
+          Style.elevated,
+          { zIndex: 100, padding: 0, position: "absolute", left: 0 },
+        ]}
+        onPress={onClose}
+      >
+        <Feather name="x" size={20} color={theme["color-basic-700"]} />
+      </TouchableOpacity>
       <TypeAnimation
         sequence={[{ text: i18n.t("quoteHellen") }]}
         style={{
@@ -255,7 +273,13 @@ export default function TicketBundlerScreen() {
       </Text>
       <PagerView
         onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
-        style={{ flex: 1, width, left: -10, marginTop: 10, marginBottom: 10 }}
+        style={{
+          flex: 1,
+          width: "100%",
+          left: -10,
+          marginTop: 10,
+          marginBottom: 10,
+        }}
         initialPage={0}
       >
         {tickets.map((ticket, tidx) => (

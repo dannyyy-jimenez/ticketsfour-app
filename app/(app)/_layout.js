@@ -153,15 +153,19 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(organization)" options={{ headerShown: false }} />
       <Stack.Screen
-        name="event/[eid]"
+        name="events/[eid]"
         options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
-        name="organization/event/[eid]"
+        name="organization/events/[eid]"
         options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="tickets/verify"
+        options={{ presentation: "modal", headerShown: false }}
+      />
+      <Stack.Screen
+        name="t/[tbid]"
         options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen

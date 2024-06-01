@@ -9,6 +9,7 @@ import {
   TextInput,
 } from "react-native";
 import LayoutContainer, {
+  FlatScrollContainer,
   ScrollContainer,
 } from "../../../utils/components/Layout";
 import Style, { theme } from "../../../utils/Styles";
@@ -18,6 +19,10 @@ import Api from "../../../utils/Api";
 import EventComponent from "../../../utils/components/Event";
 import { router } from "expo-router";
 import { ReplaceWithStyle } from "../../../utils/Formatters";
+
+const renderEvent = ({ item: event }, i18n) => {
+  return <EventComponent key={event.id} i18n={i18n} _event={event} />;
+};
 
 export default function EventsScreen() {
   const { session, signOut } = useSession();
@@ -71,7 +76,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <ScrollContainer
+    <FlatScrollContainer
       paddingHorizontal={2}
       refreshControl={
         <RefreshControl
@@ -80,58 +85,65 @@ export default function EventsScreen() {
           onRefresh={onRefresh}
         />
       }
-    >
-      <View>
-        <View
-          style={[
-            Style.containers.column,
-            { alignItems: "center", marginTop: 10, marginBottom: 20 },
-          ]}
-        >
-          <Text style={[Style.text.xxl, Style.text.bold, Style.text.dark]}>
-            {ReplaceWithStyle(
-              i18n.t("findNextNight"),
-              "{wildNightOut}",
-              <Text
-                key={"repl"}
-                style={[Style.text.primary, Style.text.semibold]}
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-evenly",
+      }}
+      attributes={{
+        ListHeaderComponent: (
+          <View>
+            <View
+              style={[
+                Style.containers.column,
+                { alignItems: "center", marginTop: 10, marginBottom: 20 },
+              ]}
+            >
+              <Text style={[Style.text.xxl, Style.text.bold, Style.text.dark]}>
+                {ReplaceWithStyle(
+                  i18n.t("findNextNight"),
+                  "{wildNightOut}",
+                  <Text
+                    key={"repl"}
+                    style={[Style.text.primary, Style.text.semibold]}
+                  >
+                    {i18n.t("wildNightOut")}
+                  </Text>,
+                )}
+              </Text>
+              <View
+                style={[
+                  Style.input.container,
+                  {
+                    width: width - 20,
+                    marginVertical: 15,
+                    marginBottom: 0,
+                  },
+                ]}
               >
-                {i18n.t("wildNightOut")}
-              </Text>,
-            )}
-          </Text>
-          <View
-            style={[
-              Style.input.container,
-              {
-                width: width - 20,
-                marginVertical: 15,
-                marginBottom: 0,
-              },
-            ]}
-          >
-            <View style={[Style.input.prefix]}>
-              <Feather
-                name="search"
-                size={20}
-                color={theme["color-basic-700"]}
-              />
+                <View style={[Style.input.prefix]}>
+                  <Feather
+                    name="search"
+                    size={20}
+                    color={theme["color-basic-700"]}
+                  />
+                </View>
+                <TextInput
+                  value={search}
+                  autoCorrect={false}
+                  clearButtonMode="while-editing"
+                  placeholderTextColor={theme["color-basic-700"]}
+                  style={[Style.input.text]}
+                  placeholder={i18n.t("search")}
+                  onChangeText={(val) => setSearch(val)}
+                />
+              </View>
             </View>
-            <TextInput
-              value={search}
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-              placeholderTextColor={theme["color-basic-700"]}
-              style={[Style.input.text]}
-              placeholder={i18n.t("search")}
-              onChangeText={(val) => setSearch(val)}
-            />
           </View>
-        </View>
-      </View>
-      {events.map((event, eidx) => (
-        <EventComponent key={event.id} i18n={i18n} _event={event} />
-      ))}
-    </ScrollContainer>
+        ),
+      }}
+      data={events}
+      renderItem={(params) => renderEvent(params, i18n)}
+    />
   );
 }

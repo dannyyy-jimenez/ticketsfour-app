@@ -39,6 +39,10 @@ export function SessionProvider(props) {
   }, [session]);
   const url = Linking.useURL();
 
+  const nav = (uri) => {
+    router.replace(uri);
+  };
+
   React.useEffect(() => {
     if (!url || typeof url == "undefined" || isLoadingOrg || isLoadingAuth)
       return;
@@ -47,62 +51,85 @@ export function SessionProvider(props) {
     let params = {};
 
     try {
-      if (url.startsWith("com.ticketsfour.app://")) {
-        // Split the deep link by '://' to get the path
-        const parts = url.split("://");
-        // The last part of the split contains the path (after the '://')
-        parsed = parts[1];
-      }
-      // Check if the deep link uses HTTP/HTTPS scheme
-      else if (url.startsWith("http://") || url.startsWith("https://")) {
-        // Use URL API to parse the deep link
-        let parsedUrl = new URL(url);
-        // Extract the pathname from the parsed URL
-        const path = parsedUrl.pathname;
-        // Remove leading slash if present
-        params = parsedUrl.search;
-        parsed = path.startsWith("/") ? path.substring(1) : path;
+      // if (url.startsWith("com.ticketsfour.app://")) {
+      //   // Split the deep link by '://' to get the path
+      //   const parts = url.split("://");
+      //   // The last part of the split contains the path (after the '://')
+      //   parsed = parts[1];
+      // }
+      // // Check if the deep link uses HTTP/HTTPS scheme
+      // else if (url.startsWith("http://") || url.startsWith("https://")) {
+      //   // Use URL API to parse the deep link
+      //   let parsedUrl = new URL(url);
+      //   // Extract the pathname from the parsed URL
+      //   const path = parsedUrl.pathname;
+      //   // Remove leading slash if present
+      //   params = parsedUrl.search;
+      //   parsed = path.startsWith("/") ? path.substring(1) : path;
+      // }
+
+      let parsedObj = Linking.parse(url);
+
+      if (parsedObj.path != "") {
+        parsed = parsedObj.path;
+        params = new URLSearchParams(parsedObj.queryParams).toString();
       }
     } catch (e) {
       console.log(e);
       return;
     }
 
-    if (parsed == "events" || parsed == "blogs" || parsed == "settings") {
-      if (!auth) {
-        setSession("GUEST");
-      }
-      return router.replace("/(tabs)/" + parsed);
-    }
+    // if (parsed == "events" || parsed == "blogs" || parsed == "settings") {
+    //   if (!auth) {
+    //     setSession("GUEST");
+    //   }
 
-    if (
-      (parsed.includes("t/") && parsed != "t/verify") ||
-      (parsed.includes("tickets/") && parsed != "tickets/verify")
-    ) {
-      if (!auth) {
-        setSession("GUEST");
-      }
+    //   return router.replace("/(tabs)/" + parsed);
+    // }
 
-      let tbid = parsed.split("/")[1];
+    // if (!parsed.includes("organization")) {
+    //   try {
+    //     if (!auth) {
+    //       setSession("GUEST");
+    //     }
 
-      return router.push("/tickets/" + tbid + params);
-    }
+    //     if ((parsed == "login" || parsed == "register") && session) {
+    //       setSession(null);
+    //     }
 
-    if (parsed.includes("venues/scanner")) {
-      if (!auth) {
-        setSession("GUEST");
-      }
+    //     setTimeout(() => nav("/" + parsed + "?" + params), 1000);
+    //   } catch (e) {}
 
-      return router.push("/venues/scanner" + params);
-    }
+    //   return;
+    // }
 
-    if ((parsed == "login" || parsed == "register") && isGuest) {
-      setSession(null);
-      setTimeout(() => {
-        router.replace("/" + parsed);
-      }, 500);
-      return;
-    }
+    // if (
+    //   (parsed.includes("t/") && parsed != "t/verify") ||
+    //   (parsed.includes("tickets/") && parsed != "tickets/verify")
+    // ) {
+    //   if (!auth) {
+    //     setSession("GUEST");
+    //   }
+
+    //   let tbid = parsed.split("/")[1];
+
+    //   setTimeout(() => nav("/tickets/" + tbid + "?" + params), 1000);
+    //   return;
+    // }
+
+    // if (parsed.includes("venues/scanner")) {
+    //   if (!auth) {
+    //     setSession("GUEST");
+    //   }
+
+    //   return router.push("/venues/scanner" + params);
+    // }
+
+    // if ((parsed == "login" || parsed == "register") && isGuest) {
+    //   setSession(null);
+    //   setTimeout(() => nav("/" + parsed + "?" + params), 1000);
+    //   return;
+    // }
   }, [url, isLoadingOrg, isLoadingAuth]);
 
   const setDefaultOrganization = (val) => {

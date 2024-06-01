@@ -312,5 +312,6 @@
   "findNextNight": "Find your next {wildNightOut} with friends",
   "wildNightOut": "wild night out",
   "stayInBlogs": "Stay in the {loop} with our blogs!",
-  "loop": "loop"
+  "loop": "loop",
+  "noTickets": "You have not purchased any tickets"
 }

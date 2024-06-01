@@ -1677,8 +1677,8 @@ export default function EventScreen() {
     <SheetProvider>
       <ScrollContainer
         _ref={scrollContainer}
+        style={{ paddingBottom: 0 }}
         paddingHorizontal={0}
-        style={{ paddingBottom: insets.bottom + 20 }}
       >
         <TouchableOpacity
           style={[
@@ -2529,7 +2529,7 @@ export default function EventScreen() {
                       scale={scale.scaleBand}
                       formatLabel={(value, index) =>
                         moment(ev?.dataPoints?.sales[index].date).format(
-                          "MMM DD, YY",
+                          "MMM DD",
                         )
                       }
                       labelStyle={{ color: theme["color-basic-700"] }}
@@ -2652,7 +2652,13 @@ export default function EventScreen() {
                       {i18n.t("grossSalesDesc")}
                     </Text>
                     <View style={[Style.containers.row, { marginTop: 20 }]}>
-                      <Text style={[Style.text.xxl, Style.text.bold]}>
+                      <Text
+                        style={[
+                          Style.text.xxl,
+                          Style.text.dark,
+                          Style.text.bold,
+                        ]}
+                      >
                         ${CurrencyFormatter(salesAmount)}
                       </Text>
                     </View>
@@ -2693,7 +2699,13 @@ export default function EventScreen() {
                       {i18n.t("promoterEarningsDesc")}
                     </Text>
                     <View style={[Style.containers.row, { marginTop: 20 }]}>
-                      <Text style={[Style.text.xxl, Style.text.bold]}>
+                      <Text
+                        style={[
+                          Style.text.xxl,
+                          Style.text.dark,
+                          Style.text.bold,
+                        ]}
+                      >
                         ${CurrencyFormatter(promoterEarnings)}
                       </Text>
                     </View>
@@ -2734,7 +2746,13 @@ export default function EventScreen() {
                       {i18n.t("bumpEarningsDesc")}
                     </Text>
                     <View style={[Style.containers.row, { marginTop: 20 }]}>
-                      <Text style={[Style.text.xxl, Style.text.bold]}>
+                      <Text
+                        style={[
+                          Style.text.xxl,
+                          Style.text.dark,
+                          Style.text.bold,
+                        ]}
+                      >
                         ${CurrencyFormatter(venueEarnings)}
                       </Text>
                     </View>
@@ -2775,7 +2793,13 @@ export default function EventScreen() {
                       {i18n.t("taxesCollectedDesc")}
                     </Text>
                     <View style={[Style.containers.row, { marginTop: 20 }]}>
-                      <Text style={[Style.text.xxl, Style.text.bold]}>
+                      <Text
+                        style={[
+                          Style.text.xxl,
+                          Style.text.dark,
+                          Style.text.bold,
+                        ]}
+                      >
                         ${CurrencyFormatter(taxCollected)}
                       </Text>
                     </View>
@@ -3045,7 +3069,7 @@ export default function EventScreen() {
                     <View
                       style={[
                         Style.containers.column,
-                        { alignItems: "flex-start", marginLeft: 8 },
+                        { alignItems: "flex-start", flex: 1, marginLeft: 8 },
                       ]}
                     >
                       <Text
@@ -3054,21 +3078,22 @@ export default function EventScreen() {
                           Style.text.semibold,
                           Style.text.lg,
                         ]}
+                        adjustsFontSizeToFit
                       >
                         {purchase.getBuyer()}
                       </Text>
-                      <Text
-                        style={[
-                          Style.text.dark,
-                          Style.transparency.md,
-                          Style.text.normal,
-                        ]}
-                      >
-                        {i18n.t("xYearsOld", { age: purchase.getBuyerAge() })}
-                      </Text>
+                      {purchase.buyer_age !== 0 && (
+                        <Text
+                          style={[
+                            Style.text.dark,
+                            Style.transparency.md,
+                            Style.text.normal,
+                          ]}
+                        >
+                          {i18n.t("xYearsOld", { age: purchase.getBuyerAge() })}
+                        </Text>
+                      )}
                     </View>
-
-                    <View style={{ flex: 1 }} />
 
                     <Text
                       style={[
@@ -3078,7 +3103,6 @@ export default function EventScreen() {
                         {
                           marginHorizontal: 8,
                           maxWidth: "35%",
-                          marginRight: 20,
                         },
                       ]}
                     >

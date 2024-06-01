@@ -32,11 +32,31 @@
         "EXPO_PUBLIC_TUNNEL_SUBDOMAIN": "sandbox-ticketsfour-com"
       }
     },
-    "preview": {
+    "preview-sim": {
       "distribution": "internal",
-      "channel": "preview",
+      "channel": "production",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_ENDPOINT": "https://api.ticketsfour.com/",
+        "EXPO_PUBLIC_STRIPE_KEY": "pk_live_51ModcoA60uJAVJy3rYJnMXYon10xTdtpm0WwbF0RLD7Br8OBh1Yv0bX3DKVgLuSP2g3iMJmZSym0B0lzXUzz3UOd005fZRQUcS",
+        "EXPO_PUBLIC_BASE_PATH": "https://www.ticketsfour.com",
+        "EXPO_PUBLIC_KEY": "pdk_EcSJbumK5xZ3GUbAHWu6FqBUhNU3EpVT",
+        "EXPO_PUBLIC_CLOUD_NAME": "ticketsfour",
+        "EXPO_PUBLIC_TUNNEL_SUBDOMAIN": "ticketsfour-com"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_ENDPOINT": "https://api.ticketsfour.com/",
+        "EXPO_PUBLIC_STRIPE_KEY": "pk_live_51ModcoA60uJAVJy3rYJnMXYon10xTdtpm0WwbF0RLD7Br8OBh1Yv0bX3DKVgLuSP2g3iMJmZSym0B0lzXUzz3UOd005fZRQUcS",
+        "EXPO_PUBLIC_BASE_PATH": "https://www.ticketsfour.com",
+        "EXPO_PUBLIC_KEY": "pdk_EcSJbumK5xZ3GUbAHWu6FqBUhNU3EpVT",
+        "EXPO_PUBLIC_CLOUD_NAME": "ticketsfour",
+        "EXPO_PUBLIC_TUNNEL_SUBDOMAIN": "ticketsfour-com"
       }
     },
     "production": {

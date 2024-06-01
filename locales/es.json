@@ -312,5 +312,6 @@
   "findNextNight": "Encuentra tu próxima {wildNightOut} con amigos",
   "wildNightOut": "noche loca afuera",
   "stayInBlogs": "¡Mantente en el {loop} con nuestros blogs!",
-  "loop": "bucle"
+  "loop": "bucle",
+  "noTickets": "No has comprado ninguna entrada"
 }
