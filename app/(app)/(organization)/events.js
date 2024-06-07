@@ -36,11 +36,18 @@ export default function EventsScreen() {
   const [canCreateEvent, setCanCreateEvent] = React.useState(false);
   const [canViewEventData, setCanViewEventData] = React.useState(false);
 
-  const [isVisible, setIsVisible] = React.useState(false);
-  const [filters, setFilters] = React.useState(new Set(["all"]));
+  const [filters, setFilters] = React.useState(new Set(["upcoming"]));
   const [isLoading, setIsLoading] = React.useState(true);
-  const [defEvs, setDefEvs] = React.useState([]);
-  const [events, setEvents] = React.useState([]);
+  const [upcomingEvents, setUpcomingEvents] = React.useState([]);
+  const [pastEvents, setPastEvents] = React.useState([]);
+
+  const events = React.useMemo(() => {
+    if (filters.has("all"))
+      return [...[...upcomingEvents].reverse(), ...[...pastEvents].reverse()];
+    if (filters.has("past")) return [...pastEvents].reverse();
+
+    return [...upcomingEvents];
+  }, [filters, upcomingEvents, pastEvents]);
 
   const filterItems = [
     { text: i18n.t("selectFilter"), isTitle: true },
@@ -72,10 +79,14 @@ export default function EventsScreen() {
     [filters],
   );
 
-  const load = async () => {
+  const loadFuture = async () => {
     setIsLoading(true);
     try {
-      const res = await Api.get("/organizations/events", { auth, oid });
+      const res = await Api.get("/organizations/events", {
+        auth,
+        oid,
+        filter: "future",
+      });
       if (res.isError) throw "e";
 
       if (!res.data.has_permission) {
@@ -89,35 +100,44 @@ export default function EventsScreen() {
       );
       setIsLoading(false);
       let parsedEvs = res.data.events.map((ev) => new EventModel({ ...ev }));
-      setDefEvs(parsedEvs);
-      setEvents(parsedEvs);
 
-      if (parsedEvs.filter((e) => !e.isInPast).length != 0) {
-        setFilters(new Set(["upcoming"]));
-      } else {
-        setFilters(new Set(["all"]));
-      }
+      setUpcomingEvents(parsedEvs);
     } catch (e) {
       console.log(e);
       setIsLoading(false);
     }
   };
 
-  React.useEffect(() => {
-    if (filters.has("all")) return setEvents([...defEvs].reverse());
-    if (filters.has("past"))
-      return setEvents([...defEvs].filter((e) => e.isInPast).reverse());
+  const loadPast = async () => {
+    try {
+      const res = await Api.get("/organizations/events", {
+        auth,
+        oid,
+        filter: "past",
+      });
+      if (res.isError) throw "e";
 
-    return setEvents([...defEvs].filter((e) => !e.isInPast));
-  }, [filters]);
+      if (!res.data.has_permission) {
+        setHasPermission(false);
+        throw "NO_PERMISSION";
+      }
+
+      let parsedEvs = res.data.events.map((ev) => new EventModel({ ...ev }));
+      setPastEvents(parsedEvs);
+    } catch (e) {
+      console.log(e);
+      setIsLoading(false);
+    }
+  };
 
   const onRefresh = () => {
-    load();
+    loadFuture();
+    loadPast();
   };
 
   React.useEffect(() => {
-    load();
-  }, []);
+    onRefresh();
+  }, [oid]);
 
   return (
     <ScrollContainer

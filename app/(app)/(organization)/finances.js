@@ -254,32 +254,62 @@ export default function FinancesScreen() {
             ]}
           >
             <Feather name="home" size={20} color={theme["color-basic-700"]} />
-            <View
-              style={[
-                Style.containers.column,
-                { alignItems: "flex-start", paddingHorizontal: 10 },
-              ]}
-            >
-              <Text
+            {profile?.about?.address?.line1 != null && (
+              <View
                 style={[
-                  Style.text.dark,
-                  Style.text.semibold,
-                  Style.transparency.md,
+                  Style.containers.column,
+                  { alignItems: "flex-start", paddingHorizontal: 10 },
                 ]}
               >
-                {profile?.about?.address.line1}
-              </Text>
-              <Text
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.transparency.md,
+                  ]}
+                >
+                  {profile?.about?.address.line1}
+                </Text>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.transparency.md,
+                  ]}
+                >
+                  {profile?.about?.address.city},{" "}
+                  {profile?.about?.address.state}{" "}
+                  {profile?.about?.address.postal_code}
+                </Text>
+              </View>
+            )}
+            {profile?.about?.address?.line1 == null && (
+              <View
                 style={[
-                  Style.text.dark,
-                  Style.text.semibold,
-                  Style.transparency.md,
+                  Style.containers.column,
+                  { alignItems: "flex-start", paddingHorizontal: 10 },
                 ]}
               >
-                {profile?.about?.address.city}, {profile?.about?.address.state}{" "}
-                {profile?.about?.address.postal_code}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.transparency.md,
+                  ]}
+                >
+                  123 Sample Ave
+                </Text>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.transparency.md,
+                  ]}
+                >
+                  Chicago, IL 60623
+                </Text>
+              </View>
+            )}
           </View>
           <View
             style={[
@@ -298,15 +328,28 @@ export default function FinancesScreen() {
                 { alignItems: "flex-start", paddingHorizontal: 10 },
               ]}
             >
-              <Text
-                style={[
-                  Style.text.dark,
-                  Style.text.semibold,
-                  Style.transparency.md,
-                ]}
-              >
-                {PhoneFormatter(profile?.about?.phone.slice(2))}
-              </Text>
+              {profile?.about?.phone != null && (
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.transparency.md,
+                  ]}
+                >
+                  {PhoneFormatter(profile?.about?.phone?.slice(2))}
+                </Text>
+              )}
+              {profile?.about?.phone == null && (
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.transparency.md,
+                  ]}
+                >
+                  (000) 000-0000
+                </Text>
+              )}
             </View>
           </View>
 

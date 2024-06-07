@@ -224,6 +224,67 @@ export default function TicketVerifierScreen() {
           />
         ))}
       </View>
+      <View
+        style={[
+          Style.containers.row,
+          {
+            justifyContent: "space-evenly",
+            width: width,
+            marginTop: 25,
+            marginBottom: 5,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => Linking.openURL("https://facebook.com/ticketsfour")}
+        >
+          <Feather
+            name="facebook"
+            color={theme["color-primary-500"]}
+            size={26}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            Linking.openURL("https://www.instagram.com/ticketsfour")
+          }
+        >
+          <MaterialCommunityIcons
+            name="instagram"
+            color={theme["color-primary-500"]}
+            size={28}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => Linking.openURL("https://www.x.com/ticketsfourapp")}
+        >
+          <FontAwesome6
+            name="x-twitter"
+            color={theme["color-primary-500"]}
+            size={24}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => Linking.openURL("https://www.tiktok.com/@ticketsfour")}
+        >
+          <FontAwesome6
+            name="tiktok"
+            color={theme["color-primary-500"]}
+            size={22}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            Linking.openURL("https://www.linkedin.com/company/ticketsfour")
+          }
+        >
+          <FontAwesome6
+            name="linkedin-in"
+            color={theme["color-primary-500"]}
+            size={24}
+          />
+        </TouchableOpacity>
+      </View>
     </ScrollContainer>
   );
 }

@@ -303,7 +303,7 @@
   "ticketLinkLost": "Oh no! This ticket link is {lost}!",
   "lost": "lost",
   "VALID": "Valid Ticket",
-  "USED_VALID_TICKET": "Ticket Scanned",
+  "USED_VALID_TICKET": "Ticket Scanned at {{stamp}}",
   "INVALID_TICKET": "Invalid Ticket",
   "xTicketsRemaining": "{{x}} Remaining",
   "guestModeDesc": "In guest mode you can view all our events, shop tickets, read our blogs, but you won't have access to the rewards our registered users do!",

@@ -106,7 +106,7 @@ export default class Ev {
 
     this.isInPast = diff < 0;
 
-    if (diff < 12 && this.active) {
+    if (diff < 24 && this.active) {
       this.promptScanner = true;
     }
 

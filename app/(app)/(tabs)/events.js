@@ -20,24 +20,29 @@ import EventComponent from "../../../utils/components/Event";
 import { router } from "expo-router";
 import { ReplaceWithStyle } from "../../../utils/Formatters";
 
-const renderEvent = ({ item: event }, i18n) => {
-  return <EventComponent key={event.id} i18n={i18n} _event={event} />;
-};
+const RenderEvent = React.memo(
+  ({ item: event, i18n }) => (
+    <EventComponent key={event.id} i18n={i18n} _event={event} />
+  ),
+  (prevProps, nextProps) => {
+    return prevProps.item.id == nextProps.item.id;
+  },
+);
 
 export default function EventsScreen() {
   const { session, signOut } = useSession();
 
-  const [search, setSearch] = React.useState("");
   const { i18n, locale } = useLocalization();
   const [isLoading, setIsLoading] = React.useState(true);
   const { width, height } = Dimensions.get("window");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [events, setEvents] = React.useState([]);
 
   const load = async () => {
     setIsLoading(true);
 
     try {
-      let res = await Api.get("/events", { auth: session });
+      let res = await Api.get("/events", { auth: session, q: searchQuery });
       if (res.isError) throw "e";
 
       setEvents(res.data.events);
@@ -53,19 +58,8 @@ export default function EventsScreen() {
   }, []);
 
   React.useEffect(() => {
-    // setTimeout(() => {
-    //   router.push({
-    //     pathname: "tickets/verify",
-    //     params: {
-    //       eid: "6621a60afb6af7a6170236f7",
-    //       intent: "pi_3PCbCJA60uJAVJy31bDMtjqN",
-    //       secret:
-    //         "pi_3PCbCJA60uJAVJy31bDMtjqN_secret_GCKSdr8GEdVhyReFnWDXwWPFw",
-    //     },
-    //   });
-    // }, 3000);
     load();
-  }, []);
+  }, [searchQuery]);
 
   if (isLoading) {
     <LayoutContainer>
@@ -129,13 +123,15 @@ export default function EventsScreen() {
                   />
                 </View>
                 <TextInput
-                  value={search}
                   autoCorrect={false}
                   clearButtonMode="while-editing"
                   placeholderTextColor={theme["color-basic-700"]}
                   style={[Style.input.text]}
                   placeholder={i18n.t("search")}
-                  onChangeText={(val) => setSearch(val)}
+                  returnKeyType="search"
+                  onSubmitEditing={({
+                    nativeEvent: { text, eventCount, target },
+                  }) => setSearchQuery(text)}
                 />
               </View>
             </View>
@@ -143,7 +139,7 @@ export default function EventsScreen() {
         ),
       }}
       data={events}
-      renderItem={(params) => renderEvent(params, i18n)}
+      renderItem={(params) => <RenderEvent {...params} i18n={i18n} />}
     />
   );
 }

@@ -201,6 +201,8 @@ export default function EventScreen() {
   }, [ev]);
 
   const enoughAgeDataPoints = React.useMemo(() => {
+    if (ev?.draft) return false;
+
     return (
       !ev?.active ||
       ev?.dataPoints?.ages?.map((p) => p.value).filter((v) => v != 0).length > 3
@@ -269,6 +271,7 @@ export default function EventScreen() {
   const [holdsTransferError, setHoldsTransferError] = React.useState("");
 
   const [scannerResultsDatum, setScannerResultsDatum] = React.useState(null);
+  const [scanStamp, setScanStamp] = React.useState(null);
 
   const holdingsHelper = React.useMemo(() => {
     if (!ev?.nodes)
@@ -588,9 +591,13 @@ export default function EventScreen() {
     }
   };
 
-  const load = async () => {
+  const loadDetails = async () => {
     try {
-      const res = await Api.get("/organizations/event", { auth, oid, eid });
+      const res = await Api.get("/organizations/event/details", {
+        auth,
+        oid,
+        eid,
+      });
       if (res.isError) throw "e";
 
       if (!res.data.has_permission) {
@@ -609,6 +616,34 @@ export default function EventScreen() {
       setIsEventOrganizer(res.data.isEventOrganizer);
       setEvent(new EventModel({ ...res.data.ev }));
       setScannerShareLink(res.data.scanner_share);
+
+      setTodos(res.data.todos);
+      setScheduledTasks(res.data.tasks);
+
+      setSalesAmount(res.data.sales);
+      setVenueEarnings(res.data.venue_earnings);
+      setPromoterEarnings(res.data.promoter_earnings);
+      setTaxCollected(res.data.taxes_collected);
+      setFeesCharged(res.data.fees_charged);
+      setArtists(res.data.ev.lineup);
+
+      setIsLoading(false);
+    } catch (e) {
+      console.log(e);
+      //setIsLoading(false);
+    }
+  };
+
+  const loadBreakdown = async () => {
+    try {
+      const res = await Api.get("/organizations/breakdown", { auth, oid, eid });
+      if (res.isError) throw "e";
+
+      if (!res.data.has_permission) {
+        setHasPermission(false);
+        throw "NO_PERMISSION";
+      }
+
       setTierSales(res.data.tierSales);
 
       let physical = {};
@@ -625,24 +660,18 @@ export default function EventScreen() {
       });
 
       setPhysicalTickets(physical);
-      setTodos(res.data.todos);
-      setScheduledTasks(res.data.tasks);
-
-      setSalesAmount(res.data.sales);
-      setVenueEarnings(res.data.venue_earnings);
-      setPromoterEarnings(res.data.promoter_earnings);
-      setTaxCollected(res.data.taxes_collected);
-      setFeesCharged(res.data.fees_charged);
       setPurchases(
         res.data.purchases.map((purchase) => new Purchase({ ...purchase })),
       );
-      setArtists(res.data.ev.lineup);
-
-      setIsLoading(false);
     } catch (e) {
       console.log(e);
       //setIsLoading(false);
     }
+  };
+
+  const load = async () => {
+    loadDetails();
+    loadBreakdown();
   };
 
   React.useEffect(() => {
@@ -678,6 +707,12 @@ export default function EventScreen() {
       if (res.isError) throw res.data.message;
 
       setScannerResult(res.data.status);
+
+      if (res.data.timestamp) {
+        setScanStamp(moment(res.data.timestamp).format("hh:mm A"));
+      } else {
+        setScanStamp(null);
+      }
       let updatedEv = ev.updateScanned(res.data.scanned);
       setEvent(updatedEv);
       setIsLoadingScan(false);
@@ -2132,82 +2167,84 @@ export default function EventScreen() {
                   </View>
                 </View>
 
-                <View
-                  style={[
-                    Style.cardBlank,
-                    {
-                      width: width * 0.8,
-                      maxWidth: 350,
-                      marginHorizontal: 10,
-                      marginTop: 10,
-                      marginBottom: 20,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    },
-                  ]}
-                >
-                  <View>
-                    <Text
-                      style={[
-                        Style.text.dark,
-                        Style.text.bold,
-                        Style.text.xl,
-                        { textAlign: "center", paddingBottom: 15 },
-                      ]}
-                    >
-                      {i18n.t("eventChecklist")}
-                    </Text>
-                    {TODOS.filter((t) =>
-                      ev?.active ? !t.hideOnActive : true,
-                    ).map((todo, tidx) => (
-                      <Pressable
-                        onPress={() => handleSectionChange(todo.section)}
-                        key={todo.id}
+                {(ev?.draft || ev?.active) && (
+                  <View
+                    style={[
+                      Style.cardBlank,
+                      {
+                        width: width * 0.8,
+                        maxWidth: 350,
+                        marginHorizontal: 10,
+                        marginTop: 10,
+                        marginBottom: 20,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                    ]}
+                  >
+                    <View>
+                      <Text
                         style={[
-                          Style.containers.row,
-                          {
-                            width: "100%",
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                          },
+                          Style.text.dark,
+                          Style.text.bold,
+                          Style.text.xl,
+                          { textAlign: "center", paddingBottom: 15 },
                         ]}
                       >
-                        {todos.includes(todo.id) ? (
-                          <Feather
-                            name="check"
-                            size={20}
-                            color={theme["color-basic-700"]}
-                          />
-                        ) : (
-                          <>{"         "}</>
-                        )}
-                        <Text
+                        {i18n.t("eventChecklist")}
+                      </Text>
+                      {TODOS.filter((t) =>
+                        ev?.active ? !t.hideOnActive : true,
+                      ).map((todo, tidx) => (
+                        <Pressable
+                          onPress={() => handleSectionChange(todo.section)}
+                          key={todo.id}
                           style={[
-                            Style.text.semibold,
-                            Style.text.lg,
+                            Style.containers.row,
                             {
-                              color: todos.includes(todo.id)
-                                ? theme["color-basic-700"]
-                                : theme["color-organizer-500"],
+                              width: "100%",
+                              paddingHorizontal: 10,
+                              paddingVertical: 4,
                             },
                           ]}
                         >
-                          {"  "}
-                          {todo.text}
-                        </Text>
-                        <View style={{ flex: 1 }} />
-                        <Text
-                          style={[
-                            Style.text.semibold,
-                            { color: theme["color-organizer-500"] },
-                          ]}
-                        >
-                          {todo.edit}
-                        </Text>
-                      </Pressable>
-                    ))}
+                          {todos.includes(todo.id) ? (
+                            <Feather
+                              name="check"
+                              size={20}
+                              color={theme["color-basic-700"]}
+                            />
+                          ) : (
+                            <Text>{"         "}</Text>
+                          )}
+                          <Text
+                            style={[
+                              Style.text.semibold,
+                              Style.text.lg,
+                              {
+                                color: todos.includes(todo.id)
+                                  ? theme["color-basic-700"]
+                                  : theme["color-organizer-500"],
+                              },
+                            ]}
+                          >
+                            {"  "}
+                            {todo.text}
+                          </Text>
+                          <View style={{ flex: 1 }} />
+                          <Text
+                            style={[
+                              Style.text.semibold,
+                              { color: theme["color-organizer-500"] },
+                            ]}
+                          >
+                            {todo.edit}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
               </ScrollView>
 
               <View style={[Style.containers.row]}>
@@ -2449,7 +2486,7 @@ export default function EventScreen() {
                   </Text>
                 </View>
               ))}
-              {Object.keys(addonsGrouped).map((price, pidx) => (
+              {/* {Object.keys(addonsGrouped).map((price, pidx) => (
                 <Table.Row key={"ADDON" + pidx}>
                   <Table.Cell>
                     <Badge enableShadow disableOutline color="primary">
@@ -2465,7 +2502,7 @@ export default function EventScreen() {
                     </Text>
                   </Table.Cell>
                 </Table.Row>
-              ))}
+              ))} */}
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
                 <Text
@@ -2582,17 +2619,19 @@ export default function EventScreen() {
                   <PieChart
                     style={{ height: 200, marginTop: 20 }}
                     valueAccessor={({ item }) => item.value}
-                    data={ev?.dataPoints?.ages.map((dp, dpidx) => {
-                      return {
-                        key: dpidx + 1,
-                        value: dp.value * 100,
-                        label: dp.label,
-                        svg: {
-                          fill: theme["color-organizer-500"],
-                          opacity: dp.color,
-                        },
-                      };
-                    })}
+                    data={
+                      ev?.dataPoints?.ages?.map((dp, dpidx) => {
+                        return {
+                          key: dpidx + 1,
+                          value: dp.value * 100,
+                          label: dp.label,
+                          svg: {
+                            fill: theme["color-organizer-500"],
+                            opacity: dp.color,
+                          },
+                        };
+                      }) || []
+                    }
                     spacing={0}
                     outerRadius={"99%"}
                   >
@@ -4662,7 +4701,7 @@ export default function EventScreen() {
                               Style.text.semibold,
                             ]}
                           >
-                            {i18n.t(scannerResult)}
+                            {i18n.t(scannerResult, { stamp: scanStamp })}
                           </Text>
                         )}
                       </View>

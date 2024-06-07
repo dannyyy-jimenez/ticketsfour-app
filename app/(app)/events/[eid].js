@@ -448,9 +448,15 @@ export default function EventScreen() {
       customerId: customerStripe,
       customerEphemeralKeySecret: ephemeralStripe,
       paymentIntentClientSecret: paymentIntentSecret,
+      billingDetailsCollectionConfiguration: {
+        name: "automatic",
+        email: "automatic",
+        address: "never",
+        attachDefaultsToPaymentMethod: true,
+      },
       // Set `allowsDelayedPaymentMethods` to true if your business can handle payment
       //methods that complete payment after a delay, like SEPA Debit and Sofort.
-      allowsDelayedPaymentMethods: true,
+      allowsDelayedPaymentMethods: false,
       defaultBillingDetails: {
         name: firstName + " " + lastName,
       },

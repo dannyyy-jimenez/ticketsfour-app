@@ -303,7 +303,7 @@
   "ticketLinkLost": "¡Oh no! ¡Este enlace de entrada está {lost}!",
   "lost": "perdido",
   "VALID": "Entrada Válida",
-  "USED_VALID_TICKET": "Entrada Escaneada",
+  "USED_VALID_TICKET": "Entrada Escaneada a las {{stamp}}",
   "INVALID_TICKET": "Entrada Inválida",
   "xTicketsRemaining": "{{x}} Restantes",
   "guestModeDesc": "En el modo de invitado, puedes ver todos nuestros eventos, comprar entradas, leer nuestros blogs, ¡pero no tendrás acceso a las recompensas que tienen nuestros usuarios registrados!",
