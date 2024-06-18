@@ -43,7 +43,6 @@ export default function RegisterScreen() {
   const firstNameInput = React.useRef(null);
   const lastNameInput = React.useRef(null);
   const phoneInput = React.useRef(null);
-  const companyCodeInput = React.useRef(null);
   const emailInput = React.useRef(null);
   const dobInput = React.useRef(null);
   const [fontsLoaded, fontError] = useFonts({
@@ -72,11 +71,9 @@ export default function RegisterScreen() {
   ];
 
   const canRegister = React.useMemo(() => {
-    if (!moment(dob, "MM-DD-YYYY").isValid()) return false;
-
     try {
-      let bday = moment(dob, "MM-DD-YYYY");
       let today = moment();
+      let bday = today.clone().subtract(parseInt(dob), "Y").startOf("year");
 
       if (today.diff(bday, "y") < 13) throw "AGE";
     } catch (e) {
@@ -96,7 +93,10 @@ export default function RegisterScreen() {
   const onRegister = async () => {
     setError(null);
     setIsLoading(true);
-    let dobF = moment(dob, "MM-DD-YYYY").format("YYYY-MM-DD");
+
+    let today = moment();
+    let bday = today.subtract(parseInt(dob), "Y").startOf("year");
+    let dobF = moment(bday, "MM-DD-YYYY").format("YYYY-MM-DD");
 
     try {
       const res = await Api.post("/register", {
@@ -105,10 +105,7 @@ export default function RegisterScreen() {
         phone: phoneNumber,
         email,
         dob: dobF,
-        countryCode,
-        type: "app",
       });
-      console.log(res);
       if (res.isError) throw res.data.message;
 
       setIsLoading(false);
@@ -132,10 +129,6 @@ export default function RegisterScreen() {
   React.useEffect(() => {
     setPhoneNumber(PhoneFormatter(phoneNumber));
   }, [phoneNumber]);
-
-  React.useEffect(() => {
-    setDob(DateFormatter(dob));
-  }, [dob]);
 
   return (
     <KeyboardAvoidingView behavior="position">
@@ -331,11 +324,10 @@ export default function RegisterScreen() {
                     <TextInput
                       ref={dobInput}
                       onSubmitEditing={() => emailInput.current.focus()}
-                      autoComplete="birthdate-full"
                       enterKeyHint="next"
                       style={[Styles.input.text]}
-                      placeholder={i18n.t("dob")}
-                      keyboardType="default"
+                      placeholder={i18n.t("age")}
+                      keyboardType="numeric"
                       value={dob}
                       onChangeText={(val) => setDob(val)}
                     />

@@ -39,9 +39,16 @@ import SkeletonLoader from "expo-skeleton-loader";
 import Blog from "../../../models/Blog";
 import * as Linking from "expo-linking";
 import { KeyboardAvoidingView } from "react-native";
+import { SheetManager, SheetProvider } from "react-native-actions-sheet";
+import {
+  LinkIOSPresentationStyle,
+  LinkLogLevel,
+  create as createPlaid,
+  open as openPlaid,
+} from "react-native-plaid-link-sdk";
 
 export default function EventScreen() {
-  const { session, isGuest, signOut } = useSession();
+  const { session, auth, isGuest, signOut } = useSession();
 
   const scrollContainer = React.useRef(null);
   const insets = useSafeAreaInsets();
@@ -53,6 +60,7 @@ export default function EventScreen() {
   const [event, setEvent] = React.useState(null);
   const [pagers, setPagers] = React.useState(new Array(2).fill(0));
   const [activePager, setActivePager] = React.useState(0);
+  const [totalY, setTotalY] = React.useState(null);
 
   const [isLoadingLeaves, setIsLoadingLeaves] = React.useState(false);
   const [isLoadingPricing, setIsLoadingPricing] = React.useState(false);
@@ -97,6 +105,10 @@ export default function EventScreen() {
   const [ephemeralStripe, setEphemeralStripe] = React.useState(null);
   const [paymentIntent, setPaymentIntent] = React.useState(null);
   const [paymentIntentSecret, setPaymentIntentSecret] = React.useState(null);
+
+  const [plaidInstitution, setPlaidInstitution] = React.useState(null);
+  const [plaidAccount, setPlaidAccount] = React.useState(null);
+  const [isLoadingPlaid, setIsLoadingPlaid] = React.useState(false);
 
   const missingEntry = React.useMemo(() => {
     return !selectedLeaves.some((leaf) => leaf.node?.isExposed);
@@ -364,6 +376,8 @@ export default function EventScreen() {
   };
 
   const handlePayment = async () => {
+    setIsLoadingPlaid(true);
+
     const verifyAvailability = await Api.post("/event/availability", {
       eid: params?.eid,
       leaves: selectedLeaves,
@@ -372,48 +386,42 @@ export default function EventScreen() {
     if (verifyAvailability.isError) {
       return;
     }
-
-    const proceedIntent = await Api.post("/event/hold/v2", {
+    const achIntent = await Api.post("/users/event/pay/ach", {
+      auth,
       eid: params?.eid,
-      leaves: selectedLeaves,
-      intent: paymentIntent,
-      secret: paymentIntentSecret,
+      leaves: selectedLeaves.map((l) => l.requestify()),
     });
 
-    if (proceedIntent.isError) {
-      return;
-    }
-
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      await Api.post("/event/hold/remove/v2", {
-        eid: params?.eid,
-        leaves: selectedLeaves,
-        intent: paymentIntent,
-        secret: paymentIntentSecret,
-      });
-      // This point will only be reached if there is an immediate error when
-      // confirming the payment. Show error to your customer (for example, payment
-      // details incomplete)
+    if (achIntent.isError) {
+      // await Api.post("/event/hold/remove/v2", {
+      //   eid: params?.eid,
+      //   leaves: selectedLeaves,
+      //   intent: paymentIntent,
+      //   secret: paymentIntentSecret,
+      // });
       //
-
       setSelectedNodes([]);
       setSelectedLeaves(null);
       setIsLoadingPricing(false);
-    } else {
-      router.replace({
-        pathname: "tickets/verify",
-        params: {
-          eid: params?.eid,
-          intent: paymentIntent,
-          secret: paymentIntentSecret,
+
+      SheetManager.show("payment-error-sheet", {
+        payload: {
+          text: achIntent?.data?.message || "SERVER_ERROR",
         },
       });
-      // Your customer will be redirected to your `return_url`. For some payment
-      // methods like iDEAL, your customer will be redirected to an intermediate
-      // site first to authorize the payment, then redirected to the `return_url`.
+
+      setIsLoadingPlaid(false);
+      return;
     }
+
+    router.replace({
+      pathname: "tickets/verify",
+      params: {
+        eid: params?.eid,
+        intent: paymentIntent,
+        secret: paymentIntentSecret,
+      },
+    });
   };
 
   React.useEffect(() => {
@@ -515,6 +523,111 @@ export default function EventScreen() {
     }
   };
 
+  const loadPayment = async () => {
+    if (!auth) {
+      return SheetManager.show("authentication");
+    }
+
+    Api.post("users/event/pricing", {
+      auth: auth,
+      eid: params?.eid,
+      piid: paymentIntent,
+      leaves: selectedLeaves.map((l) => l.requestify()),
+    })
+      .then(async (res) => {
+        if (res.isError) throw "error";
+
+        setServiceFee(res.data.service);
+        setSubtotal(res.data.subtotal);
+        setTotal(res.data.total);
+        setTax(res.data.tax);
+
+        setPaymentIntentSecret(res.data.payment_secret);
+        setPaymentIntent(res.data.piid);
+        setIsLoadingPricing(false);
+
+        setPlaidInstitution(res.data.institution);
+        setPlaidAccount(res.data.account);
+
+        try {
+          setCheckoutSection(2);
+
+          // setTimeout(() => {
+          //   scrollContainer?.current?.scrollToEnd({
+          //     animated: true,
+          //   });
+
+          //   // if (session && !isGuest) {
+          //   //   setPhone(res.data.ph);
+          //   //   setEmail(res.data.em);
+          //   //   setEphemeralStripe(res.data.ephemeralKey);
+          //   //   setCustomerStripe(res.data.customer);
+          //   setCheckoutSection(2);
+          //   // } else {
+          //   //   SheetManager.show("authentication");
+          //   // }
+          // }, 200);
+        } catch (e) {
+          console.log(e);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+        setIsLoadingPricing(true);
+      });
+  };
+
+  const linkPlaid = async (publicToken) => {
+    setIsLoadingPlaid(true);
+
+    try {
+      const res = await Api.post("/users/plaid/link", {
+        auth,
+        public_token: publicToken,
+      });
+      if (res.isError) throw res.data?.message;
+
+      setPlaidAccount(res.data.account);
+      setPlaidInstitution(res.data.institution);
+      setIsLoadingPlaid(false);
+    } catch (e) {
+      console.log(e);
+      setIsLoadingPlaid(false);
+    }
+  };
+
+  const handlePlaidTokenCreation = async () => {
+    setIsLoadingPlaid(true);
+
+    try {
+      const res = await Api.get("/users/plaid/link", {
+        auth,
+      });
+      if (res.isError) throw res.data?.message;
+
+      createPlaid({
+        token: res.data.link_token,
+        logLevel: LinkLogLevel.DEBUG,
+        noLoadingState: false,
+      });
+
+      openPlaid({
+        onSuccess: (res) => {
+          linkPlaid(res.publicToken);
+        },
+        onExit: (err) => {
+          console.log(err);
+        },
+        iOSPresentationStyle: LinkIOSPresentationStyle.MODAL,
+        logLevel: LinkLogLevel.DEBUG,
+      }).catch((e) => console.log(e));
+      setIsLoadingPlaid(false);
+    } catch (e) {
+      console.log(e);
+      setIsLoadingPlaid(false);
+    }
+  };
+
   React.useEffect(() => {
     load();
   }, [params?.eid]);
@@ -538,47 +651,8 @@ export default function EventScreen() {
 
     setIsLoadingPricing(true);
 
-    Api.post(session && !isGuest ? "users/event/pricing" : "event/pricing", {
-      auth: session,
-      eid: params?.eid,
-      piid: paymentIntent,
-      leaves: selectedLeaves.map((l) => l.requestify()),
-    })
-      .then(async (res) => {
-        if (res.isError) throw "error";
-
-        setServiceFee(res.data.service);
-        setSubtotal(res.data.subtotal);
-        setTotal(res.data.total);
-        setTax(res.data.tax);
-
-        setPaymentIntentSecret(res.data.payment_secret);
-        setPaymentIntent(res.data.piid);
-        setIsLoadingPricing(false);
-
-        if (session && !isGuest) {
-          setPhone(res.data.ph);
-          setEmail(res.data.em);
-          setEphemeralStripe(res.data.ephemeralKey);
-          setCustomerStripe(res.data.customer);
-          setCheckoutSection(2);
-        }
-
-        try {
-          setTimeout(() => {
-            scrollContainer?.current?.scrollToEnd({
-              animated: true,
-            });
-          }, 200);
-        } catch (e) {
-          console.log(e);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        setIsLoadingPricing(true);
-      });
-  }, [selectedLeaves]);
+    loadPayment();
+  }, [selectedLeaves, auth]);
 
   const onSelect = (e) => {
     let idx = Array.from(selectedNodes).findIndex((n) => n == e.identifier);
@@ -721,85 +795,237 @@ export default function EventScreen() {
     );
 
   return (
-    <StripeProvider
-      publishableKey={Config.stripeKey}
-      urlScheme="com.ticketsfour.app" // required for 3D Secure and bank redirects
-      merchantIdentifier="merchant.com.ticketsfour.app" // required for Apple Pay
-    >
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={{ flex: 1, width: "100%" }}
+    <SheetProvider>
+      <StripeProvider
+        publishableKey={Config.stripeKey}
+        urlScheme="com.ticketsfour.app" // required for 3D Secure and bank redirects
+        merchantIdentifier="merchant.com.ticketsfour.app" // required for Apple Pay
       >
-        <ScrollContainer
-          _ref={scrollContainer}
-          paddingHorizontal={0}
-          style={{ paddingBottom: 0 }}
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={{ flex: 1, width: "100%" }}
         >
-          <TouchableOpacity
-            style={[
-              Style.button.round,
-              Style.elevated,
-              { zIndex: 100, padding: 0, position: "absolute", left: 0 },
-            ]}
-            onPress={onClose}
+          <ScrollContainer
+            _ref={scrollContainer}
+            paddingHorizontal={0}
+            style={{ paddingBottom: 0 }}
           >
-            <Feather name="x" size={20} color={theme["color-basic-700"]} />
-          </TouchableOpacity>
-          <PagerView
-            scrollEnabled={!seatMapZoomEnabled}
-            onPageScroll={(e) => setActivePager(e?.nativeEvent?.position)}
-            style={{ height: height * 0.6, width: "100%" }}
-            initialPage={0}
-          >
-            {seatMapWorthyViews.map((_m, midx) => (
-              <View
-                key={"seatmap-layout-" + midx}
-                style={{
-                  backgroundColor: theme["color-basic-400"],
-                  paddingVertical: 10,
-                }}
-              >
+            <TouchableOpacity
+              style={[
+                Style.button.round,
+                Style.elevated,
+                { zIndex: 100, padding: 0, position: "absolute", left: 0 },
+              ]}
+              onPress={onClose}
+            >
+              <Feather name="x" size={20} color={theme["color-basic-700"]} />
+            </TouchableOpacity>
+            <PagerView
+              scrollEnabled={!seatMapZoomEnabled}
+              onPageScroll={(e) => setActivePager(e?.nativeEvent?.position)}
+              style={{ height: height * 0.6, width: "100%" }}
+              initialPage={0}
+            >
+              {seatMapWorthyViews.map((_m, midx) => (
                 <View
+                  key={"seatmap-layout-" + midx}
+                  style={{
+                    backgroundColor: theme["color-basic-400"],
+                    paddingVertical: 10,
+                  }}
+                >
+                  <View
+                    style={[
+                      Style.containers.column,
+                      { marginTop: 4, marginBottom: 15 },
+                    ]}
+                  >
+                    <Text
+                      style={[Style.text.bold, Style.text.xl, Style.text.dark]}
+                    >
+                      {event?.venue?.name}
+                    </Text>
+                    <Text style={[Style.text.semibold, Style.text.dark]}>
+                      {event.venue?.location?.street.split(",")[0]}
+                    </Text>
+                    <Text style={[Style.text.semibold, Style.text.dark]}>
+                      {event.venue?.location?.city},{" "}
+                      {event.venue?.location?.region}{" "}
+                      {event.venue?.location?.postal}
+                    </Text>
+                  </View>
+
+                  <SeatMap
+                    panEnabled={seatMapZoomEnabled}
+                    selected={selectedLeaves.map((l) => l.node.identifier)}
+                    onFocus={event.active ? onSelect : null}
+                    mode={event.active ? "ticketize" : "view"}
+                    variant="flat"
+                    nodes={event.nodes}
+                  />
+
+                  <TouchableOpacity
+                    onPress={() => setSeatMapZoomEnabled(!seatMapZoomEnabled)}
+                    style={[
+                      Style.elevated,
+                      {
+                        width: 44,
+                        height: 44,
+                        borderRadius: 6,
+                        backgroundColor: seatMapZoomEnabled
+                          ? theme["color-basic-400"]
+                          : theme["color-basic-200"],
+                        zIndex: 10,
+                        position: "absolute",
+                        right: 5,
+                        top: 10,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      },
+                    ]}
+                  >
+                    <Feather
+                      size={26}
+                      color={theme["color-basic-700"]}
+                      name="zoom-in"
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <View key="cover">
+                <Image
+                  style={{
+                    width: "100%",
+                    borderTopLeftRadius: 4,
+                    borderTopRightRadius: 4,
+                  }}
+                  contentFit="cover"
+                  source={{ uri: event?.coverT }}
+                  width={"100%"}
+                  height={height * 0.6}
+                  allowDownscaling
+                  contentPosition={"top"}
+                />
+                <BlurView
+                  intensity={20}
                   style={[
                     Style.containers.column,
-                    { marginTop: 4, marginBottom: 15 },
+                    {
+                      paddingHorizontal: 10,
+                      width: "100%",
+                      height: height * 0.6,
+                      paddingVertical: 10,
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      position: "absolute",
+                      top: 0,
+                      backgroundColor: theme["color-basic-800-10"],
+                    },
                   ]}
                 >
-                  <Text
-                    style={[Style.text.bold, Style.text.xl, Style.text.dark]}
+                  {!seatMapIsWorthy && (
+                    <View style={[Style.containers.column, { marginTop: 4 }]}>
+                      <Text
+                        style={[
+                          Style.text.bold,
+                          Style.text.xl,
+                          Style.text.basic,
+                        ]}
+                      >
+                        {event?.venue?.name}
+                      </Text>
+                      <Text style={[Style.text.semibold, Style.text.basic]}>
+                        {event.venue?.location?.street.split(",")[0]}
+                      </Text>
+                      <Text style={[Style.text.semibold, Style.text.basic]}>
+                        {event.venue?.location?.city},{" "}
+                        {event.venue?.location?.region}{" "}
+                        {event.venue?.location?.postal}
+                      </Text>
+                    </View>
+                  )}
+                  <Image
+                    style={{
+                      maxWidth: "90%",
+                      flex: 1,
+                      borderTopLeftRadius: 4,
+                      borderTopRightRadius: 4,
+                      alignSelf: "center",
+                      marginTop: 15,
+                      marginBottom: 35,
+                    }}
+                    contentFit="cover"
+                    source={{ uri: event?.coverT }}
+                    width={width}
+                    contentPosition={"center"}
+                  />
+                  {event?.soldOut && (
+                    <View
+                      style={[
+                        Style.containers.row,
+                        {
+                          borderColor: theme["color-primary-500"],
+                          backgroundColor: theme["color-primary-500"],
+                          borderRadius: 8,
+                          borderWidth: 4,
+                          paddingHorizontal: 14,
+                          paddingVertical: 4,
+                          position: "absolute",
+                          alignSelf: "center",
+                          top: height * 0.2,
+                          transform: [{ rotate: "-30deg" }],
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          Style.text.bold,
+                          Style.text.basic,
+                          {
+                            fontSize: 48,
+                          },
+                        ]}
+                      >
+                        {i18n.t("soldOut")}
+                      </Text>
+                    </View>
+                  )}
+                </BlurView>
+              </View>
+              <View key="map">
+                <MapView
+                  scrollEnabled={false}
+                  showsUserLocation={true}
+                  initialRegion={{
+                    latitude: event.venue.center[1],
+                    longitude: event.venue.center[0],
+                    latitudeDelta: 0.5,
+                    longitudeDelta: 0.5,
+                  }}
+                  style={{ height: height * 0.6, width: "100%" }}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: event.venue.center[1],
+                      longitude: event.venue.center[0],
+                    }}
                   >
-                    {event?.venue?.name}
-                  </Text>
-                  <Text style={[Style.text.semibold, Style.text.dark]}>
-                    {event.venue?.location?.street.split(",")[0]}
-                  </Text>
-                  <Text style={[Style.text.semibold, Style.text.dark]}>
-                    {event.venue?.location?.city},{" "}
-                    {event.venue?.location?.region}{" "}
-                    {event.venue?.location?.postal}
-                  </Text>
-                </View>
-
-                <SeatMap
-                  panEnabled={seatMapZoomEnabled}
-                  selected={selectedLeaves.map((l) => l.node.identifier)}
-                  onFocus={event.active ? onSelect : null}
-                  mode={event.active ? "ticketize" : "view"}
-                  variant="flat"
-                  nodes={event.nodes}
-                />
-
+                    <Fontisto
+                      size={32}
+                      color={theme["color-primary-500"]}
+                      name="map-marker-alt"
+                    />
+                  </Marker>
+                </MapView>
                 <TouchableOpacity
-                  onPress={() => setSeatMapZoomEnabled(!seatMapZoomEnabled)}
+                  onPress={onMapNavigate}
                   style={[
                     Style.elevated,
                     {
                       width: 44,
                       height: 44,
                       borderRadius: 6,
-                      backgroundColor: seatMapZoomEnabled
-                        ? theme["color-basic-400"]
-                        : theme["color-basic-200"],
+                      backgroundColor: theme["color-basic-200"],
                       zIndex: 10,
                       position: "absolute",
                       right: 5,
@@ -809,619 +1035,259 @@ export default function EventScreen() {
                     },
                   ]}
                 >
-                  <Feather
+                  <Ionicons
                     size={26}
                     color={theme["color-basic-700"]}
-                    name="zoom-in"
+                    name="car-sport"
                   />
                 </TouchableOpacity>
               </View>
-            ))}
-            <View key="cover">
-              <Image
-                style={{
-                  width: "100%",
-                  borderTopLeftRadius: 4,
-                  borderTopRightRadius: 4,
-                }}
-                contentFit="cover"
-                source={{ uri: event?.coverT }}
-                width={"100%"}
-                height={height * 0.6}
-                allowDownscaling
-                contentPosition={"top"}
-              />
-              <BlurView
-                intensity={20}
-                style={[
-                  Style.containers.column,
-                  {
-                    paddingHorizontal: 10,
-                    width: "100%",
-                    height: height * 0.6,
-                    paddingVertical: 10,
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    position: "absolute",
-                    top: 0,
-                    backgroundColor: theme["color-basic-800-10"],
-                  },
-                ]}
-              >
-                {!seatMapIsWorthy && (
-                  <View style={[Style.containers.column, { marginTop: 4 }]}>
-                    <Text
-                      style={[Style.text.bold, Style.text.xl, Style.text.basic]}
-                    >
-                      {event?.venue?.name}
-                    </Text>
-                    <Text style={[Style.text.semibold, Style.text.basic]}>
-                      {event.venue?.location?.street.split(",")[0]}
-                    </Text>
-                    <Text style={[Style.text.semibold, Style.text.basic]}>
-                      {event.venue?.location?.city},{" "}
-                      {event.venue?.location?.region}{" "}
-                      {event.venue?.location?.postal}
-                    </Text>
-                  </View>
-                )}
-                <Image
-                  style={{
-                    maxWidth: "90%",
-                    flex: 1,
-                    borderTopLeftRadius: 4,
-                    borderTopRightRadius: 4,
-                    alignSelf: "center",
-                    marginTop: 15,
-                    marginBottom: 35,
-                  }}
-                  contentFit="cover"
-                  source={{ uri: event?.coverT }}
-                  width={width}
-                  contentPosition={"center"}
-                />
-                {event?.soldOut && (
-                  <View
+              {event?.lineup?.map((talent, tidx) => (
+                <View key={(3 + tidx).toString()} style={{ paddingTop: 120 }}>
+                  <Image
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                    }}
+                    contentFit="cover"
+                    source={{
+                      uri: talent.cover?.url
+                        ?.replace("{w}", "800")
+                        .replace("{h}", "800"),
+                    }}
+                  />
+                  <BlurView
+                    intensity={60}
                     style={[
-                      Style.containers.row,
+                      Style.containers.column,
                       {
-                        borderColor: theme["color-primary-500"],
-                        backgroundColor: theme["color-primary-500"],
-                        borderRadius: 8,
-                        borderWidth: 4,
-                        paddingHorizontal: 14,
-                        paddingVertical: 4,
                         position: "absolute",
-                        alignSelf: "center",
-                        top: height * 0.2,
-                        transform: [{ rotate: "-30deg" }],
+                        top: 0,
+                        width: "100%",
+                        paddingTop: 0,
+                        paddingBottom: 10,
+                        paddingHorizontal: 20,
+                        backgroundColor: theme["color-basic-800-10"],
                       },
                     ]}
                   >
-                    <Text
-                      style={[
-                        Style.text.bold,
-                        Style.text.basic,
-                        {
-                          fontSize: 48,
-                        },
-                      ]}
-                    >
-                      {i18n.t("soldOut")}
-                    </Text>
-                  </View>
-                )}
-              </BlurView>
-            </View>
-            <View key="map">
-              <MapView
-                scrollEnabled={false}
-                showsUserLocation={true}
-                initialRegion={{
-                  latitude: event.venue.center[1],
-                  longitude: event.venue.center[0],
-                  latitudeDelta: 0.5,
-                  longitudeDelta: 0.5,
-                }}
-                style={{ height: height * 0.6, width: "100%" }}
-              >
-                <Marker
-                  coordinate={{
-                    latitude: event.venue.center[1],
-                    longitude: event.venue.center[0],
-                  }}
-                >
-                  <Fontisto
-                    size={32}
-                    color={theme["color-primary-500"]}
-                    name="map-marker-alt"
+                    <WebView
+                      style={{ width: width, height: 160 }}
+                      source={{ uri: talent.embed }}
+                    />
+                    <View style={[Style.containers.row, { marginTop: 10 }]}>
+                      <Text
+                        style={[
+                          Style.text.basic,
+                          Style.text.bold,
+                          Style.text.xxl,
+                          { flex: 1 },
+                        ]}
+                      >
+                        {talent.name}
+                      </Text>
+                      {locale == "es" && (
+                        <Image
+                          alt="apple music icon"
+                          contentFit="contain"
+                          style={{
+                            width: 180,
+                            height: 60,
+                          }}
+                          source={{
+                            uri: "https://res.cloudinary.com/ticketsfour/image/upload/v1698388850/externals/apple/ESLA_Apple_Music_Listen_on_Lockup_RGB_white_090120_xzjkan.svg",
+                          }}
+                        />
+                      )}
+                      {locale !== "es" && (
+                        <Image
+                          alt="apple music icon"
+                          contentFit="contain"
+                          style={{
+                            width: 180,
+                            height: 60,
+                          }}
+                          source={{
+                            uri: "https://res.cloudinary.com/ticketsfour/image/upload/v1698389281/externals/apple/US-UK_Apple_Music_Listen_on_Lockup_RGB_wht_072720_u9mqob.svg",
+                          }}
+                        />
+                      )}
+                    </View>
+                  </BlurView>
+                </View>
+              ))}
+            </PagerView>
+            <View
+              style={{
+                padding: 10,
+                borderTopLeftRadius: 15,
+                borderTopRightRadius: 15,
+                backgroundColor: theme["color-basic-100"],
+                top: -30,
+                marginBottom: -50,
+              }}
+            >
+              <View style={[Style.containers.row, { marginTop: 5 }]}>
+                {pagers.map((_p, pidx) => (
+                  <View
+                    key={"pager-" + pidx}
+                    style={{
+                      height: 8,
+                      width: 8,
+                      borderRadius: 4,
+                      marginHorizontal: 4,
+                      backgroundColor:
+                        pidx == activePager
+                          ? theme["color-basic-700"]
+                          : theme["color-basic-500"],
+                    }}
                   />
-                </Marker>
-              </MapView>
-              <TouchableOpacity
-                onPress={onMapNavigate}
+                ))}
+              </View>
+              <View
                 style={[
-                  Style.elevated,
+                  Style.containers.row,
                   {
-                    width: 44,
-                    height: 44,
-                    borderRadius: 6,
-                    backgroundColor: theme["color-basic-200"],
-                    zIndex: 10,
-                    position: "absolute",
-                    right: 5,
-                    top: 10,
-                    justifyContent: "center",
-                    alignItems: "center",
+                    marginTop: 20,
+                    alignItems: "flex-start",
+                    justifyContent: "flex-start",
                   },
                 ]}
               >
-                <Ionicons
-                  size={26}
-                  color={theme["color-basic-700"]}
-                  name="car-sport"
-                />
-              </TouchableOpacity>
-            </View>
-            {event?.lineup?.map((talent, tidx) => (
-              <View key={(3 + tidx).toString()} style={{ paddingTop: 120 }}>
-                <Image
-                  style={{
-                    height: "100%",
-                    width: "100%",
-                  }}
-                  contentFit="cover"
-                  source={{
-                    uri: talent.cover?.url
-                      ?.replace("{w}", "800")
-                      .replace("{h}", "800"),
-                  }}
-                />
-                <BlurView
-                  intensity={60}
+                <View
                   style={[
                     Style.containers.column,
                     {
-                      position: "absolute",
-                      top: 0,
-                      width: "100%",
-                      paddingTop: 0,
-                      paddingBottom: 10,
-                      paddingHorizontal: 20,
-                      backgroundColor: theme["color-basic-800-10"],
+                      alignItems: "flex-start",
+                      justifyContent: "flex-start",
+                      flex: 1,
                     },
                   ]}
                 >
-                  <WebView
-                    style={{ width: width, height: 160 }}
-                    source={{ uri: talent.embed }}
+                  <Text
+                    style={[
+                      Style.text.md,
+                      Style.text.semibold,
+                      Style.text.dark,
+                    ]}
+                  >
+                    {i18n.t("xPresents", {
+                      promoters: event.hosts.map((h) => h.name).join(", "),
+                    })}
+                  </Text>
+                  <Text
+                    style={[
+                      Style.text.xl,
+                      Style.text.semibold,
+                      Style.text.primary,
+                      { marginTop: 4, marginBottom: 4 },
+                    ]}
+                  >
+                    {event.name}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={onShare}
+                  style={[Style.button.round, { marginLeft: 4 }]}
+                >
+                  <Feather
+                    name="share"
+                    size={18}
+                    color={theme["color-basic-700"]}
                   />
-                  <View style={[Style.containers.row, { marginTop: 10 }]}>
-                    <Text
-                      style={[
-                        Style.text.basic,
-                        Style.text.bold,
-                        Style.text.xxl,
-                        { flex: 1 },
-                      ]}
-                    >
-                      {talent.name}
-                    </Text>
-                    {locale == "es" && (
-                      <Image
-                        alt="apple music icon"
-                        contentFit="contain"
-                        style={{
-                          width: 180,
-                          height: 60,
-                        }}
-                        source={{
-                          uri: "https://res.cloudinary.com/ticketsfour/image/upload/v1698388850/externals/apple/ESLA_Apple_Music_Listen_on_Lockup_RGB_white_090120_xzjkan.svg",
-                        }}
-                      />
-                    )}
-                    {locale !== "es" && (
-                      <Image
-                        alt="apple music icon"
-                        contentFit="contain"
-                        style={{
-                          width: 180,
-                          height: 60,
-                        }}
-                        source={{
-                          uri: "https://res.cloudinary.com/ticketsfour/image/upload/v1698389281/externals/apple/US-UK_Apple_Music_Listen_on_Lockup_RGB_wht_072720_u9mqob.svg",
-                        }}
-                      />
-                    )}
-                  </View>
-                </BlurView>
+                </TouchableOpacity>
               </View>
-            ))}
-          </PagerView>
-          <View
-            style={{
-              padding: 10,
-              borderTopLeftRadius: 15,
-              borderTopRightRadius: 15,
-              backgroundColor: theme["color-basic-100"],
-              top: -30,
-            }}
-          >
-            <View style={[Style.containers.row, { marginTop: 5 }]}>
-              {pagers.map((_p, pidx) => (
-                <View
-                  key={"pager-" + pidx}
-                  style={{
-                    height: 8,
-                    width: 8,
-                    borderRadius: 4,
-                    marginHorizontal: 4,
-                    backgroundColor:
-                      pidx == activePager
-                        ? theme["color-basic-700"]
-                        : theme["color-basic-500"],
-                  }}
-                />
-              ))}
-            </View>
-            <View
-              style={[
-                Style.containers.row,
-                {
-                  marginTop: 20,
-                  alignItems: "flex-start",
-                  justifyContent: "flex-start",
-                },
-              ]}
-            >
               <View
                 style={[
-                  Style.containers.column,
+                  Style.containers.row,
                   {
-                    alignItems: "flex-start",
-                    justifyContent: "flex-start",
-                    flex: 1,
+                    width: "100%",
+                    justifyContent: "space-between",
+                    marginTop: 5,
                   },
                 ]}
               >
                 <Text
-                  style={[Style.text.md, Style.text.semibold, Style.text.dark]}
-                >
-                  {i18n.t("xPresents", {
-                    promoters: event.hosts.map((h) => h.name).join(", "),
-                  })}
-                </Text>
-                <Text
                   style={[
-                    Style.text.xl,
                     Style.text.semibold,
-                    Style.text.primary,
-                    { marginTop: 4, marginBottom: 4 },
+                    Style.transparency.md,
+                    Style.text.dark,
                   ]}
                 >
-                  {event.name}
+                  {event.getStart("dddd, MMM Do, YYYY")} •{" "}
+                  {i18n.t("doorsOpen", { time: event.getStart("hh:mm A") })}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={onShare}
-                style={[Style.button.round, { marginLeft: 4 }]}
-              >
-                <Feather
-                  name="share"
-                  size={18}
-                  color={theme["color-basic-700"]}
-                />
-              </TouchableOpacity>
-            </View>
-            <View
-              style={[
-                Style.containers.row,
-                {
-                  width: "100%",
-                  justifyContent: "space-between",
-                  marginTop: 5,
-                },
-              ]}
-            >
               <Text
                 style={[
                   Style.text.semibold,
-                  Style.transparency.md,
                   Style.text.dark,
+                  Style.transparency.sm,
+                  { marginTop: 14 },
                 ]}
               >
-                {event.getStart("dddd, MMM Do, YYYY")} •{" "}
-                {i18n.t("doorsOpen", { time: event.getStart("hh:mm A") })}
+                {event.description}
               </Text>
-            </View>
-            <Text
-              style={[
-                Style.text.semibold,
-                Style.text.dark,
-                Style.transparency.sm,
-                { marginTop: 14 },
-              ]}
-            >
-              {event.description}
-            </Text>
-            {!event.active && (
-              <Text
-                style={[
-                  Style.text.lg,
-                  Style.transparency.md,
-                  Style.text.dark,
-                  Style.text.semibold,
-                  { marginTop: 30, textAlign: "center" },
-                ]}
-              >
-                {i18n.t("inactiveEvent")}
-              </Text>
-            )}
-            {event.active && (
-              <>
-                {event?.nodes.filter((n) => n.isExposed).length > 0 && (
-                  <>
-                    <Text
-                      style={[
-                        Style.text.bold,
-                        Style.text.primary,
-                        Style.text.lg,
-                        Style.transparency.sm,
-                        { marginTop: 20, marginBottom: 10 },
-                      ]}
-                    >
-                      {i18n.t("chooseTickets")}
-                    </Text>
-                    {event?.nodes
-                      .filter((n) => !n.isDecorative && n.isExposed)
-                      .map((node) => {
-                        if (node.type == "ga-sec")
-                          return (
-                            <View
-                              key={"node+" + node.identifier}
-                              style={[
-                                Style.card,
-                                selectedLeaves.find(
-                                  (l) => l.node.identifier == node.identifier,
-                                )
-                                  ? { borderColor: theme["color-primary-500"] }
-                                  : { borderColor: theme["color-basic-700"] },
-                              ]}
-                            >
-                              <View style={[Style.containers.column]}>
-                                <Text
-                                  style={[
-                                    Style.text.semibold,
-                                    selectedLeaves.find(
-                                      (l) =>
-                                        l.node.identifier == node.identifier,
-                                    )
-                                      ? Style.text.primary
-                                      : Style.text.dark,
-                                    Style.text.xl,
-                                  ]}
-                                >
-                                  {node.getIdentifier()}
-                                </Text>
-                                <Text
-                                  style={[
-                                    Style.text.semibold,
-                                    selectedLeaves.find(
-                                      (l) =>
-                                        l.node.identifier == node.identifier,
-                                    )
-                                      ? Style.text.primary
-                                      : Style.text.dark,
-                                    { marginTop: 6 },
-                                  ]}
-                                >
-                                  ${node.getPrice()} + $
-                                  {CurrencyFormatter(node.extra?.fee)}{" "}
-                                  {i18n.t("fee")}
-                                </Text>
-                                {/* {node.type == "table" && (
-                            <Text
-                              style={[
-                                Style.transparency.md,
-                                Style.text.sm,
-                                Style.text.dark,
-                              ]}
-                            >
-                              {Pluralize(node.seatsAvailable, "Guest")}{" "}
-                              {i18n.t("per_table")}
-                            </Text>
-                          )} */}
-
-                                <View
-                                  style={[
-                                    Style.containers.row,
-                                    {
-                                      width: "100%",
-                                      justifyContent: "space-evenly",
-                                      marginTop: 40,
-                                      marginBottom: 10,
-                                    },
-                                  ]}
-                                >
-                                  <TouchableOpacity
-                                    onPress={() =>
-                                      nodeQuantityChange(node.identifier, false)
-                                    }
-                                    style={[
-                                      Style.button.round,
-                                      {
-                                        height: 48,
-                                        borderRadius: 24,
-                                        width: 48,
-                                      },
-                                    ]}
-                                  >
-                                    <Feather
-                                      name="minus"
-                                      size={32}
-                                      color={theme["color-basic-700"]}
-                                    />
-                                  </TouchableOpacity>
-
-                                  <Text
-                                    style={[
-                                      { fontSize: 54 },
-                                      Style.text.bold,
-                                      Style.text.dark,
-                                    ]}
-                                  >
-                                    {nodeQuantities[node.identifier] || 1}
-                                  </Text>
-
-                                  <TouchableOpacity
-                                    onPress={() =>
-                                      nodeQuantityChange(node.identifier, true)
-                                    }
-                                    style={[
-                                      Style.button.round,
-                                      {
-                                        height: 48,
-                                        borderRadius: 24,
-                                        width: 48,
-                                      },
-                                    ]}
-                                  >
-                                    <Feather
-                                      name="plus"
-                                      size={32}
-                                      color={theme["color-basic-700"]}
-                                    />
-                                  </TouchableOpacity>
-                                </View>
-
-                                <Text
-                                  style={[
-                                    Style.text.md,
-                                    Style.text.semibold,
-                                    Style.text.dark,
-                                    { marginBottom: 10 },
-                                  ]}
-                                >
-                                  {i18n.t("tickets")}
-                                </Text>
-                              </View>
-
+              {!event.active && (
+                <Text
+                  style={[
+                    Style.text.lg,
+                    Style.transparency.md,
+                    Style.text.dark,
+                    Style.text.semibold,
+                    { marginTop: 30, textAlign: "center" },
+                  ]}
+                >
+                  {i18n.t("inactiveEvent")}
+                </Text>
+              )}
+              {event.active && (
+                <>
+                  {event?.nodes.filter((n) => n.isExposed).length > 0 && (
+                    <>
+                      <Text
+                        style={[
+                          Style.text.bold,
+                          Style.text.primary,
+                          Style.text.lg,
+                          Style.transparency.sm,
+                          { marginTop: 20, marginBottom: 10 },
+                        ]}
+                      >
+                        {i18n.t("chooseTickets")}
+                      </Text>
+                      {event?.nodes
+                        .filter((n) => !n.isDecorative && n.isExposed)
+                        .map((node) => {
+                          if (node.type == "ga-sec")
+                            return (
                               <View
+                                key={"node+" + node.identifier}
                                 style={[
-                                  Style.containers.row,
-                                  {
-                                    justifyContent: "space-between",
-                                    marginTop: 10,
-                                    marginBottom: 5,
-                                    paddingHorizontal: 10,
-                                  },
+                                  Style.card,
+                                  selectedLeaves.find(
+                                    (l) => l.node.identifier == node.identifier,
+                                  )
+                                    ? {
+                                        borderColor: theme["color-primary-500"],
+                                      }
+                                    : { borderColor: theme["color-basic-700"] },
                                 ]}
                               >
-                                <Text
-                                  style={[
-                                    Style.text.bold,
-                                    Style.text.xl,
-                                    Style.text.dark,
-                                    { width: "45%", textAlign: "center" },
-                                  ]}
-                                >
-                                  $
-                                  {CurrencyFormatter(
-                                    (node.price + node.extra?.fee) *
-                                      (nodeQuantities[node.identifier] || 1),
-                                  )}
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={() =>
-                                    handleDropdownLeafSelection(
-                                      node,
-                                      nodeQuantities[node.identifier] || 1,
-                                    )
-                                  }
-                                  style={[
-                                    Style.button.container,
-                                    {
-                                      width: "45%",
-                                      height: 50,
-                                      borderRadius: 50,
-                                    },
-                                  ]}
-                                >
+                                <View style={[Style.containers.column]}>
                                   <Text
                                     style={[
-                                      Style.text.bold,
-                                      Style.text.xl,
-                                      Style.text.basic,
-                                    ]}
-                                  >
-                                    {i18n.t("select")}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          );
-
-                        if (node.type == "seat" && node.available > 0)
-                          return (
-                            <TouchableOpacity
-                              key={"node+" + node.identifier}
-                              disabled={node.available <= 0}
-                              onPress={() =>
-                                handleDropdownLeafSelection(node, "1")
-                              }
-                              style={[
-                                Style.card,
-                                selectedLeaves.find(
-                                  (l) => l.node.identifier == node.identifier,
-                                )
-                                  ? { borderColor: theme["color-primary-500"] }
-                                  : { borderColor: theme["color-basic-700"] },
-                              ]}
-                            >
-                              <View
-                                style={[
-                                  Style.containers.row,
-                                  { width: "100%" },
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    Style.text.semibold,
-                                    selectedLeaves.find(
-                                      (l) =>
-                                        l.node.identifier == node.identifier,
-                                    )
-                                      ? Style.text.primary
-                                      : Style.text.dark,
-                                    Style.text.xxl,
-                                  ]}
-                                >
-                                  {node.getTitle(event?.nodes)}
-                                </Text>
-
-                                <View
-                                  style={[
-                                    Style.containers.column,
-                                    { alignItems: "flex-end", flex: 1 },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      Style.text.bold,
-                                      Style.text.xl,
+                                      Style.text.semibold,
                                       selectedLeaves.find(
                                         (l) =>
                                           l.node.identifier == node.identifier,
                                       )
                                         ? Style.text.primary
                                         : Style.text.dark,
+                                      Style.text.xl,
                                     ]}
                                   >
-                                    $
-                                    {CurrencyFormatter(
-                                      (node.price + node.extra?.fee) *
-                                        (nodeQuantities[node.identifier] || 1),
-                                    )}
+                                    {node.getIdentifier()}
                                   </Text>
                                   <Text
                                     style={[
@@ -1435,168 +1301,391 @@ export default function EventScreen() {
                                       { marginTop: 6 },
                                     ]}
                                   >
-                                    {i18n.t("includesXfee", {
-                                      fee: CurrencyFormatter(node.extra?.fee),
-                                    })}
+                                    ${node.getPrice()} + $
+                                    {CurrencyFormatter(node.extra?.fee)}{" "}
+                                    {i18n.t("fee")}
+                                  </Text>
+                                  {/* {node.type == "table" && (
+                            <Text
+                              style={[
+                                Style.transparency.md,
+                                Style.text.sm,
+                                Style.text.dark,
+                              ]}
+                            >
+                              {Pluralize(node.seatsAvailable, "Guest")}{" "}
+                              {i18n.t("per_table")}
+                            </Text>
+                          )} */}
+
+                                  <View
+                                    style={[
+                                      Style.containers.row,
+                                      {
+                                        width: "100%",
+                                        justifyContent: "space-evenly",
+                                        marginTop: 40,
+                                        marginBottom: 10,
+                                      },
+                                    ]}
+                                  >
+                                    <TouchableOpacity
+                                      onPress={() =>
+                                        nodeQuantityChange(
+                                          node.identifier,
+                                          false,
+                                        )
+                                      }
+                                      style={[
+                                        Style.button.round,
+                                        {
+                                          height: 48,
+                                          borderRadius: 24,
+                                          width: 48,
+                                        },
+                                      ]}
+                                    >
+                                      <Feather
+                                        name="minus"
+                                        size={32}
+                                        color={theme["color-basic-700"]}
+                                      />
+                                    </TouchableOpacity>
+
+                                    <Text
+                                      style={[
+                                        { fontSize: 54 },
+                                        Style.text.bold,
+                                        Style.text.dark,
+                                      ]}
+                                    >
+                                      {nodeQuantities[node.identifier] || 1}
+                                    </Text>
+
+                                    <TouchableOpacity
+                                      onPress={() =>
+                                        nodeQuantityChange(
+                                          node.identifier,
+                                          true,
+                                        )
+                                      }
+                                      style={[
+                                        Style.button.round,
+                                        {
+                                          height: 48,
+                                          borderRadius: 24,
+                                          width: 48,
+                                        },
+                                      ]}
+                                    >
+                                      <Feather
+                                        name="plus"
+                                        size={32}
+                                        color={theme["color-basic-700"]}
+                                      />
+                                    </TouchableOpacity>
+                                  </View>
+
+                                  <Text
+                                    style={[
+                                      Style.text.md,
+                                      Style.text.semibold,
+                                      Style.text.dark,
+                                      { marginBottom: 10 },
+                                    ]}
+                                  >
+                                    {i18n.t("tickets")}
                                   </Text>
                                 </View>
+
+                                <View
+                                  style={[
+                                    Style.containers.row,
+                                    {
+                                      justifyContent: "space-between",
+                                      marginTop: 10,
+                                      marginBottom: 5,
+                                      paddingHorizontal: 10,
+                                    },
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      Style.text.bold,
+                                      Style.text.xl,
+                                      Style.text.dark,
+                                      { width: "45%", textAlign: "center" },
+                                    ]}
+                                  >
+                                    $
+                                    {CurrencyFormatter(
+                                      (node.price + node.extra?.fee) *
+                                        (nodeQuantities[node.identifier] || 1),
+                                    )}
+                                  </Text>
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      handleDropdownLeafSelection(
+                                        node,
+                                        nodeQuantities[node.identifier] || 1,
+                                      )
+                                    }
+                                    style={[
+                                      Style.button.container,
+                                      {
+                                        width: "45%",
+                                        height: 50,
+                                        borderRadius: 50,
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        Style.text.bold,
+                                        Style.text.xl,
+                                        Style.text.basic,
+                                      ]}
+                                    >
+                                      {i18n.t("select")}
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
                               </View>
-                            </TouchableOpacity>
-                          );
+                            );
 
-                        return <></>;
-                      })}
-                    {priceChanges && priceChanges?.amount > 0 && (
-                      <>
-                        <Text
-                          style={[
-                            Style.text.primary,
-                            Style.text.bold,
-                            Style.text.lg,
-                            { marginTop: 20 },
-                          ]}
-                        >
-                          {i18n.t("price_amount_count", {
-                            trigger: priceChanges?.amount,
-                            price: CurrencyFormatter(priceChanges?.tier),
-                          })}
-                        </Text>
-                      </>
-                    )}
-                    {priceChanges && priceChanges?.amount == 0 && (
-                      <>
-                        <Text
-                          style={[
-                            Style.text.primary,
-                            Style.text.bold,
-                            Style.text.lg,
-                            { marginTop: 20 },
-                          ]}
-                        >
-                          {i18n.t("price_amount_date", {
-                            trigger: moment(priceChanges?.date).format(
-                              "MMM DDo",
-                            ),
-                            price: CurrencyFormatter(priceChanges?.tier),
-                          })}
-                        </Text>
-                      </>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+                          if (node.type == "seat" && node.available > 0)
+                            return (
+                              <TouchableOpacity
+                                key={"node+" + node.identifier}
+                                disabled={node.available <= 0}
+                                onPress={() =>
+                                  handleDropdownLeafSelection(node, "1")
+                                }
+                                style={[
+                                  Style.card,
+                                  selectedLeaves.find(
+                                    (l) => l.node.identifier == node.identifier,
+                                  )
+                                    ? {
+                                        borderColor: theme["color-primary-500"],
+                                      }
+                                    : { borderColor: theme["color-basic-700"] },
+                                ]}
+                              >
+                                <View
+                                  style={[
+                                    Style.containers.row,
+                                    { width: "100%" },
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      Style.text.semibold,
+                                      selectedLeaves.find(
+                                        (l) =>
+                                          l.node.identifier == node.identifier,
+                                      )
+                                        ? Style.text.primary
+                                        : Style.text.dark,
+                                      Style.text.xxl,
+                                    ]}
+                                  >
+                                    {node.getTitle(event?.nodes)}
+                                  </Text>
 
-            {selectedLeaves.length > 0 && !event.soldOut && event.active && (
-              <View
-                style={[
-                  Style.containers.column,
-                  {
-                    paddingTop: 50,
-                    paddingBottom: 20,
-                    width: "100%",
-                    paddingHorizontal: 10,
-                  },
-                ]}
-              >
+                                  <View
+                                    style={[
+                                      Style.containers.column,
+                                      { alignItems: "flex-end", flex: 1 },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        Style.text.bold,
+                                        Style.text.xl,
+                                        selectedLeaves.find(
+                                          (l) =>
+                                            l.node.identifier ==
+                                            node.identifier,
+                                        )
+                                          ? Style.text.primary
+                                          : Style.text.dark,
+                                      ]}
+                                    >
+                                      $
+                                      {CurrencyFormatter(
+                                        (node.price + node.extra?.fee) *
+                                          (nodeQuantities[node.identifier] ||
+                                            1),
+                                      )}
+                                    </Text>
+                                    <Text
+                                      style={[
+                                        Style.text.semibold,
+                                        selectedLeaves.find(
+                                          (l) =>
+                                            l.node.identifier ==
+                                            node.identifier,
+                                        )
+                                          ? Style.text.primary
+                                          : Style.text.dark,
+                                        { marginTop: 6 },
+                                      ]}
+                                    >
+                                      {i18n.t("includesXfee", {
+                                        fee: CurrencyFormatter(node.extra?.fee),
+                                      })}
+                                    </Text>
+                                  </View>
+                                </View>
+                              </TouchableOpacity>
+                            );
+
+                          return <></>;
+                        })}
+                      {priceChanges && priceChanges?.amount > 0 && (
+                        <>
+                          <Text
+                            style={[
+                              Style.text.primary,
+                              Style.text.bold,
+                              Style.text.lg,
+                              { marginTop: 20 },
+                            ]}
+                          >
+                            {i18n.t("price_amount_count", {
+                              trigger: priceChanges?.amount,
+                              price: CurrencyFormatter(priceChanges?.tier),
+                            })}
+                          </Text>
+                        </>
+                      )}
+                      {priceChanges && priceChanges?.amount == 0 && (
+                        <>
+                          <Text
+                            style={[
+                              Style.text.primary,
+                              Style.text.bold,
+                              Style.text.lg,
+                              { marginTop: 20 },
+                            ]}
+                          >
+                            {i18n.t("price_amount_date", {
+                              trigger: moment(priceChanges?.date).format(
+                                "MMM DDo",
+                              ),
+                              price: CurrencyFormatter(priceChanges?.tier),
+                            })}
+                          </Text>
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              {selectedLeaves.length > 0 && !event.soldOut && event.active && (
                 <View
+                  onLayout={(e) =>
+                    scrollContainer?.current?.scrollTo({
+                      y: e?.nativeEvent.layout.y + 20 + height * 0.6,
+                      animated: true,
+                    })
+                  }
                   style={[
-                    Style.card,
+                    Style.containers.column,
                     {
-                      borderBottomWidth: 0,
+                      paddingTop: 50,
+                      paddingBottom: 20,
                       width: "100%",
-                      marginBottom: 50,
+                      paddingHorizontal: 10,
                     },
                   ]}
                 >
-                  <Text
+                  <View
                     style={[
-                      Style.text.dark,
-                      Style.text.semibold,
-                      Style.text.xl,
-                      { marginBottom: 20, textAlign: "center" },
+                      Style.card,
+                      {
+                        borderBottomWidth: 0,
+                        width: "100%",
+                        marginBottom: 50,
+                      },
                     ]}
                   >
-                    {i18n.t("completePurchase")}
-                  </Text>
-                  {isLoadingPricing && (
-                    <ActivityIndicator
-                      style={{ marginVertical: 20 }}
-                      size="small"
-                      color={theme["color-primary-500"]}
-                    />
-                  )}
-                  {!isLoadingPricing && (
-                    <>
-                      {selectedLeaves.map((leaf, lidx) => (
-                        <View
-                          key={"lead_" + lidx}
-                          style={[
-                            Style.containers.row,
-                            { paddingVertical: 10 },
-                          ]}
-                        >
-                          <View style={{ flex: 1 }}>
-                            {leaf.node?.type == "table" && (
-                              <Text
-                                style={[
-                                  Style.elevated,
-                                  {
-                                    backgroundColor: theme["color-primary-500"],
-                                  },
-                                ]}
-                              >
-                                {leaf.node?.getIdentifier(event?.nodes, true)}
-                              </Text>
-                            )}
-                            {leaf.node?.type == "ga-sec" && (
-                              <View style={[Style.badge]}>
+                    <Text
+                      style={[
+                        Style.text.dark,
+                        Style.text.semibold,
+                        Style.text.xl,
+                        { marginBottom: 20, textAlign: "center" },
+                      ]}
+                    >
+                      {i18n.t("completePurchase")}
+                    </Text>
+                    {isLoadingPricing && (
+                      <ActivityIndicator
+                        style={{ marginVertical: 20 }}
+                        size="small"
+                        color={theme["color-primary-500"]}
+                      />
+                    )}
+                    {!isLoadingPricing && (
+                      <>
+                        {selectedLeaves.map((leaf, lidx) => (
+                          <View
+                            key={"lead_" + lidx}
+                            style={[
+                              Style.containers.row,
+                              { paddingVertical: 10 },
+                            ]}
+                          >
+                            <View style={{ flex: 1 }}>
+                              {leaf.node?.type == "table" && (
                                 <Text
-                                  style={[Style.text.basic, Style.text.bold]}
+                                  style={[
+                                    Style.elevated,
+                                    {
+                                      backgroundColor:
+                                        theme["color-primary-500"],
+                                    },
+                                  ]}
                                 >
-                                  {leaf.selected} x{" "}
                                   {leaf.node?.getIdentifier(event?.nodes, true)}
                                 </Text>
-                              </View>
-                            )}
-                            {leaf.node?.type == "seat" && (
-                              <View style={[Style.badge]}>
-                                <Text
-                                  style={[Style.text.basic, Style.text.bold]}
-                                >
-                                  {leaf.selected} x{" "}
-                                  {leaf.node?.getTitle(event?.nodes)}
-                                </Text>
-                              </View>
-                            )}
+                              )}
+                              {leaf.node?.type == "ga-sec" && (
+                                <View style={[Style.badge]}>
+                                  <Text
+                                    style={[Style.text.basic, Style.text.bold]}
+                                  >
+                                    {leaf.selected} x{" "}
+                                    {leaf.node?.getIdentifier(
+                                      event?.nodes,
+                                      true,
+                                    )}
+                                  </Text>
+                                </View>
+                              )}
+                              {leaf.node?.type == "seat" && (
+                                <View style={[Style.badge]}>
+                                  <Text
+                                    style={[Style.text.basic, Style.text.bold]}
+                                  >
+                                    {leaf.selected} x{" "}
+                                    {leaf.node?.getTitle(event?.nodes)}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                            <View>
+                              <Text
+                                style={[Style.text.dark, Style.transparency.md]}
+                              >
+                                ${leaf.getPrice()}
+                              </Text>
+                            </View>
                           </View>
-                          <View>
-                            <Text
-                              style={[Style.text.dark, Style.transparency.md]}
-                            >
-                              ${leaf.getPrice()}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                      <View
-                        style={[Style.containers.row, { paddingVertical: 10 }]}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={[Style.text.dark]}>
-                            {i18n.t("service_fee")}
-                          </Text>
-                        </View>
-
-                        <View>
-                          <Text
-                            style={[Style.text.dark, Style.transparency.md]}
-                          >
-                            ${CurrencyFormatter(serviceFee)}
-                          </Text>
-                        </View>
-                      </View>
-                      {tax > 0 && (
+                        ))}
                         <View
                           style={[
                             Style.containers.row,
@@ -1605,7 +1694,7 @@ export default function EventScreen() {
                         >
                           <View style={{ flex: 1 }}>
                             <Text style={[Style.text.dark]}>
-                              {i18n.t("tax")}
+                              {i18n.t("service_fee")}
                             </Text>
                           </View>
 
@@ -1613,106 +1702,159 @@ export default function EventScreen() {
                             <Text
                               style={[Style.text.dark, Style.transparency.md]}
                             >
-                              ${CurrencyFormatter(tax)}
+                              ${CurrencyFormatter(serviceFee)}
                             </Text>
                           </View>
                         </View>
-                      )}
-                      <View
-                        style={[Style.containers.row, { paddingVertical: 10 }]}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={[Style.text.dark]}>
-                            {i18n.t("delivery")}
-                          </Text>
-                        </View>
-
-                        <View>
-                          <Text
-                            style={[Style.text.dark, Style.transparency.md]}
-                          >
-                            {i18n.t("free")}
-                          </Text>
-                        </View>
-                      </View>
-                      <View
-                        style={[Style.containers.row, { paddingVertical: 10 }]}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text
+                        {tax > 0 && (
+                          <View
                             style={[
-                              Style.text.dark,
-                              Style.text.semibold,
-                              Style.text.lg,
+                              Style.containers.row,
+                              { paddingVertical: 10 },
                             ]}
                           >
-                            {i18n.t("total")}
-                          </Text>
-                        </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[Style.text.dark]}>
+                                {i18n.t("tax")}
+                              </Text>
+                            </View>
 
-                        <View>
-                          <Text
-                            style={[
-                              Style.text.dark,
-                              Style.text.semibold,
-                              Style.text.lg,
-                              Style.transparency.md,
-                            ]}
-                          >
-                            ${CurrencyFormatter(total)}
-                          </Text>
+                            <View>
+                              <Text
+                                style={[Style.text.dark, Style.transparency.md]}
+                              >
+                                ${CurrencyFormatter(tax)}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                        <View
+                          style={[
+                            Style.containers.row,
+                            { paddingVertical: 10 },
+                          ]}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[Style.text.dark]}>
+                              {i18n.t("delivery")}
+                            </Text>
+                          </View>
+
+                          <View>
+                            <Text
+                              style={[Style.text.dark, Style.transparency.md]}
+                            >
+                              {i18n.t("free")}
+                            </Text>
+                          </View>
                         </View>
-                      </View>
-                    </>
-                  )}
-                  <View style={[Style.containers.row, { paddingVertical: 10 }]}>
+                        <View
+                          style={[
+                            Style.containers.row,
+                            { paddingVertical: 10 },
+                          ]}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[Style.text.primary]}>
+                              {i18n.t("achSaving")}
+                            </Text>
+                          </View>
+
+                          <View>
+                            <Text
+                              style={[
+                                Style.text.primary,
+                                Style.transparency.md,
+                              ]}
+                            >
+                              -${CurrencyFormatter(total * 0.02)}
+                            </Text>
+                          </View>
+                        </View>
+                        <View
+                          style={[
+                            Style.containers.row,
+                            { paddingVertical: 10 },
+                          ]}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text
+                              style={[
+                                Style.text.dark,
+                                Style.text.semibold,
+                                Style.text.lg,
+                              ]}
+                            >
+                              {i18n.t("total")}
+                            </Text>
+                          </View>
+
+                          <View>
+                            <Text
+                              style={[
+                                Style.text.dark,
+                                Style.text.semibold,
+                                Style.text.lg,
+                                Style.transparency.md,
+                              ]}
+                            >
+                              ${CurrencyFormatter(total * 0.98)}
+                            </Text>
+                          </View>
+                        </View>
+                      </>
+                    )}
                     <View
-                      style={{
-                        width: "98%",
-                        height: 8,
-                        backgroundColor: theme["color-basic-400"],
-                        borderRadius: 99,
-                        overflow: "hidden",
-                      }}
+                      style={[Style.containers.row, { paddingVertical: 10 }]}
                     >
                       <View
                         style={{
-                          backgroundColor: theme["color-primary-500"],
-                          height: "100%",
-                          width: `${checkoutSection * 50}%`,
+                          width: "98%",
+                          height: 8,
+                          backgroundColor: theme["color-basic-400"],
+                          borderRadius: 99,
+                          overflow: "hidden",
                         }}
-                      />
+                      >
+                        <View
+                          style={{
+                            backgroundColor: theme["color-primary-500"],
+                            height: "100%",
+                            width: `${checkoutSection * 50}%`,
+                          }}
+                        />
+                      </View>
                     </View>
                   </View>
-                </View>
-                {checkoutSection == 1 && (!session || isGuest) && (
-                  <>
-                    <Text
-                      style={[
-                        Style.text.semibold,
-                        Style.text.xl,
-                        Style.text.dark,
-                        { alignSelf: "flex-start" },
-                      ]}
-                    >
-                      {i18n.t("personal_info")}
-                    </Text>
-                    <Text
-                      style={[
-                        Style.text.semibold,
-                        Style.text.dark,
-                        Style.transparency.md,
-                        Style.text.lg,
-                        {
-                          marginTop: 5,
-                          marginBottom: 15,
-                          alignSelf: "flex-start",
-                        },
-                      ]}
-                    >
-                      {i18n.t("tickets_to_mobile")}
-                    </Text>
-                    {missingEntry && (
+                  {checkoutSection == 1 && (!session || isGuest) && (
+                    <>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.text.xl,
+                          Style.text.dark,
+                          { alignSelf: "flex-start" },
+                        ]}
+                      >
+                        {i18n.t("personal_info")}
+                      </Text>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.text.dark,
+                          Style.transparency.md,
+                          Style.text.lg,
+                          {
+                            marginTop: 5,
+                            marginBottom: 15,
+                            alignSelf: "flex-start",
+                          },
+                        ]}
+                      >
+                        {i18n.t("tickets_to_mobile")}
+                      </Text>
+
+                      {/* {missingEntry && (
                       <>
                         <Text
                           style={[
@@ -2022,156 +2164,440 @@ export default function EventScreen() {
                       <Text style={[Style.button.text, Style.text.semibold]}>
                         {i18n.t("proceed_to_payment")}
                       </Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-                {checkoutSection == 2 && total > 0 && (
-                  <>
-                    <Text
-                      style={[
-                        Style.text.semibold,
-                        Style.text.xl,
-                        Style.text.dark,
-                        { alignSelf: "flex-start" },
-                      ]}
-                    >
-                      {i18n.t("payment_info")}
-                    </Text>
-                    <Text
-                      style={[
-                        Style.text.semibold,
-                        Style.text.dark,
-                        Style.transparency.md,
-                        Style.text.lg,
-                        {
-                          marginTop: 5,
-                          marginBottom: 15,
-                          alignSelf: "flex-start",
-                        },
-                      ]}
-                    >
-                      {i18n.t("tickets_to_mobile")}
-                    </Text>
+                    </TouchableOpacity> */}
+                    </>
+                  )}
+                  {checkoutSection == 2 && total > 0 && (
+                    <>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.text.xl,
+                          Style.text.dark,
+                          { alignSelf: "flex-start" },
+                        ]}
+                      >
+                        {i18n.t("payment_info")}
+                      </Text>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.text.dark,
+                          Style.transparency.md,
+                          Style.text.lg,
+                          {
+                            marginTop: 5,
+                            marginBottom: 15,
+                            alignSelf: "flex-start",
+                          },
+                        ]}
+                      >
+                        {i18n.t("tickets_to_mobile")}
+                      </Text>
 
+                      {plaidAccount == null && (
+                        <>
+                          <Text
+                            style={[
+                              Style.text.semibold,
+                              Style.text.primary,
+                              Style.text.lg,
+                              {
+                                marginTop: 25,
+                                marginBottom: 4,
+                                alignSelf: "center",
+                              },
+                            ]}
+                          >
+                            {i18n.t("unlockACHDiscount")}
+                          </Text>
+                          <Text
+                            style={[
+                              Style.text.semibold,
+                              Style.text.dark,
+                              Style.text.md,
+                              {
+                                marginTop: 5,
+                                marginBottom: 15,
+                                alignSelf: "flex-start",
+                              },
+                            ]}
+                          >
+                            {i18n.t("unlockACHDiscountSub")}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              handlePlaidTokenCreation();
+                            }}
+                            style={{ marginTop: 15 }}
+                          >
+                            <View
+                              style={[
+                                Style.button.container,
+                                {
+                                  backgroundColor: theme["color-basic-800"],
+                                  alignSelf: "center",
+                                  width: width - 40,
+                                  maxWidth: 300,
+                                  marginBottom: 10,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[Style.button.text, Style.text.semibold]}
+                              >
+                                {i18n.t("linkAccount")}
+                              </Text>
+                              <Image
+                                style={Style.button.suffix}
+                                width={100}
+                                height={30}
+                                contentFit="contain"
+                                source={{
+                                  uri: "https://res.cloudinary.com/ticketsfour/image/upload/q_auto,f_auto/externals/plaid/Plaid_id25TiQUJW_4_cb5119.png",
+                                }}
+                              />
+                            </View>
+                          </TouchableOpacity>
+                          <View
+                            style={[
+                              Style.containers.row,
+                              { marginVertical: 20, width: "100%" },
+                            ]}
+                          >
+                            <View
+                              style={{
+                                flex: 1,
+                                borderRadius: 4,
+                                height: 2,
+                                marginHorizontal: 8,
+                                backgroundColor: theme["color-primary-500"],
+                              }}
+                            />
+                            <Text
+                              style={[
+                                Style.text.semibold,
+                                Style.text.primary,
+                                Style.text.md,
+                                { textTransform: "uppercase" },
+                              ]}
+                            >
+                              {i18n.t("or")}
+                            </Text>
+                            <View
+                              style={{
+                                flex: 1,
+                                borderRadius: 4,
+                                height: 2,
+                                marginHorizontal: 4,
+                                backgroundColor: theme["color-primary-500"],
+                              }}
+                            />
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              Linking.openURL(event.getShareables());
+                            }}
+                          >
+                            <View
+                              style={[
+                                Style.button.container,
+                                {
+                                  backgroundColor: "transparent",
+                                  alignSelf: "center",
+                                  width: width - 40,
+                                  maxWidth: 300,
+                                  marginBottom: 10,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  Style.button.text,
+                                  Style.text.dark,
+                                  Style.text.semibold,
+                                ]}
+                              >
+                                {i18n.t("payWeb")}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {plaidAccount != null && !isLoadingPlaid && (
+                        <>
+                          <TouchableOpacity
+                            onPress={() => {
+                              handlePlaidTokenCreation();
+                            }}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingHorizontal: 20,
+                              marginTop: 25,
+                              marginBottom: 20,
+                            }}
+                          >
+                            {plaidInstitution?.logo != null && (
+                              <Image
+                                width={20}
+                                height={20}
+                                contentFit="contain"
+                                source={{
+                                  uri:
+                                    "data:image/png;base64," +
+                                    plaidInstitution?.logo,
+                                }}
+                              />
+                            )}
+                            <Text
+                              style={[
+                                { marginLeft: 20, flex: 1 },
+                                Style.text.md,
+                                Style.text.semibold,
+                                plaidInstitution?.primary_color != null
+                                  ? { color: plaidInstitution?.primary_color }
+                                  : Style.text.dark,
+                              ]}
+                            >
+                              {plaidInstitution?.name} - {plaidAccount?.name}
+                            </Text>
+                            <Text
+                              style={[
+                                { marginHorizontal: 4 },
+                                Style.text.sm,
+                                Style.text.semibold,
+                                Style.text.dark,
+                              ]}
+                            >
+                              {i18n.t("plaid_subtype_" + plaidAccount?.subtype)}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={handlePayment}>
+                            <View
+                              style={[
+                                Style.button.container,
+                                {
+                                  backgroundColor: theme["color-primary-500"],
+                                  alignSelf: "center",
+                                  width: width - 40,
+                                  maxWidth: 300,
+                                  marginBottom: 10,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[Style.button.text, Style.text.semibold]}
+                              >
+                                {i18n.t("pay")} - $
+                                {CurrencyFormatter(total * 0.98)}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                          <View
+                            style={[
+                              Style.containers.row,
+                              { marginVertical: 20, width: "100%" },
+                            ]}
+                          >
+                            <View
+                              style={{
+                                flex: 1,
+                                borderRadius: 4,
+                                height: 2,
+                                marginHorizontal: 8,
+                                backgroundColor: theme["color-primary-500"],
+                              }}
+                            />
+                            <Text
+                              style={[
+                                Style.text.semibold,
+                                Style.text.primary,
+                                Style.text.md,
+                                { textTransform: "uppercase" },
+                              ]}
+                            >
+                              {i18n.t("or")}
+                            </Text>
+                            <View
+                              style={{
+                                flex: 1,
+                                borderRadius: 4,
+                                height: 2,
+                                marginHorizontal: 4,
+                                backgroundColor: theme["color-primary-500"],
+                              }}
+                            />
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              Linking.openURL(event.getShareables());
+                            }}
+                          >
+                            <View
+                              style={[
+                                Style.button.container,
+                                {
+                                  backgroundColor: "transparent",
+                                  alignSelf: "center",
+                                  width: width - 40,
+                                  maxWidth: 300,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  Style.button.text,
+                                  Style.text.dark,
+                                  Style.text.semibold,
+                                ]}
+                              >
+                                {i18n.t("payWeb")}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {isLoadingPlaid && (
+                        <ActivityIndicator
+                          style={{ marginVertical: 20 }}
+                          size="small"
+                          color={theme["color-primary-500"]}
+                        />
+                      )}
+                    </>
+                  )}
+                  {checkoutSection == 2 && total == 0 && (
+                    <>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.text.xl,
+                          Style.text.dark,
+                          { alignSelf: "flex-start" },
+                        ]}
+                      >
+                        {i18n.t("payment_info")}
+                      </Text>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.text.dark,
+                          Style.transparency.md,
+                          Style.text.lg,
+                          {
+                            marginTop: 5,
+                            marginBottom: 15,
+                            alignSelf: "flex-start",
+                          },
+                        ]}
+                      >
+                        {i18n.t("tickets_to_mobile")}
+                      </Text>
+                      {/* <CheckoutFormFree auth={auth} eid={eid} leaves={selectedLeaves} personal={{ firstName: fnameValue, lastName: lnameValue, phone: phoneValue, email: emailValue, auth: auth != null }} ev={ev} onBack={auth ? null : () => setCheckoutSection(1)} total={total}></CheckoutFormFree> */}
+                    </>
+                  )}
+                  {locale == "es" && (
                     <Text
                       style={[
-                        Style.text.semibold,
                         Style.text.dark,
-                        Style.transparency.md,
-                        Style.text.lg,
-                        {
-                          marginTop: 5,
-                          marginBottom: 15,
-                          alignSelf: "center",
-                        },
+                        Style.text.sm,
+                        { marginTop: 10 },
                       ]}
                     >
-                      {i18n.t("openingPaySheet")}
+                      Al presionar Proceder con el pago, estas de acuerdo con{" "}
+                      <Link
+                        href="/legal/terms"
+                        style={[Style.text.primary, Style.text.semibold]}
+                      >
+                        Condiciones de Uso
+                      </Link>{" "}
+                      la{" "}
+                      <Link
+                        href="/legal/privacy"
+                        style={[Style.text.primary, Style.text.semibold]}
+                      >
+                        Politica de Privacidad
+                      </Link>{" "}
+                      nuestra{" "}
+                      <Link
+                        href="/legal/purchase"
+                        style={[Style.text.primary, Style.text.semibold]}
+                      >
+                        Politica de Compra
+                      </Link>
+                      ,{" "}
+                      <Text style={[Style.text.primary, Style.text.semibold]}>
+                        nonsentimiento para recibir mensajes SMS
+                      </Text>
+                      y nos{" "}
+                      <Text style={[Style.text.primary, Style.text.semibold]}>
+                        autorizas a iniciar un débito único a través de la
+                        Cámara de Compensación Automatizada (ACH)
+                      </Text>{" "}
+                      a tu nombre a la cuenta bancaria indicada arriba. El monto
+                      de esta transacción, como se señaló anteriormente, se
+                      presentará a tu institución financiera el siguiente día
+                      hábil. Además, aceptas que una vez que hagas clic en
+                      pagar, no podrás revocar esta autorización ni cancelar
+                      este pago..
                     </Text>
-                    <ActivityIndicator
-                      style={{ marginVertical: 20 }}
-                      size="small"
-                      color={theme["color-primary-500"]}
-                    />
-                  </>
-                )}
-                {checkoutSection == 2 && total == 0 && (
-                  <>
+                  )}
+                  {locale !== "es" && (
                     <Text
                       style={[
-                        Style.text.semibold,
-                        Style.text.xl,
                         Style.text.dark,
-                        { alignSelf: "flex-start" },
+                        Style.text.sm,
+                        { marginTop: 10 },
                       ]}
                     >
-                      {i18n.t("payment_info")}
+                      By clicking Pay, you agree to the&nbsp;
+                      <Link
+                        href="/legal/terms"
+                        style={[Style.text.primary, Style.text.semibold]}
+                      >
+                        Terms of Use
+                      </Link>
+                      , the{" "}
+                      <Link
+                        target="_blank"
+                        href="/legal/privacy"
+                        style={[Style.text.primary, Style.text.semibold]}
+                      >
+                        Privacy Policy
+                      </Link>
+                      , our{" "}
+                      <Link
+                        href="/legal/purchase"
+                        style={[Style.text.primary, Style.text.semibold]}
+                      >
+                        Purchase Policy
+                      </Link>
+                      ,{" "}
+                      <Text style={[Style.text.primary, Style.text.semibold]}>
+                        consent to recieve SMS messages
+                      </Text>
+                      and{" "}
+                      <Text style={[Style.text.primary, Style.text.semibold]}>
+                        authorize us to initiate an automated clearing house
+                        (ACH) one-time debit
+                      </Text>{" "}
+                      in your name to your bank account indicated above. The
+                      amount of this transaction as noted above will be
+                      presented to your financial institution by the next
+                      business day. You further agree that once you click pay
+                      you may not revoke this authorization or cancel this
+                      payment.
                     </Text>
-                    <Text
-                      style={[
-                        Style.text.semibold,
-                        Style.text.dark,
-                        Style.transparency.md,
-                        Style.text.lg,
-                        {
-                          marginTop: 5,
-                          marginBottom: 15,
-                          alignSelf: "flex-start",
-                        },
-                      ]}
-                    >
-                      {i18n.t("tickets_to_mobile")}
-                    </Text>
-                    {/* <CheckoutFormFree auth={auth} eid={eid} leaves={selectedLeaves} personal={{ firstName: fnameValue, lastName: lnameValue, phone: phoneValue, email: emailValue, auth: auth != null }} ev={ev} onBack={auth ? null : () => setCheckoutSection(1)} total={total}></CheckoutFormFree> */}
-                  </>
-                )}
-                {locale == "es" && (
-                  <Text
-                    style={[Style.text.dark, Style.text.sm, { marginTop: 20 }]}
-                  >
-                    Al presionar Proceder con el pago, estas de acuerdo con
-                    &nbsp;
-                    <Link
-                      href="/legal/terms"
-                      style={[Style.text.primary, Style.text.semibold]}
-                    >
-                      Condiciones de Uso
-                    </Link>
-                    &nbsp;, la{" "}
-                    <Link
-                      href="/legal/privacy"
-                      style={[Style.text.primary, Style.text.semibold]}
-                    >
-                      Politica de Privacidad
-                    </Link>
-                    &nbsp; y nuestra{" "}
-                    <Link
-                      href="/legal/purchase"
-                      style={[Style.text.primary, Style.text.semibold]}
-                    >
-                      Politica de Compra
-                    </Link>
-                    .
-                  </Text>
-                )}
-                {locale !== "es" && (
-                  <Text
-                    style={[Style.text.dark, Style.text.sm, { marginTop: 20 }]}
-                  >
-                    By clicking Proceed to Payment, you agree to the&nbsp;
-                    <Link
-                      href="/legal/terms"
-                      style={[Style.text.primary, Style.text.semibold]}
-                    >
-                      Terms of Use
-                    </Link>
-                    , the{" "}
-                    <Link
-                      target="_blank"
-                      href="/legal/privacy"
-                      style={[Style.text.primary, Style.text.semibold]}
-                    >
-                      Privacy Policy
-                    </Link>
-                    , our{" "}
-                    <Link
-                      href="/legal/purchase"
-                      style={[Style.text.primary, Style.text.semibold]}
-                    >
-                      Purchase Policy
-                    </Link>
-                    , and{" "}
-                    <Text style={[Style.text.primary, Style.text.semibold]}>
-                      consent to recieve SMS messages
-                    </Text>
-                    .
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
-        </ScrollContainer>
-      </KeyboardAvoidingView>
-    </StripeProvider>
+                  )}
+                </View>
+              )}
+            </View>
+          </ScrollContainer>
+        </KeyboardAvoidingView>
+      </StripeProvider>
+    </SheetProvider>
   );
 }

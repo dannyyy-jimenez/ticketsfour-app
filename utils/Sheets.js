@@ -10,12 +10,19 @@ import {
   EventsShareSheet,
   EventTicketViewerSheet,
 } from "./sheets/Events";
-import { HelperSheet } from "./sheets/Helper";
+import {
+  HelperSheet,
+  AuthenticateSheet,
+  PaymentErrorSheet,
+} from "./sheets/Helper";
 
 registerSheet("payout-view-sheet", PayoutViewSheet);
 registerSheet("events-share-sheet", EventsShareSheet);
 registerSheet("helper-sheet", HelperSheet);
+registerSheet("payment-error-sheet", PaymentErrorSheet);
 registerSheet("event-ticket-viewer", EventTicketViewerSheet);
+
+// global
 
 registerSheet(
   "event-about-sheet",
@@ -50,6 +57,14 @@ registerSheet(
 registerSheet(
   "event-tier-sheet",
   EventTierSheet,
+  "global",
+  "local",
+  "local-local",
+);
+
+registerSheet(
+  "authentication",
+  AuthenticateSheet,
   "global",
   "local",
   "local-local",

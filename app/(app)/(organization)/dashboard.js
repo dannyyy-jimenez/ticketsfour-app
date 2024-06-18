@@ -228,7 +228,11 @@ export default function DashboardScreen() {
     setIsLoading(true);
     setRoles([]);
     try {
-      const res = await Api.get("/organizations/dashboard", { auth, oid });
+      const res = await Api.get("/organizations/dashboard", {
+        auth,
+        oid,
+        lazy: true,
+      });
       if (res.isError) throw "e";
 
       if (!res.data.has_permission) {

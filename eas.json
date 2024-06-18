@@ -32,6 +32,18 @@
         "EXPO_PUBLIC_TUNNEL_SUBDOMAIN": "sandbox-ticketsfour-com"
       }
     },
+    "sandbox": {
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_ENDPOINT": "https://api.sandbox.ticketsfour.com/",
+        "EXPO_PUBLIC_STRIPE_KEY": "pk_test_51ModcoA60uJAVJy3lAvcCZf59hZHewziAfKmPAFViIfPAMlb2adpnZoBUeWR0Z2eL4ZqBpoi1Qvr0F2fYw5o8El800yowWHL13",
+        "EXPO_PUBLIC_BASE_PATH": "https://sandbox.ticketsfour.com",
+        "EXPO_PUBLIC_KEY": "pdk_BBfHZxcHCD63ShXul7YrcrfuCwBAjGbq",
+        "EXPO_PUBLIC_CLOUD_NAME": "lgxy",
+        "EXPO_PUBLIC_TUNNEL_SUBDOMAIN": "sandbox-ticketsfour-com"
+      }
+    },
     "preview-sim": {
       "distribution": "internal",
       "channel": "production",

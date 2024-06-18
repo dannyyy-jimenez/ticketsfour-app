@@ -30,6 +30,12 @@ import {
 } from "../../../utils/Formatters";
 import { TextInput } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import {
+  LinkIOSPresentationStyle,
+  LinkLogLevel,
+  create as createPlaid,
+  open as openPlaid,
+} from "react-native-plaid-link-sdk";
 
 export default function AccountScreen() {
   const {
@@ -55,6 +61,9 @@ export default function AccountScreen() {
   const [addressCity, setAddressCity] = React.useState("");
   const [addressRegion, setAddressRegion] = React.useState("");
   const [addressPostal, setAddressPostal] = React.useState("");
+  const [isLoadingPlaid, setIsLoadingPlaid] = React.useState(false);
+  const [plaidAccount, setPlaidAccount] = React.useState(null);
+  const [plaidInstitution, setPlaidInstitution] = React.useState(null);
 
   const emailHelper = React.useMemo(() => {
     if (!EmailValidator(email))
@@ -77,6 +86,7 @@ export default function AccountScreen() {
 
     try {
       const res = await Api.get("/users/settings", { auth });
+      console.log(res);
       if (res.isError) throw "e";
 
       setFirstName(res.data.user.first_name);
@@ -88,9 +98,12 @@ export default function AccountScreen() {
       setAddressCity(res.data.user.address.city);
       setAddressRegion(res.data.user.address.region);
       setAddressPostal(res.data.user.address.postal);
+
+      setPlaidAccount(res.data.account);
+      setPlaidInstitution(res.data.institution);
       setIsLoading(false);
     } catch (e) {
-      console.log(e);
+      alert(e);
       setIsLoading(false);
     }
   };
@@ -112,6 +125,57 @@ export default function AccountScreen() {
       setIsLoading(false);
     } catch (e) {
       setIsLoading(false);
+    }
+  };
+
+  const linkPlaid = async (publicToken) => {
+    setIsLoadingPlaid(true);
+
+    try {
+      const res = await Api.post("/users/plaid/link", {
+        auth,
+        public_token: publicToken,
+      });
+      if (res.isError) throw res.data?.message;
+
+      setPlaidAccount(res.data.account);
+      setPlaidInstitution(res.data.institution);
+      setIsLoadingPlaid(false);
+    } catch (e) {
+      console.log(e);
+      setIsLoadingPlaid(false);
+    }
+  };
+
+  const handlePlaidTokenCreation = async () => {
+    setIsLoadingPlaid(true);
+
+    try {
+      const res = await Api.get("/users/plaid/link", {
+        auth,
+      });
+      if (res.isError) throw res.data?.message;
+
+      createPlaid({
+        token: res.data.link_token,
+        logLevel: LinkLogLevel.DEBUG,
+        noLoadingState: false,
+      });
+
+      openPlaid({
+        onSuccess: (res) => {
+          linkPlaid(res.publicToken);
+        },
+        onExit: (err) => {
+          console.log(err);
+        },
+        iOSPresentationStyle: LinkIOSPresentationStyle.MODAL,
+        logLevel: LinkLogLevel.DEBUG,
+      }).catch((e) => console.log(e));
+      setIsLoadingPlaid(false);
+    } catch (e) {
+      console.log(e);
+      setIsLoadingPlaid(false);
     }
   };
 
@@ -322,6 +386,121 @@ export default function AccountScreen() {
                 </View>
               </View>
             </View>
+            <View
+              style={[Style.containers.row, { marginTop: 6, marginBottom: 20 }]}
+            >
+              <Text
+                style={[
+                  Style.text.dark,
+                  Style.text.semibold,
+                  Style.text.lg,
+                  { marginTop: 10 },
+                ]}
+              >
+                {i18n.t("paymentInformation")}
+              </Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={() =>
+                  SheetManager.show("helper-sheet", {
+                    payload: { text: "plaidHelper" },
+                  })
+                }
+                style={{ padding: 10 }}
+              >
+                <Feather
+                  name="info"
+                  size={20}
+                  color={theme["color-basic-700"]}
+                />
+              </TouchableOpacity>
+            </View>
+            {isLoadingPlaid && (
+              <ActivityIndicator
+                color={theme["color-primary-500"]}
+                size={20}
+                style={{ alignSelf: "center", marginBottom: 10 }}
+              />
+            )}
+            {!isLoadingPlaid && !isLoading && (
+              <>
+                {plaidAccount != null && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 20,
+                    }}
+                  >
+                    {plaidInstitution?.logo != null && (
+                      <Image
+                        width={20}
+                        height={20}
+                        contentFit="contain"
+                        source={{
+                          uri:
+                            "data:image/png;base64," + plaidInstitution?.logo,
+                        }}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        { marginLeft: 20, flex: 1 },
+                        Style.text.md,
+                        Style.text.semibold,
+                        plaidInstitution?.primary_color != null
+                          ? { color: plaidInstitution?.primary_color }
+                          : Style.text.dark,
+                      ]}
+                    >
+                      {plaidInstitution?.name} - {plaidAccount?.name}
+                    </Text>
+                    <Text
+                      style={[
+                        { marginHorizontal: 4 },
+                        Style.text.sm,
+                        Style.text.semibold,
+                        Style.text.dark,
+                      ]}
+                    >
+                      {i18n.t("plaid_subtype_" + plaidAccount?.subtype)}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  onPress={() => {
+                    handlePlaidTokenCreation();
+                  }}
+                >
+                  <View
+                    style={[
+                      Style.button.container,
+                      {
+                        backgroundColor: theme["color-basic-800"],
+                        alignSelf: "center",
+                        marginTop: plaidAccount != null ? 20 : 0,
+                        width: width - 40,
+                        maxWidth: 300,
+                        marginBottom: 10,
+                      },
+                    ]}
+                  >
+                    <Text style={[Style.button.text, Style.text.semibold]}>
+                      {i18n.t("linkAccount")}
+                    </Text>
+                    <Image
+                      style={Style.button.suffix}
+                      width={100}
+                      height={30}
+                      contentFit="contain"
+                      source={{
+                        uri: "https://res.cloudinary.com/ticketsfour/image/upload/q_auto,f_auto/externals/plaid/Plaid_id25TiQUJW_4_cb5119.png",
+                      }}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
         {isGuest && (

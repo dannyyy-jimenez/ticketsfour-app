@@ -9,6 +9,8 @@ const deviceLanguage =
       NativeModules.SettingsManager.settings.AppleLanguages[0] //iOS 13
     : NativeModules.I18nManager.localeIdentifier;
 
+const isIOS = Platform.OS === "ios";
+
 const client = axios.create({
   withCredentials: true,
   baseURL: Config.apiUrl + "api/",
@@ -55,7 +57,7 @@ export default {
     try {
       let lang = deviceLanguage;
       const res = await client.get(query, {
-        params: { ...data, lang, key: Config.key, isApp: true },
+        params: { ...data, lang, key: Config.key, isApp: true, isIOS },
       });
       return onSuccess(res);
     } catch (error) {
@@ -68,6 +70,7 @@ export default {
         ...data,
         key: Config.key,
         isApp: true,
+        isIOS,
       });
 
       return onSuccess(res);

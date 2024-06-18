@@ -15,5 +15,5 @@ export default function Page() {
     return <Redirect href="/(app)/events" />;
   }
 
-  return <Redirect href="/login" />;
+  return <Redirect href="/register" />;
 }

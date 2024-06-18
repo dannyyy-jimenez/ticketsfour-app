@@ -86,6 +86,7 @@ export default function EventsScreen() {
         auth,
         oid,
         filter: "future",
+        lazy: true,
       });
       if (res.isError) throw "e";
 
@@ -114,6 +115,7 @@ export default function EventsScreen() {
         auth,
         oid,
         filter: "past",
+        lazy: true,
       });
       if (res.isError) throw "e";
 

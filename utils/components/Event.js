@@ -17,9 +17,12 @@ import {
   MaterialIcons,
 } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { CurrencyFormatter } from "../Formatters";
+import { Commasize, CurrencyFormatter, NumFormatter } from "../Formatters";
 import { SheetManager } from "react-native-actions-sheet";
 import { Pressable } from "react-native";
+import SkeletonLoader from "expo-skeleton-loader";
+import { useSession } from "../ctx";
+import Api from "../Api";
 
 export function OrgEventComponent({
   i18n,
@@ -28,6 +31,7 @@ export function OrgEventComponent({
   withinMap = false,
   showPrice = true,
 }) {
+  const { auth, defaultOrganization: oid } = useSession();
   const animation = new Animated.Value(0);
   const inputRange = [0, 1];
   const outputRange = [1, 0.8];
@@ -36,6 +40,11 @@ export function OrgEventComponent({
     return new EventModel({ ..._event });
   }, [_event]);
   const { width, height } = Dimensions.get("window");
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [venue, setVenue] = React.useState(null);
+  const [views, setViews] = React.useState(0);
+  const [shares, setShares] = React.useState(0);
+  const [attendees, setAttendees] = React.useState(0);
 
   const onPressIn = () => {
     Animated.spring(animation, {
@@ -98,6 +107,34 @@ export function OrgEventComponent({
         {children}
       </Animated.View>
     );
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await Api.get("/organizations/event/lazy", {
+          auth,
+          oid,
+          eid: event.id,
+        });
+        if (res.isError) throw "e";
+
+        setVenue(res.data.venue);
+        setAttendees(Commasize(res.data.attendees));
+        setShares(NumFormatter(res.data.shares));
+        setViews(NumFormatter(res.data.views));
+
+        setIsLoading(false);
+      } catch (e) {
+        setAttendees(event.getAttendees());
+        setShares(event.getShares());
+        setViews(event.getViews());
+
+        setIsLoading(false);
+      }
+    };
+
+    load();
+  }, []);
 
   return (
     <Container>
@@ -179,26 +216,67 @@ export function OrgEventComponent({
             <View
               style={[Style.containers.column, { alignItems: "flex-start" }]}
             >
-              <Text
-                style={[
-                  Style.text.md,
-                  Style.text.bold,
-                  Style.text.basic,
-                  { marginVertical: 2 },
-                ]}
-              >
-                {event.venue.name}
-              </Text>
-              <Text
-                style={[
-                  Style.text.md,
-                  Style.text.bold,
-                  Style.text.basic,
-                  { marginVertical: 1 },
-                ]}
-              >
-                {event.venue.city}, {event.venue.region_ab}
-              </Text>
+              {!isLoading && venue != null && (
+                <>
+                  <Text
+                    style={[
+                      Style.text.md,
+                      Style.text.bold,
+                      Style.text.basic,
+                      { marginVertical: 2 },
+                    ]}
+                  >
+                    {venue.name}
+                  </Text>
+                  <Text
+                    style={[
+                      Style.text.md,
+                      Style.text.bold,
+                      Style.text.basic,
+                      { marginVertical: 1 },
+                    ]}
+                  >
+                    {venue.city}, {venue.region_ab}
+                  </Text>
+                </>
+              )}
+              {isLoading && (
+                <>
+                  <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                    <SkeletonLoader.Container
+                      style={[
+                        {
+                          padding: 0,
+                          height: 15,
+                          borderRadius: 2,
+                          opacity: 0.3,
+                          overflow: "hidden",
+                          width: 40,
+                        },
+                      ]}
+                    >
+                      <SkeletonLoader.Item style={[{ width: 40 }]} />
+                    </SkeletonLoader.Container>
+                  </SkeletonLoader>
+                  <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                    <SkeletonLoader.Container
+                      style={[
+                        {
+                          padding: 0,
+                          height: 15,
+                          borderRadius: 2,
+                          opacity: 0.3,
+                          marginTop: 4,
+                          overflow: "hidden",
+                          width: 100,
+                        },
+                      ]}
+                    >
+                      <SkeletonLoader.Item style={[{ width: 100 }]} />
+                    </SkeletonLoader.Container>
+                  </SkeletonLoader>
+                </>
+              )}
             </View>
             <View style={{ flex: 1 }} />
             <TouchableOpacity onPress={onShare} style={{ padding: 10 }}>
@@ -294,11 +372,32 @@ export function OrgEventComponent({
                 color={theme["color-basic-100"]}
                 size={16}
               />
-              <Text
-                style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
-              >
-                {event.getShares()}
-              </Text>
+              {isLoading && (
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        marginLeft: 4,
+                        overflow: "hidden",
+                        width: 20,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 20 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              )}
+              {!isLoading && (
+                <Text
+                  style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
+                >
+                  {event.getShares()}
+                </Text>
+              )}
             </View>
             <View style={[Style.containers.row, { flex: 1 }]}>
               <Feather
@@ -306,11 +405,32 @@ export function OrgEventComponent({
                 color={theme["color-basic-100"]}
                 size={16}
               />
-              <Text
-                style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
-              >
-                {event.getViews()}
-              </Text>
+              {isLoading && (
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        marginLeft: 4,
+                        overflow: "hidden",
+                        width: 20,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 20 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              )}
+              {!isLoading && (
+                <Text
+                  style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
+                >
+                  {event.getViews()}
+                </Text>
+              )}
             </View>
             <View style={[Style.containers.row, { flex: 1 }]}>
               <Feather
@@ -318,11 +438,32 @@ export function OrgEventComponent({
                 color={theme["color-basic-100"]}
                 size={16}
               />
-              <Text
-                style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
-              >
-                {event.getAttendees()}
-              </Text>
+              {isLoading && (
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        marginLeft: 4,
+                        overflow: "hidden",
+                        width: 20,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 20 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              )}
+              {!isLoading && (
+                <Text
+                  style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
+                >
+                  {event.getAttendees()}
+                </Text>
+              )}
             </View>
           </View>
         </View>
