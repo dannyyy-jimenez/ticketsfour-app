@@ -180,6 +180,10 @@ function RootLayoutNav() {
         name="venues/scanner"
         options={{ presentation: "modal", headerShown: false }}
       />
+      <Stack.Screen
+        name="help/assistant"
+        options={{ presentation: "modal", headerShown: false }}
+      />
     </Stack>
   );
 }

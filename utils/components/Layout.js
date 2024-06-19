@@ -31,7 +31,11 @@ const ScrollContainer = ({
   return (
     <SafeAreaView
       style={[
-        { flex: 1, width: "100%", backgroundColor: theme["color-basic-100"] },
+        {
+          flex: 1,
+          width: "100%",
+          backgroundColor: theme["color-basic-100"],
+        },
       ]}
     >
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
@@ -41,6 +45,7 @@ const ScrollContainer = ({
           showsVerticalScrollIndicator={false}
           style={{
             width: "100%",
+            height: "100%",
             flex: 1,
             paddingHorizontal: paddingHorizontal,
             backgroundColor: theme["color-basic-100"],

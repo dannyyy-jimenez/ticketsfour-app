@@ -30,7 +30,7 @@ if (Updates.channel === "production") {
   Config.basePath = "https://sandbox.ticketsfour.com";
   Config.cloudUri = "https://res.cloudinary.com/lgxy/image/upload/";
 } else {
-  Config.apiUrl = "https://api.sandbox.ticketsfour.com/";
+  Config.apiUrl = "http://10.0.0.8:5001/";
   Config.enableHiddenFeatures = true;
   Config.isDev = true;
   Config.key = "pdk_BBfHZxcHCD63ShXul7YrcrfuCwBAjGbq";

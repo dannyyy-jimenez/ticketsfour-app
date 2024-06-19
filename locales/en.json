@@ -334,5 +334,8 @@
   "pay": "Pay",
   "NO_EVENT": "The event you're looking for is no longer available",
   "SOLDOUT": "This event has been sold out and tickets are no longer available! You can try contacting the event promoter about physical or at-the-door tickets",
-  "BANK_BALANCE": "There are insufficient funds in your linked bank account or there was an issue while contacting your financial institution. Please try again later."
+  "BANK_BALANCE": "There are insufficient funds in your linked bank account or there was an issue while contacting your financial institution. Please try again later.",
+  "followX": "Follow us on X",
+  "enter_message": "Enter message...",
+  "assistantGreeting": "Hi! How can I assist you?"
 }
