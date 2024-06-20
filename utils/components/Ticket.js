@@ -366,7 +366,12 @@ export default function TicketComponent({ ticket, hidden = false }) {
       </View>
       {showApplePass && (
         <AddPassButton
-          style={{ height: 60, width: 260, marginTop: 15, alignSelf: "center" }}
+          style={{
+            height: 55,
+            width: 250,
+            marginTop: 15,
+            alignSelf: "center",
+          }}
           addPassButtonStyle={PassKit.AddPassButtonStyle.black}
           onPress={onAddToAppleWallet}
         />

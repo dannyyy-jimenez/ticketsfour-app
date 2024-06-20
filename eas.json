@@ -34,7 +34,7 @@
     },
     "sandbox": {
       "distribution": "internal",
-      "channel": "development",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_ENDPOINT": "https://api.sandbox.ticketsfour.com/",
         "EXPO_PUBLIC_STRIPE_KEY": "pk_test_51ModcoA60uJAVJy3lAvcCZf59hZHewziAfKmPAFViIfPAMlb2adpnZoBUeWR0Z2eL4ZqBpoi1Qvr0F2fYw5o8El800yowWHL13",

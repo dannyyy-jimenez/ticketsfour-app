@@ -110,7 +110,7 @@ export default class Ev {
       this.promptScanner = true;
     }
 
-    if (diff < 0 && this.active) {
+    if (diff < 4 && this.active) {
       this.promptDeactivate = true;
     }
   }

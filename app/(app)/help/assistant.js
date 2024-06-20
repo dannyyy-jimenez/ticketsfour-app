@@ -11,6 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "@expo-google-fonts/inter";
 import { Text } from "react-native";
 import Api from "../../../utils/Api";
+import { KeyboardAvoidingView } from "react-native";
+import { SafeAreaView } from "react-native";
 
 export default function TicketScreen() {
   const { auth } = useSession();
@@ -85,12 +87,11 @@ export default function TicketScreen() {
   }, []);
 
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior="position"
       style={{
-        height,
-        width,
+        height: height,
         backgroundColor: theme["color-basic-100"],
-        paddingBottom: tabBarHeight,
       }}
     >
       <ScrollView
@@ -99,7 +100,7 @@ export default function TicketScreen() {
         style={{
           width: "100%",
           paddingHorizontal: 10,
-          backgroundColor: theme["color-basic-100"],
+          height: height - 150,
         }}
         contentContainerStyle={{
           paddingBottom: 20,
@@ -193,7 +194,7 @@ export default function TicketScreen() {
           </View>
         )}
       </ScrollView>
-      <View style={{ width }}>
+      <View style={{ width, flexGrow: 0 }}>
         <View
           style={[
             Style.input.container,
@@ -221,6 +222,6 @@ export default function TicketScreen() {
           />
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

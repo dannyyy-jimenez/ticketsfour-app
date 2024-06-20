@@ -326,6 +326,8 @@
   "plaid_subtype_business": "Business",
   "plaid_subtype_student": "Student",
   "plaid_subtype_commercial": "Commercial",
+  "stripe_subtype_checking": "Checking",
+  "stripe_subtype_savings": "Savings",
   "unlockACHDiscount": "Unlock 2% Off Ticket Price!",
   "unlockACHDiscountSub": "We pass part of the savings to you! Link your bank account to your profile and save 2% on every ticket you buy!",
   "achSaving": "ACH Saving",
@@ -337,5 +339,6 @@
   "BANK_BALANCE": "There are insufficient funds in your linked bank account or there was an issue while contacting your financial institution. Please try again later.",
   "followX": "Follow us on X",
   "enter_message": "Enter message...",
-  "assistantGreeting": "Hi! How can I assist you?"
+  "assistantGreeting": "Hello! I am T4, an AI-powered assistant. How can I assist you?",
+  "inviteDisclaimer": "T4 is our AI generated assistant"
 }

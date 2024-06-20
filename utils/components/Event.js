@@ -171,12 +171,7 @@ export function OrgEventComponent({
             },
           ]}
         >
-          <View
-            style={[
-              Style.containers.row,
-              { maxWidth: 380, width: width - 100 },
-            ]}
-          >
+          <View style={[Style.containers.row, { width: "100%" }]}>
             <Image
               style={{
                 width: 75,
@@ -192,7 +187,7 @@ export function OrgEventComponent({
             <View
               style={[
                 Style.containers.column,
-                { alignItems: "flex-start", marginHorizontal: 12 },
+                { alignItems: "flex-start", flex: 1, marginHorizontal: 12 },
               ]}
             >
               <Text style={[Style.text.xl, Style.text.bold, Style.text.basic]}>
@@ -789,52 +784,36 @@ export default function EventComponent({
           width={500}
           height={800}
         />
-        <View
+        <BlurView
+          intensity={40}
           style={[
             Style.containers.column,
             {
               position: "absolute",
-              backgroundColor: theme["color-basic-800-40"],
-              padding: 10,
-              left: 0,
-              top: 0,
-              width: "100%",
-              height: "100%",
+              backgroundColor: "rgba(255,255,255,0.7)",
+              paddingHorizontal: 10,
+              paddingVertical: 15,
+              bottom: 10,
+              alignSelf: "center",
+              width: "94%",
               borderRadius: 10,
+              overflow: "hidden",
             },
           ]}
         >
-          <View
-            style={[
-              Style.containers.row,
-              { paddingHorizontal: 10, width: "100%" },
-            ]}
-          >
-            <Image
-              style={{
-                width: 75,
-                height: 100,
-                borderRadius: 4,
-              }}
-              cachePolicy={"memory-disk"}
-              contentFit="contain"
-              source={{ uri: event.coverT }}
-              width={300}
-              height={400}
-            />
+          <View style={[Style.containers.row, { width: "100%" }]}>
             <View
               style={[
                 Style.containers.column,
                 {
                   alignItems: "flex-start",
                   flex: 1,
-                  marginLeft: 12,
                 },
               ]}
             >
               <Text
                 numberOfLines={3}
-                style={[Style.text.xl, Style.text.bold, Style.text.basic]}
+                style={[Style.text.xl, Style.text.bold, Style.text.dark]}
               >
                 {event.name}
               </Text>
@@ -842,62 +821,27 @@ export default function EventComponent({
                 style={[
                   Style.text.md,
                   Style.text.semibold,
-                  Style.text.basic,
-                  { marginTop: 8 },
+                  Style.text.dark,
+                  { marginTop: 4 },
                 ]}
               >
                 {event.getStart("MMMM Do, YYYY")} • {event.getStart("hh:mm A")}
               </Text>
             </View>
           </View>
-
-          <View style={{ flex: 1 }} />
-          {/* <Text
-            style={[
-              Style.text.md,
-              Style.text.semibold,
-              Style.text.basic,
-              Style.transparency.md,
-              { paddingTop: 12, paddingBottom: 8 },
-            ]}
-            numberOfLines={2}
-          >
-            {event.description}
-          </Text> */}
           <View style={[Style.containers.row]}>
             <View
               style={[Style.containers.column, { alignItems: "flex-start" }]}
             >
-              <Text
-                style={[
-                  Style.text.md,
-                  Style.text.bold,
-                  Style.text.basic,
-                  { marginVertical: 2 },
-                ]}
-              >
-                {event.venue.name}
-              </Text>
-              <Text
-                style={[
-                  Style.text.md,
-                  Style.text.bold,
-                  Style.text.basic,
-                  { marginVertical: 1 },
-                ]}
-              >
-                {event.venue.city}, {event.venue.region_ab}
+              <Text style={[Style.text.md, Style.text.bold, Style.text.dark]}>
+                {event.venue.name} | {event.venue.city}, {event.venue.region_ab}
               </Text>
             </View>
             <View style={{ flex: 1 }} />
-            <TouchableOpacity onPress={onShare} style={{ padding: 10 }}>
-              <Feather
-                color={theme["color-basic-100"]}
-                size={24}
-                name="more-horizontal"
-              />
+            <TouchableOpacity onPress={onShare} style={{ padding: 4 }}>
+              <Feather color={theme["color-basic-700"]} size={20} name="send" />
             </TouchableOpacity>
-            <View
+            {/* <View
               style={[
                 Style.containers.row,
                 {
@@ -935,9 +879,9 @@ export default function EventComponent({
               >
                 {CurrencyFormatter(event.basePrice).split(".")[1]}
               </Text>
-            </View>
+            </View> */}
           </View>
-        </View>
+        </BlurView>
       </Pressable>
     </Container>
   );

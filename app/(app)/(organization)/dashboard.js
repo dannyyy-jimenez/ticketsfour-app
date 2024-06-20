@@ -231,7 +231,7 @@ export default function DashboardScreen() {
       const res = await Api.get("/organizations/dashboard", {
         auth,
         oid,
-        lazy: true,
+        lazy: false,
       });
       if (res.isError) throw "e";
 
@@ -240,13 +240,15 @@ export default function DashboardScreen() {
         throw "NO_PERMISSION";
       }
 
+      console.log(res);
+
       setPayouts(res.data.payouts);
       setEvents(
         res.data.events
           .map((ev) => new EventModel({ ...ev }))
           .filter((e) => !e.isInPast),
       );
-      setVenues(res.data.venues.map((venue) => new Venue({ ...venue })));
+      // setVenues(res.data.venues.map((venue) => new Venue({ ...venue })));
       setCompletedTasks(res.data.tasks);
       setMembers(
         res.data.members.map((member) => {
@@ -383,10 +385,6 @@ export default function DashboardScreen() {
   const onRefresh = () => {
     load();
   };
-
-  React.useEffect(() => {
-    load();
-  }, []);
 
   if (!isLoading && !hasPermission) {
     return <LockedView />;

@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TicketVerifierScreen() {
   const { i18n } = useLocalization();
+  const { width, height } = Dimensions.get("window");
   const { session, auth, signOut } = useSession();
   const [isLoading, setIsLoading] = React.useState(true);
   const [isError, setIsError] = React.useState(false);

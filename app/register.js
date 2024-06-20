@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSession } from "../utils/ctx";
-import { router } from "expo-router";
+import { SplashScreen, router } from "expo-router";
 import Api from "../utils/Api";
 import { Image } from "expo-image";
 import ActionSheet from "react-native-actions-sheet";
@@ -124,6 +124,7 @@ export default function RegisterScreen() {
 
   React.useEffect(() => {
     actionSheetRef.current?.show();
+    SplashScreen.hideAsync();
   }, []);
 
   React.useEffect(() => {

@@ -1774,18 +1774,18 @@ export default function EventScreen() {
             onPress={() => setSection(25)}
             style={[{ padding: 14 }, Style.containers.column]}
           >
-            <Feather
+            <MaterialCommunityIcons
               color={
                 section == 25
                   ? theme["color-organizer-500"]
                   : theme["color-basic-700"]
               }
-              name="octagon"
+              name="ticket-percent-outline"
               size={26}
             />
             {section == 25 && (
               <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("holds")}
+                {i18n.t("ticketing")}
               </Text>
             )}
           </TouchableOpacity>

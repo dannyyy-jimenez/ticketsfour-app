@@ -392,6 +392,59 @@ export default function EventScreen() {
     }
   };
 
+  const handlePaymentStripe = async () => {
+    const verifyAvailability = await Api.post("/event/availability", {
+      eid: params?.eid,
+      leaves: selectedLeaves,
+    });
+
+    if (verifyAvailability.isError) {
+      return;
+    }
+
+    const proceedIntent = await Api.post("/event/hold/v2", {
+      eid: params?.eid,
+      leaves: selectedLeaves,
+      intent: paymentIntent,
+      secret: paymentIntentSecret,
+    });
+
+    if (proceedIntent.isError) {
+      return;
+    }
+
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      await Api.post("/event/hold/remove/v2", {
+        eid: params?.eid,
+        leaves: selectedLeaves,
+        intent: paymentIntent,
+        secret: paymentIntentSecret,
+      });
+      // This point will only be reached if there is an immediate error when
+      // confirming the payment. Show error to your customer (for example, payment
+      // details incomplete)
+      //
+
+      setSelectedNodes([]);
+      setSelectedLeaves(null);
+      setIsLoadingPricing(false);
+    } else {
+      router.replace({
+        pathname: "tickets/verify",
+        params: {
+          eid: params?.eid,
+          intent: paymentIntent,
+          secret: paymentIntentSecret,
+        },
+      });
+      // Your customer will be redirected to your `return_url`. For some payment
+      // methods like iDEAL, your customer will be redirected to an intermediate
+      // site first to authorize the payment, then redirected to the `return_url`.
+    }
+  };
+
   const handlePayment = async () => {
     setIsLoadingPlaid(true);
 
@@ -514,7 +567,7 @@ export default function EventScreen() {
       .then((res) => {
         if (res.paymentOption == "undefined") return;
 
-        handlePayment();
+        handlePaymentStripe();
       })
       .catch((e) => {
         console.log("ER", e);
@@ -601,19 +654,22 @@ export default function EventScreen() {
         setPlaidInstitution(res.data.institution);
         setPlaidAccount(res.data.account);
 
-        try {
-          setCheckoutSection(2);
+        setPhone(res.data.ph);
+        setEmail(res.data.em);
+        setEphemeralStripe(res.data.ephemeralKey);
+        setCustomerStripe(res.data.customer);
+        setCheckoutSection(2);
 
+        try {
           // setTimeout(() => {
           //   scrollContainer?.current?.scrollToEnd({
           //     animated: true,
           //   });
-
           //   // if (session && !isGuest) {
-          //   //   setPhone(res.data.ph);
-          //   //   setEmail(res.data.em);
-          //   //   setEphemeralStripe(res.data.ephemeralKey);
-          //   //   setCustomerStripe(res.data.customer);
+          // setPhone(res.data.ph);
+          // setEmail(res.data.em);
+          // setEphemeralStripe(res.data.ephemeralKey);
+          // setCustomerStripe(res.data.customer);
           //   setCheckoutSection(2);
           //   // } else {
           //   //   SheetManager.show("authentication");
@@ -1209,6 +1265,20 @@ export default function EventScreen() {
                     />
                   ))}
                 </View>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.text.sm,
+                    {
+                      marginTop: 14,
+                      alignSelf: "flex-end",
+                      fontStyle: "italic",
+                    },
+                  ]}
+                >
+                  {i18n.t("inviteDisclaimer")}
+                </Text>
                 <View
                   style={[
                     Style.containers.row,
@@ -2722,49 +2792,103 @@ export default function EventScreen() {
                     </View>
                   )}
               </View>
+              <TouchableOpacity
+                disabled={isLoadingInvitation}
+                onPress={loadSpokenInvite}
+                style={[
+                  Style.elevated,
+                  {
+                    position: "absolute",
+                    shadowOpacity: 0.4,
+                    shadowColor: theme["color-primary-300"],
+                    backgroundColor: theme["color-primary-300"],
+                    flexDirection: "row",
+                    alignItems: "center",
+                    width: "auto",
+                    height: 50,
+                    paddingHorizontal: 10,
+                    borderRadius: 8,
+                    top: height * 0.5 + 15,
+                    right: 0,
+                  },
+                ]}
+              >
+                {isLoadingInvitation && (
+                  <>
+                    <Ring color={theme["color-primary-400"]} delay={0} />
+                    <Ring color={theme["color-primary-400"]} delay={1000} />
+                    <Ring color={theme["color-primary-400"]} delay={2000} />
+                    <Ring color={theme["color-primary-400"]} delay={3000} />
+                    <MaterialCommunityIcons
+                      name="robot-excited-outline"
+                      size={26}
+                      color={theme["color-basic-100"]}
+                    />
+                    <View
+                      style={{
+                        marginLeft: 8,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={[
+                          { marginTop: 2 },
+                          Style.text.basic,
+                          Style.text.bold,
+                          Style.text.sm,
+                        ]}
+                      >
+                        Listen to
+                      </Text>
+                      <Text
+                        style={[
+                          { marginTop: 2 },
+                          Style.text.basic,
+                          Style.text.bold,
+                        ]}
+                      >
+                        T4's Invitation
+                      </Text>
+                    </View>
+                  </>
+                )}
+                {!isLoadingInvitation && (
+                  <>
+                    <MaterialCommunityIcons
+                      name="robot-excited-outline"
+                      size={26}
+                      color={theme["color-basic-100"]}
+                    />
+                    <View
+                      style={{
+                        marginLeft: 8,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={[
+                          { marginTop: 2 },
+                          Style.text.basic,
+                          Style.text.bold,
+                          Style.text.sm,
+                        ]}
+                      >
+                        Listen to
+                      </Text>
+                      <Text
+                        style={[
+                          { marginTop: 2 },
+                          Style.text.basic,
+                          Style.text.bold,
+                        ]}
+                      >
+                        T4's Invitation
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </TouchableOpacity>
             </ScrollContainer>
-            <TouchableOpacity
-              disabled={isLoadingInvitation}
-              onPress={loadSpokenInvite}
-              style={[
-                Style.elevated,
-                Style.button.round,
-                {
-                  position: "absolute",
-                  shadowOpacity: 0.4,
-                  shadowColor: theme["color-primary-300"],
-                  backgroundColor: theme["color-primary-300"],
-                  flexDirection: "row",
-                  alignItems: "center",
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  bottom: 30,
-                  right: 15,
-                },
-              ]}
-            >
-              {isLoadingInvitation && (
-                <>
-                  <Ring color={theme["color-primary-400"]} delay={0} />
-                  <Ring color={theme["color-primary-400"]} delay={1000} />
-                  <Ring color={theme["color-primary-400"]} delay={2000} />
-                  <Ring color={theme["color-primary-400"]} delay={3000} />
-                  <MaterialCommunityIcons
-                    name="robot-angry-outline"
-                    size={26}
-                    color={theme["color-basic-100"]}
-                  />
-                </>
-              )}
-              {!isLoadingInvitation && (
-                <MaterialCommunityIcons
-                  name="robot-excited-outline"
-                  size={26}
-                  color={theme["color-basic-100"]}
-                />
-              )}
-            </TouchableOpacity>
           </>
         </KeyboardAvoidingView>
       </StripeProvider>
