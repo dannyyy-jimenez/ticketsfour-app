@@ -25,6 +25,7 @@ export default function BlogComponent({ blog }) {
           paddingVertical: 0,
           width: width * 0.9,
           borderBottomColor: theme["color-primary-500"],
+          overflow: "hidden",
         },
       ]}
     >

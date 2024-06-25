@@ -1648,18 +1648,18 @@ export default function EventScreen() {
         </View>
 
         <View style={[Style.containers.row, { marginTop: 30 }]}>
-          <Text style={[Style.text.dark, Style.text.bold, Style.text.xxl]}>
+          <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
             {i18n.t("salesBreakdown")}
           </Text>
           <View style={{ flex: 1 }} />
           <Ionicons
             name="layers-outline"
-            size={28}
+            size={22}
             color={theme["color-basic-700"]}
           />
         </View>
         <Text
-          style={[Style.text.dark, Style.text.normal, { marginVertical: 10 }]}
+          style={[Style.text.dark, Style.text.normal, { marginVertical: 6 }]}
         >
           {i18n.t("salesBreakdownDesc")}
         </Text>
@@ -1667,22 +1667,22 @@ export default function EventScreen() {
         <ActivityIndicator
           size={20}
           color={theme["color-organizer-500"]}
-          style={{ alignSelf: "center", marginTop: 10 }}
+          style={{ alignSelf: "center", marginTop: 6 }}
         />
 
         <View style={[Style.containers.row, { marginTop: 30 }]}>
-          <Text style={[Style.text.dark, Style.text.bold, Style.text.xxl]}>
+          <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
             {i18n.t("salesAnalyticsX", { amount: salesAmount })}
           </Text>
           <View style={{ flex: 1 }} />
           <Entypo
             name="line-graph"
-            size={28}
+            size={22}
             color={theme["color-basic-700"]}
           />
         </View>
         <Text
-          style={[Style.text.dark, Style.text.normal, { marginVertical: 10 }]}
+          style={[Style.text.dark, Style.text.normal, { marginVertical: 6 }]}
         >
           {i18n.t("salesAnalyticsDesc")}
         </Text>
@@ -2416,15 +2416,13 @@ export default function EventScreen() {
               </View>
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
-                <Text
-                  style={[Style.text.dark, Style.text.bold, Style.text.xxl]}
-                >
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
                   {i18n.t("salesBreakdown")}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <Ionicons
                   name="layers-outline"
-                  size={28}
+                  size={22}
                   color={theme["color-basic-700"]}
                 />
               </View>
@@ -2432,7 +2430,7 @@ export default function EventScreen() {
                 style={[
                   Style.text.dark,
                   Style.text.normal,
-                  { marginVertical: 10 },
+                  { marginVertical: 6 },
                 ]}
               >
                 {i18n.t("salesBreakdownDesc")}
@@ -2521,15 +2519,13 @@ export default function EventScreen() {
               ))} */}
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
-                <Text
-                  style={[Style.text.dark, Style.text.bold, Style.text.xxl]}
-                >
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
                   {i18n.t("salesAnalyticsX", { amount: ev.getSales() })}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <Entypo
                   name="line-graph"
-                  size={28}
+                  size={22}
                   color={theme["color-basic-700"]}
                 />
               </View>
@@ -2537,7 +2533,7 @@ export default function EventScreen() {
                 style={[
                   Style.text.dark,
                   Style.text.normal,
-                  { marginVertical: 10 },
+                  { marginVertical: 6 },
                 ]}
               >
                 {i18n.t("salesAnalyticsDesc")}
@@ -2592,15 +2588,13 @@ export default function EventScreen() {
               )}
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
-                <Text
-                  style={[Style.text.dark, Style.text.bold, Style.text.xxl]}
-                >
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
                   {i18n.t("age", { amount: salesAmount })}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <MaterialCommunityIcons
                   name="cake-variant-outline"
-                  size={28}
+                  size={22}
                   color={theme["color-basic-700"]}
                 />
               </View>
@@ -2612,7 +2606,7 @@ export default function EventScreen() {
                       Style.text.dark,
                       Style.text.semibold,
                       Style.transparency.lg,
-                      { textAlign: "center", marginTop: 10, marginBottom: 6 },
+                      { textAlign: "center", marginTop: 6, marginBottom: 6 },
                     ]}
                   >
                     {i18n.t("waitingForData")}

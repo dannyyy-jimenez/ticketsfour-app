@@ -25,6 +25,8 @@ export default class Blog {
     this.cover = cover;
     if (this.cover && this.cover.includes("image/upload/")) {
       this.cover = this.cover;
+    } else if (this.cover) {
+      this.cover = Config.cloudUri + this.cover;
     } else {
       this.cover = Config.cloudUri + "metacover-ticketsfour_tunr6k.jpg";
     }

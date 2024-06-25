@@ -1450,18 +1450,18 @@ function EventTicketViewerSheet({ sheetId, payload }) {
     }
   };
 
-  React.useEffect(() => {
-    NfcManager.start().catch((_) => {});
+  // React.useEffect(() => {
+  //   NfcManager.start().catch((_) => {});
 
-    // passNfc();
-    //
-    NfcManager.registerTagEvent();
-    NfcManager.setEventListener(NfcEvents.DiscoverTag, () => alert("D"));
+  //   // passNfc();
+  //   //
+  //   NfcManager.registerTagEvent();
+  //   NfcManager.setEventListener(NfcEvents.DiscoverTag, () => alert("D"));
 
-    return () => {
-      NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
-    };
-  }, []);
+  //   return () => {
+  //     NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
+  //   };
+  // }, []);
 
   return (
     <ActionSheet

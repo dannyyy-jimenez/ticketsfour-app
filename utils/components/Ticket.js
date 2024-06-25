@@ -93,12 +93,12 @@ export default function TicketComponent({ ticket, hidden = false }) {
             >
               Tickets Four{" "}
             </Text>
-            <MaterialCommunityIcons
+            {/* <MaterialCommunityIcons
               style={{ opacity: 0.8, position: "absolute", right: 10, top: 10 }}
               color={theme["color-basic-100"]}
               size={22}
               name="contactless-payment"
-            />
+            /> */}
           </View>
         )}
         {!ticket?.node?.isExposed && (

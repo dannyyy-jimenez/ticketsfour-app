@@ -179,8 +179,8 @@ export default function EventScreen() {
   return (
     <ScrollContainer
       _ref={scrollContainer}
+      style={{ paddingBottom: 0 }}
       paddingHorizontal={0}
-      style={{ paddingBottom: insets.bottom }}
     >
       <TouchableOpacity
         style={[
@@ -274,18 +274,22 @@ export default function EventScreen() {
           {blog?.subtitle}
         </Text>
 
-        <View style={[Style.containers.row, { marginTop: 15 }]}>
-          {blog?.tags.map((tag, tidx) => (
-            <View
-              style={[Style.badge, { marginHorizontal: 4 }]}
-              key={"T-" + tidx}
-            >
-              <Text style={[Style.text.basic, Style.text.semibold]}>
-                #{tag}
-              </Text>
-            </View>
-          ))}
-        </View>
+        {blog?.tags?.length > 0 && (
+          <View
+            style={[Style.containers.row, { marginTop: 15, marginBottom: 20 }]}
+          >
+            {blog?.tags.map((tag, tidx) => (
+              <View
+                style={[Style.badge, { marginHorizontal: 4 }]}
+                key={"T-" + tidx}
+              >
+                <Text style={[Style.text.basic, Style.text.semibold]}>
+                  #{tag}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <View
           style={[
