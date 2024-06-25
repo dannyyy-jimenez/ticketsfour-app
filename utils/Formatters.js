@@ -1,6 +1,5 @@
 import { Text } from "react-native";
 import Style, { theme } from "./Styles";
-import { View } from "react-native";
 
 const NumFormatter = (n) => {
   if (n >= 1000000) {
@@ -78,7 +77,7 @@ const DateFormatter = (dateString) => {
 
 const EmailValidator = (email) => {
   return email.match(
-    /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/,
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
   );
 };
 

@@ -6,9 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  TextInput,
   Platform,
-  Alert,
 } from "react-native";
 import LayoutContainer, {
   ScrollContainer,
@@ -45,12 +43,6 @@ import Blog from "../../../models/Blog";
 import * as Linking from "expo-linking";
 import { KeyboardAvoidingView } from "react-native";
 import { SheetManager, SheetProvider } from "react-native-actions-sheet";
-import {
-  LinkIOSPresentationStyle,
-  LinkLogLevel,
-  create as createPlaid,
-  open as openPlaid,
-} from "react-native-plaid-link-sdk";
 import { Audio } from "expo-av";
 import Animated, {
   useAnimatedStyle,
@@ -120,9 +112,6 @@ export default function EventScreen() {
   const [paymentIntent, setPaymentIntent] = React.useState(null);
   const [paymentIntentSecret, setPaymentIntentSecret] = React.useState(null);
 
-  const [plaidInstitution, setPlaidInstitution] = React.useState(null);
-  const [plaidAccount, setPlaidAccount] = React.useState(null);
-  const [isLoadingPlaid, setIsLoadingPlaid] = React.useState(false);
   const [isLoadingInvitation, setIsLoadingInvitation] = React.useState(false);
   const [invitation, setInvitation] = React.useState(null);
   const [invitationAudio, setInvitationAudio] = React.useState(null);
@@ -446,8 +435,6 @@ export default function EventScreen() {
   };
 
   const handlePayment = async () => {
-    setIsLoadingPlaid(true);
-
     const verifyAvailability = await Api.post("/event/availability", {
       eid: params?.eid,
       leaves: selectedLeaves,
@@ -480,7 +467,6 @@ export default function EventScreen() {
         },
       });
 
-      setIsLoadingPlaid(false);
       return;
     }
 
@@ -651,89 +637,16 @@ export default function EventScreen() {
         setPaymentIntent(res.data.piid);
         setIsLoadingPricing(false);
 
-        setPlaidInstitution(res.data.institution);
-        setPlaidAccount(res.data.account);
-
         setPhone(res.data.ph);
         setEmail(res.data.em);
         setEphemeralStripe(res.data.ephemeralKey);
         setCustomerStripe(res.data.customer);
         setCheckoutSection(2);
-
-        try {
-          // setTimeout(() => {
-          //   scrollContainer?.current?.scrollToEnd({
-          //     animated: true,
-          //   });
-          //   // if (session && !isGuest) {
-          // setPhone(res.data.ph);
-          // setEmail(res.data.em);
-          // setEphemeralStripe(res.data.ephemeralKey);
-          // setCustomerStripe(res.data.customer);
-          //   setCheckoutSection(2);
-          //   // } else {
-          //   //   SheetManager.show("authentication");
-          //   // }
-          // }, 200);
-        } catch (e) {
-          console.log(e);
-        }
       })
       .catch((error) => {
         console.log(error);
         setIsLoadingPricing(true);
       });
-  };
-
-  const linkPlaid = async (publicToken) => {
-    setIsLoadingPlaid(true);
-
-    try {
-      const res = await Api.post("/users/plaid/link", {
-        auth,
-        public_token: publicToken,
-      });
-      if (res.isError) throw res.data?.message;
-
-      setPlaidAccount(res.data.account);
-      setPlaidInstitution(res.data.institution);
-      setIsLoadingPlaid(false);
-    } catch (e) {
-      console.log(e);
-      setIsLoadingPlaid(false);
-    }
-  };
-
-  const handlePlaidTokenCreation = async () => {
-    setIsLoadingPlaid(true);
-
-    try {
-      const res = await Api.get("/users/plaid/link", {
-        auth,
-      });
-      if (res.isError) throw res.data?.message;
-
-      createPlaid({
-        token: res.data.link_token,
-        logLevel: LinkLogLevel.DEBUG,
-        noLoadingState: false,
-      });
-
-      openPlaid({
-        onSuccess: (res) => {
-          linkPlaid(res.publicToken);
-        },
-        onExit: (err) => {
-          console.log(err);
-        },
-        iOSPresentationStyle: LinkIOSPresentationStyle.MODAL,
-        logLevel: LinkLogLevel.DEBUG,
-      }).catch((e) => console.log(e));
-      setIsLoadingPlaid(false);
-    } catch (e) {
-      console.log(e);
-      setIsLoadingPlaid(false);
-    }
   };
 
   React.useEffect(() => {
@@ -1315,11 +1228,23 @@ export default function EventScreen() {
                         Style.text.xl,
                         Style.text.semibold,
                         Style.text.primary,
-                        { marginTop: 4, marginBottom: 4 },
+                        { marginTop: 4 },
                       ]}
                     >
                       {event.name}
                     </Text>
+                    <View style={[{ marginTop: 4, marginBottom: 4 }]}>
+                      <Text
+                        style={[
+                          Style.text.semibold,
+                          Style.transparency.md,
+                          Style.text.dark,
+                        ]}
+                      >
+                        {event?.venue?.name} • {event.venue?.location?.city},{" "}
+                        {event.venue?.location?.region_ab}
+                      </Text>
+                    </View>
                   </View>
                   <TouchableOpacity
                     onPress={onShare}
@@ -1338,7 +1263,7 @@ export default function EventScreen() {
                     {
                       width: "100%",
                       justifyContent: "space-between",
-                      marginTop: 5,
+                      marginTop: 2,
                     },
                   ]}
                 >
@@ -2369,292 +2294,6 @@ export default function EventScreen() {
                           >
                             {i18n.t("tickets_to_mobile")}
                           </Text>
-
-                          {plaidAccount == null && (
-                            <>
-                              <Text
-                                style={[
-                                  Style.text.semibold,
-                                  Style.text.primary,
-                                  Style.text.lg,
-                                  {
-                                    marginTop: 25,
-                                    marginBottom: 4,
-                                    alignSelf: "center",
-                                  },
-                                ]}
-                              >
-                                {i18n.t("unlockACHDiscount")}
-                              </Text>
-                              <Text
-                                style={[
-                                  Style.text.semibold,
-                                  Style.text.dark,
-                                  Style.text.md,
-                                  {
-                                    marginTop: 5,
-                                    marginBottom: 15,
-                                    alignSelf: "flex-start",
-                                  },
-                                ]}
-                              >
-                                {i18n.t("unlockACHDiscountSub")}
-                              </Text>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  handlePlaidTokenCreation();
-                                }}
-                                style={{ marginTop: 15 }}
-                              >
-                                <View
-                                  style={[
-                                    Style.button.container,
-                                    {
-                                      backgroundColor: theme["color-basic-800"],
-                                      alignSelf: "center",
-                                      width: width - 40,
-                                      maxWidth: 300,
-                                      marginBottom: 10,
-                                    },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      Style.button.text,
-                                      Style.text.semibold,
-                                    ]}
-                                  >
-                                    {i18n.t("linkAccount")}
-                                  </Text>
-                                  <Image
-                                    style={Style.button.suffix}
-                                    width={100}
-                                    height={30}
-                                    contentFit="contain"
-                                    source={{
-                                      uri: "https://res.cloudinary.com/ticketsfour/image/upload/q_auto,f_auto/externals/plaid/Plaid_id25TiQUJW_4_cb5119.png",
-                                    }}
-                                  />
-                                </View>
-                              </TouchableOpacity>
-                              <View
-                                style={[
-                                  Style.containers.row,
-                                  { marginVertical: 20, width: "100%" },
-                                ]}
-                              >
-                                <View
-                                  style={{
-                                    flex: 1,
-                                    borderRadius: 4,
-                                    height: 2,
-                                    marginHorizontal: 8,
-                                    backgroundColor: theme["color-primary-500"],
-                                  }}
-                                />
-                                <Text
-                                  style={[
-                                    Style.text.semibold,
-                                    Style.text.primary,
-                                    Style.text.md,
-                                    { textTransform: "uppercase" },
-                                  ]}
-                                >
-                                  {i18n.t("or")}
-                                </Text>
-                                <View
-                                  style={{
-                                    flex: 1,
-                                    borderRadius: 4,
-                                    height: 2,
-                                    marginHorizontal: 4,
-                                    backgroundColor: theme["color-primary-500"],
-                                  }}
-                                />
-                              </View>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  Linking.openURL(event.getShareables());
-                                }}
-                              >
-                                <View
-                                  style={[
-                                    Style.button.container,
-                                    {
-                                      backgroundColor: "transparent",
-                                      alignSelf: "center",
-                                      width: width - 40,
-                                      maxWidth: 300,
-                                      marginBottom: 10,
-                                    },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      Style.button.text,
-                                      Style.text.dark,
-                                      Style.text.semibold,
-                                    ]}
-                                  >
-                                    {i18n.t("payWeb")}
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-                            </>
-                          )}
-
-                          {plaidAccount != null && !isLoadingPlaid && (
-                            <>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  handlePlaidTokenCreation();
-                                }}
-                                style={{
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                  paddingHorizontal: 20,
-                                  marginTop: 25,
-                                  marginBottom: 20,
-                                }}
-                              >
-                                {plaidInstitution?.logo != null && (
-                                  <Image
-                                    width={20}
-                                    height={20}
-                                    contentFit="contain"
-                                    source={{
-                                      uri:
-                                        "data:image/png;base64," +
-                                        plaidInstitution?.logo,
-                                    }}
-                                  />
-                                )}
-                                <Text
-                                  style={[
-                                    { marginLeft: 20, flex: 1 },
-                                    Style.text.md,
-                                    Style.text.semibold,
-                                    plaidInstitution?.primary_color != null
-                                      ? {
-                                          color:
-                                            plaidInstitution?.primary_color,
-                                        }
-                                      : Style.text.dark,
-                                  ]}
-                                >
-                                  {plaidInstitution?.name} -{" "}
-                                  {plaidAccount?.name}
-                                </Text>
-                                <Text
-                                  style={[
-                                    { marginHorizontal: 4 },
-                                    Style.text.sm,
-                                    Style.text.semibold,
-                                    Style.text.dark,
-                                  ]}
-                                >
-                                  {i18n.t(
-                                    "plaid_subtype_" + plaidAccount?.subtype,
-                                  )}
-                                </Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity onPress={handlePayment}>
-                                <View
-                                  style={[
-                                    Style.button.container,
-                                    {
-                                      backgroundColor:
-                                        theme["color-primary-500"],
-                                      alignSelf: "center",
-                                      width: width - 40,
-                                      maxWidth: 300,
-                                      marginBottom: 10,
-                                    },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      Style.button.text,
-                                      Style.text.semibold,
-                                    ]}
-                                  >
-                                    {i18n.t("pay")} - $
-                                    {CurrencyFormatter(total * 0.98)}
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-                              <View
-                                style={[
-                                  Style.containers.row,
-                                  { marginVertical: 20, width: "100%" },
-                                ]}
-                              >
-                                <View
-                                  style={{
-                                    flex: 1,
-                                    borderRadius: 4,
-                                    height: 2,
-                                    marginHorizontal: 8,
-                                    backgroundColor: theme["color-primary-500"],
-                                  }}
-                                />
-                                <Text
-                                  style={[
-                                    Style.text.semibold,
-                                    Style.text.primary,
-                                    Style.text.md,
-                                    { textTransform: "uppercase" },
-                                  ]}
-                                >
-                                  {i18n.t("or")}
-                                </Text>
-                                <View
-                                  style={{
-                                    flex: 1,
-                                    borderRadius: 4,
-                                    height: 2,
-                                    marginHorizontal: 4,
-                                    backgroundColor: theme["color-primary-500"],
-                                  }}
-                                />
-                              </View>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  Linking.openURL(event.getShareables());
-                                }}
-                              >
-                                <View
-                                  style={[
-                                    Style.button.container,
-                                    {
-                                      backgroundColor: "transparent",
-                                      alignSelf: "center",
-                                      width: width - 40,
-                                      maxWidth: 300,
-                                    },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      Style.button.text,
-                                      Style.text.dark,
-                                      Style.text.semibold,
-                                    ]}
-                                  >
-                                    {i18n.t("payWeb")}
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-                            </>
-                          )}
-
-                          {isLoadingPlaid && (
-                            <ActivityIndicator
-                              style={{ marginVertical: 20 }}
-                              size="small"
-                              color={theme["color-primary-500"]}
-                            />
-                          )}
                         </>
                       )}
                       {checkoutSection == 2 && total == 0 && (
@@ -2792,102 +2431,104 @@ export default function EventScreen() {
                     </View>
                   )}
               </View>
-              <TouchableOpacity
-                disabled={isLoadingInvitation}
-                onPress={loadSpokenInvite}
-                style={[
-                  Style.elevated,
-                  {
-                    position: "absolute",
-                    shadowOpacity: 0.4,
-                    shadowColor: theme["color-primary-300"],
-                    backgroundColor: theme["color-primary-300"],
-                    flexDirection: "row",
-                    alignItems: "center",
-                    width: "auto",
-                    height: 50,
-                    paddingHorizontal: 10,
-                    borderRadius: 8,
-                    top: height * 0.5 + 15,
-                    right: 0,
-                  },
-                ]}
-              >
-                {isLoadingInvitation && (
-                  <>
-                    <Ring color={theme["color-primary-400"]} delay={0} />
-                    <Ring color={theme["color-primary-400"]} delay={1000} />
-                    <Ring color={theme["color-primary-400"]} delay={2000} />
-                    <Ring color={theme["color-primary-400"]} delay={3000} />
-                    <MaterialCommunityIcons
-                      name="robot-excited-outline"
-                      size={26}
-                      color={theme["color-basic-100"]}
-                    />
-                    <View
-                      style={{
-                        marginLeft: 8,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={[
-                          { marginTop: 2 },
-                          Style.text.basic,
-                          Style.text.bold,
-                          Style.text.sm,
-                        ]}
+              {event.active && !event.soldOut && (
+                <TouchableOpacity
+                  disabled={isLoadingInvitation}
+                  onPress={loadSpokenInvite}
+                  style={[
+                    Style.elevated,
+                    {
+                      position: "absolute",
+                      shadowOpacity: 0.4,
+                      shadowColor: theme["color-primary-300"],
+                      backgroundColor: theme["color-primary-300"],
+                      flexDirection: "row",
+                      alignItems: "center",
+                      width: "auto",
+                      height: 50,
+                      paddingHorizontal: 10,
+                      borderRadius: 8,
+                      top: height * 0.5 + 15,
+                      right: 0,
+                    },
+                  ]}
+                >
+                  {isLoadingInvitation && (
+                    <>
+                      <Ring color={theme["color-primary-400"]} delay={0} />
+                      <Ring color={theme["color-primary-400"]} delay={1000} />
+                      <Ring color={theme["color-primary-400"]} delay={2000} />
+                      <Ring color={theme["color-primary-400"]} delay={3000} />
+                      <MaterialCommunityIcons
+                        name="robot-excited-outline"
+                        size={26}
+                        color={theme["color-basic-100"]}
+                      />
+                      <View
+                        style={{
+                          marginLeft: 8,
+                          alignItems: "center",
+                        }}
                       >
-                        Listen to
-                      </Text>
-                      <Text
-                        style={[
-                          { marginTop: 2 },
-                          Style.text.basic,
-                          Style.text.bold,
-                        ]}
+                        <Text
+                          style={[
+                            { marginTop: 2 },
+                            Style.text.basic,
+                            Style.text.bold,
+                            Style.text.sm,
+                          ]}
+                        >
+                          Listen to
+                        </Text>
+                        <Text
+                          style={[
+                            { marginTop: 2 },
+                            Style.text.basic,
+                            Style.text.bold,
+                          ]}
+                        >
+                          T4's Invitation
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                  {!isLoadingInvitation && (
+                    <>
+                      <MaterialCommunityIcons
+                        name="robot-excited-outline"
+                        size={26}
+                        color={theme["color-basic-100"]}
+                      />
+                      <View
+                        style={{
+                          marginLeft: 8,
+                          alignItems: "center",
+                        }}
                       >
-                        T4's Invitation
-                      </Text>
-                    </View>
-                  </>
-                )}
-                {!isLoadingInvitation && (
-                  <>
-                    <MaterialCommunityIcons
-                      name="robot-excited-outline"
-                      size={26}
-                      color={theme["color-basic-100"]}
-                    />
-                    <View
-                      style={{
-                        marginLeft: 8,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={[
-                          { marginTop: 2 },
-                          Style.text.basic,
-                          Style.text.bold,
-                          Style.text.sm,
-                        ]}
-                      >
-                        Listen to
-                      </Text>
-                      <Text
-                        style={[
-                          { marginTop: 2 },
-                          Style.text.basic,
-                          Style.text.bold,
-                        ]}
-                      >
-                        T4's Invitation
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </TouchableOpacity>
+                        <Text
+                          style={[
+                            { marginTop: 2 },
+                            Style.text.basic,
+                            Style.text.bold,
+                            Style.text.sm,
+                          ]}
+                        >
+                          Listen to
+                        </Text>
+                        <Text
+                          style={[
+                            { marginTop: 2 },
+                            Style.text.basic,
+                            Style.text.bold,
+                          ]}
+                        >
+                          T4's Invitation
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </ScrollContainer>
           </>
         </KeyboardAvoidingView>

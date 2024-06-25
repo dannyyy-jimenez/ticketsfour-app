@@ -2,10 +2,28 @@ import React from "react";
 import { useStorageState } from "./useStorageState";
 import * as SecureStore from "expo-secure-store";
 import * as Location from "expo-location";
+import * as SQLite from "expo-sqlite";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
+import * as Crypto from "expo-crypto";
+import Api from "./Api";
 
 const AuthContext = React.createContext(null);
+const OfflineContext = React.createContext(null);
+
+const keygen = (length) => {
+  let result = "";
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+};
 
 export function useSession() {
   const value = React.useContext(AuthContext);
@@ -18,14 +36,28 @@ export function useSession() {
   return value;
 }
 
+export function useOfflineProvider() {
+  const value = React.useContext(OfflineContext);
+  if (process.env.NODE_ENV !== "production") {
+    if (!value) {
+      throw new Error(
+        "useOfflineProvider must be wrapped in a <OfflineProvider />",
+      );
+    }
+  }
+
+  return value;
+}
+
 export function SessionProvider(props) {
   const [isLoadingOrg, setIsLoadingOrg] = React.useState(true);
   const [[isLoadingAuth, session], setSession] = useStorageState("TCKTSFRSID");
   const [socket, setSocket] = React.useState(null);
   const [defaultOrganization, _setDefaultOrganization] = React.useState("-");
   const [organizerMode, _setOrganizerMode] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [name, _setName] = React.useState("");
+  const [email, _setEmail] = React.useState("");
+  const [phoneNumber, _setPhoneNumber] = React.useState("");
   const [organizations, setOrganizations] = React.useState([]);
   const [activeOrganization, setActiveOrganization] = React.useState("");
 
@@ -144,6 +176,24 @@ export function SessionProvider(props) {
     SecureStore.setItemAsync("ORGMODE", val.toString());
   };
 
+  const setName = (val) => {
+    _setName(val);
+
+    SecureStore.setItemAsync("nomen", val.toString());
+  };
+
+  const setPhoneNumber = (val) => {
+    _setPhoneNumber(val);
+
+    SecureStore.setItemAsync("numerus", val.toString());
+  };
+
+  const setEmail = (val) => {
+    _setEmail(val);
+
+    SecureStore.setItemAsync("littera", val.toString());
+  };
+
   React.useEffect(() => {
     if (defaultOrganization == "-") return;
 
@@ -153,6 +203,16 @@ export function SessionProvider(props) {
   }, [activeOrganization]);
 
   React.useEffect(() => {
+    SecureStore.getItemAsync("nomen").then((val) => {
+      _setName(val || "");
+    });
+    SecureStore.getItemAsync("numerus").then((val) => {
+      _setPhoneNumber(val || "");
+    });
+    SecureStore.getItemAsync("littera").then((val) => {
+      _setEmail(val || "");
+    });
+
     SecureStore.getItemAsync("ORGMODE").then((val) => {
       if (val == null) return;
 
@@ -181,12 +241,16 @@ export function SessionProvider(props) {
         },
         signOut: () => {
           setSession(null);
+          setName("");
+          setEmail("");
+          setPhoneNumber("");
           setTimeout(() => {
             router.push("/login");
           }, 500);
         },
         name,
         phoneNumber,
+        email,
         organizations,
         activeOrganization,
         isGuest,
@@ -197,6 +261,7 @@ export function SessionProvider(props) {
         defaultOrganization,
         setName,
         setPhoneNumber,
+        setEmail,
         setOrganizations,
         setDefaultOrganization,
         setActiveOrganization,
@@ -206,5 +271,264 @@ export function SessionProvider(props) {
     >
       {props.children}
     </AuthContext.Provider>
+  );
+}
+
+export function OfflineProvider(props) {
+  const { auth } = useSession();
+  const [isOfflineMode, setIsOfflineMode] = React.useState(false);
+  const [offlineState, setOfflineState] = React.useState(keygen(8));
+  const [networkStrength, setNetworkStrength] = React.useState(100);
+  const [cellularGeneration, setCellularGeneration] = React.useState(null);
+  const [connectionType, setConnectionType] = React.useState(null);
+  const [forceOffline, setForceOffline] = React.useState(false);
+  const [isConnectionExpensive, setIsConnectionExpensive] =
+    React.useState(false);
+  const [offlineScanChecksum, setOfflineScanChecksum] = React.useState("");
+
+  const DBName = "TCKTSFR";
+
+  const versioning = "0.0.1";
+
+  const initdb = async () => {
+    const db = await SQLite.openDatabaseAsync(DBName);
+
+    // GENESIS IS THE PROMOTERS EVENTS
+    //
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS GENESIS (
+            oid VARCHAR,
+            id VARCHAR NOT NULL UNIQUE PRIMARY KEY,
+            cover VARCHAR,
+            name VARCHAR,
+            start DATETIME,
+            status VARCHAR,
+            active BOOLEAN
+      );`,
+    );
+
+    // APOCALYPSE
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS APOCALYPSE (
+            eid VARCHAR,
+            id VARCHAR NOT NULL UNIQUE PRIMARY KEY,
+            token VARCHAR,
+            attended BOOLEAN,
+            timeAttended DATETIME,
+            offloaded BOOLEAN
+      );`,
+    );
+  };
+
+  const get = async (query) => {
+    const db = await SQLite.openDatabaseAsync(DBName);
+
+    return await db.getAllAsync(query);
+  };
+
+  const post = async (query, values) => {
+    const db = await SQLite.openDatabaseAsync(DBName);
+
+    return await db.runAsync(query, values);
+  };
+
+  const command = async (query) => {
+    const db = await SQLite.openDatabaseAsync(DBName);
+
+    return await db.execAsync(query);
+  };
+
+  const generateOfflineKey = async () => {
+    let checksum = keygen(256);
+
+    await SecureStore.setItemAsync("signum", checksum);
+
+    setOfflineScanChecksum(checksum);
+
+    return checksum;
+  };
+
+  const validateOffloadScan = async (eid, scannedCode) => {
+    let salted = scannedCode + offlineScanChecksum;
+    const digest = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      salted,
+    );
+
+    const localres = await get(`
+      SELECT *
+        FROM APOCALYPSE
+        WHERE
+        token = '${digest}'
+        AND
+        eid = '${eid}'
+    `);
+
+    if (localres.length == 0) return null;
+
+    return localres[0];
+  };
+
+  const invalidateOfflineTickets = async () => {
+    const localres = await get(`
+      SELECT *
+        FROM APOCALYPSE
+        WHERE
+        offloaded = 1
+    `);
+
+    let oid = null;
+    let eid = null;
+
+    if (localres.length > 0) {
+      oid = localres[0].oid;
+      eid = localres[0].eid;
+    }
+
+    let ids = localres.map((t) => t.id);
+
+    if (ids.length == 0) return;
+
+    await Api.post("/organizations/events/scan/validate/offline", {
+      auth,
+      eid,
+      oid,
+      tids: ids,
+    });
+  };
+
+  const loadLatestOffline = async () => {};
+
+  // const syncOfflineCart = async () => {
+  //   try {
+  //     let res = await get(`
+  //       SELECT *
+  //       FROM CartItem
+  //     `);
+
+  //     if (res.length > 0) {
+  //       for await (let _cartItem of res) {
+  //         let _res = await Api.post("/users/cart/product", {
+  //           auth: session,
+  //           id: _cartItem.product,
+  //           teamId: _cartItem.teamCode,
+  //           quantity: _cartItem.quantity,
+  //           comment: _cartItem.comment,
+  //         });
+
+  //         if (_res.isError) {
+  //           continue;
+  //         }
+
+  //         command(
+  //           `DELETE FROM CartItem WHERE identifier = '${_cartItem.identifier}'`,
+  //         );
+  //       }
+
+  //       setOfflineState(keygen(8));
+  //     }
+  //   } catch (e) {
+  //     //alert("ERROR SYNCING CART");
+  //     console.log(e);
+  //   }
+  // };
+
+  React.useEffect(() => {
+    if (isOfflineMode) return;
+
+    invalidateOfflineTickets();
+    // syncOfflineCart();
+  }, [isOfflineMode, auth]);
+
+  React.useEffect(() => {
+    NetInfo.configure({
+      reachabilityTest: async (response) => {
+        return response.status === 204;
+      },
+      reachabilityLongTimeout: 10 * 1000,
+      reachabilityRequestTimeout: 1500,
+    });
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOfflineMode(
+        !state.isInternetReachable ||
+          state.details?.cellularGeneration == "2g" ||
+          state.details?.cellularGeneration == "3g" ||
+          forceOffline,
+      );
+      setNetworkStrength(state.details.strength);
+      setIsConnectionExpensive(state.details.isConnectionExpensive);
+      setCellularGeneration(state.details?.cellularGeneration);
+      setConnectionType(state.type);
+    });
+    initdb().then(() => {
+      SecureStore.getItemAsync("VER").then(async (_ver) => {
+        if (_ver != versioning) {
+          try {
+            await command(`DROP TABLE GENESIS`);
+          } catch (e) {
+            alert("BB", e);
+          }
+
+          try {
+            await initdb();
+          } catch (e) {
+            alert(e);
+          }
+
+          SecureStore.setItemAsync("VER", versioning);
+        }
+
+        //loadLatestOffline();
+      });
+    });
+
+    SecureStore.getItemAsync("signum").then((val) => {
+      setOfflineScanChecksum(val || "");
+    });
+
+    // To unsubscribe to these update, just use:
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    NetInfo.fetch().then((state) => {
+      setIsOfflineMode(
+        !state.isInternetReachable ||
+          state.details?.cellularGeneration == "2g" ||
+          state.details?.cellularGeneration == "3g" ||
+          forceOffline,
+      );
+      setNetworkStrength(state.details.strength);
+      setIsConnectionExpensive(state.details.isConnectionExpensive);
+      setCellularGeneration(state.details?.cellularGeneration);
+      setConnectionType(state.type);
+    });
+  }, [forceOffline]);
+
+  return (
+    <OfflineContext.Provider
+      value={{
+        isOfflineMode,
+        sql: {
+          get,
+          post,
+        },
+        invalidateOfflineTickets,
+        validateOffloadScan,
+        generateOfflineKey,
+        forceOffline,
+        setForceOffline,
+        loadLatestOffline,
+        offlineState,
+        networkStrength,
+        isConnectionExpensive,
+        cellularGeneration: cellularGeneration,
+        connectionType: connectionType,
+      }}
+    >
+      {props.children}
+    </OfflineContext.Provider>
   );
 }

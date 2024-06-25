@@ -32,12 +32,6 @@ import {
 import { TextInput } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import {
-  LinkIOSPresentationStyle,
-  LinkLogLevel,
-  create as createPlaid,
-  open as openPlaid,
-} from "react-native-plaid-link-sdk";
-import {
   StripeProvider,
   collectBankAccountForSetup,
   confirmSetupIntent,
@@ -52,6 +46,11 @@ export default function AccountScreen() {
     isGuest,
     signOut,
     name,
+    phoneNumber,
+    email,
+    setName,
+    setPhoneNumber,
+    setEmail,
     organizations,
     setActiveOrganization,
     setOrganizerMode,
@@ -59,19 +58,19 @@ export default function AccountScreen() {
   } = useSession();
   const { i18n } = useLocalization();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoadingACH, setIsLoadingACH] = React.useState(true);
   const { width, height } = Dimensions.get("window");
 
-  const [firstName, setFirstName] = React.useState("");
-  const [lastName, setLastName] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [email, setEmail] = React.useState("");
+  const firstName = React.useMemo(() => {
+    return name.split(" ").slice(0, -1).join(" ");
+  }, [name]);
+  const lastName = React.useMemo(() => {
+    return name.split(" ").slice(-1).join(" ");
+  }, [name]);
   const [addressStreet, setAddressStreet] = React.useState("");
   const [addressCity, setAddressCity] = React.useState("");
   const [addressRegion, setAddressRegion] = React.useState("");
   const [addressPostal, setAddressPostal] = React.useState("");
-  const [isLoadingPlaid, setIsLoadingPlaid] = React.useState(false);
-  const [plaidAccount, setPlaidAccount] = React.useState(null);
-  const [plaidInstitution, setPlaidInstitution] = React.useState(null);
   const [setupIntentClientSecret, setSetupIntentClientSecret] =
     React.useState(null);
   const [stripeInstitution, setStripeInstitution] = React.useState(null);
@@ -145,14 +144,14 @@ export default function AccountScreen() {
 
   const load = async () => {
     setIsLoading(true);
+    setIsLoadingACH(true);
 
     try {
       const res = await Api.get("/users/settings", { auth });
       console.log(res);
       if (res.isError) throw "e";
 
-      setFirstName(res.data.user.first_name);
-      setLastName(res.data.user.last_name);
+      setName(res.data.user.first_name + " " + res.data.user.last_name);
       setEmail(res.data.user.email);
       setPhoneNumber(res.data.user.phone);
 
@@ -163,11 +162,11 @@ export default function AccountScreen() {
       setAddressPostal(res.data.user.address.postal);
       setStripeInstitution(res.data.stripeInstitution);
 
-      setPlaidAccount(res.data.account);
-      setPlaidInstitution(res.data.institution);
+      setIsLoadingACH(false);
       setIsLoading(false);
     } catch (e) {
       alert(e);
+      setIsLoadingACH(false);
       setIsLoading(false);
     }
   };
@@ -189,57 +188,6 @@ export default function AccountScreen() {
       setIsLoading(false);
     } catch (e) {
       setIsLoading(false);
-    }
-  };
-
-  const linkPlaid = async (publicToken) => {
-    setIsLoadingPlaid(true);
-
-    try {
-      const res = await Api.post("/users/plaid/link", {
-        auth,
-        public_token: publicToken,
-      });
-      if (res.isError) throw res.data?.message;
-
-      setPlaidAccount(res.data.account);
-      setPlaidInstitution(res.data.institution);
-      setIsLoadingPlaid(false);
-    } catch (e) {
-      console.log(e);
-      setIsLoadingPlaid(false);
-    }
-  };
-
-  const handlePlaidTokenCreation = async () => {
-    setIsLoadingPlaid(true);
-
-    try {
-      const res = await Api.get("/users/plaid/link", {
-        auth,
-      });
-      if (res.isError) throw res.data?.message;
-
-      createPlaid({
-        token: res.data.link_token,
-        logLevel: LinkLogLevel.DEBUG,
-        noLoadingState: false,
-      });
-
-      openPlaid({
-        onSuccess: (res) => {
-          linkPlaid(res.publicToken);
-        },
-        onExit: (err) => {
-          console.log(err);
-        },
-        iOSPresentationStyle: LinkIOSPresentationStyle.MODAL,
-        logLevel: LinkLogLevel.DEBUG,
-      }).catch((e) => console.log(e));
-      setIsLoadingPlaid(false);
-    } catch (e) {
-      console.log(e);
-      setIsLoadingPlaid(false);
     }
   };
 
@@ -488,7 +436,7 @@ export default function AccountScreen() {
                   <TouchableOpacity
                     onPress={() =>
                       SheetManager.show("helper-sheet", {
-                        payload: { text: "plaidHelper" },
+                        payload: { text: "achHelper" },
                       })
                     }
                     style={{ padding: 10 }}
@@ -500,59 +448,15 @@ export default function AccountScreen() {
                     />
                   </TouchableOpacity>
                 </View>
-                {isLoadingPlaid && (
+                {isLoadingACH && (
                   <ActivityIndicator
                     color={theme["color-primary-500"]}
                     size={20}
                     style={{ alignSelf: "center", marginBottom: 10 }}
                   />
                 )}
-                {!isLoadingPlaid && !isLoading && (
+                {!isLoadingACH && !isLoading && (
                   <>
-                    {/* {plaidAccount != null && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          paddingHorizontal: 20,
-                        }}
-                      >
-                        {plaidInstitution?.logo != null && (
-                          <Image
-                            width={20}
-                            height={20}
-                            contentFit="contain"
-                            source={{
-                              uri:
-                                "data:image/png;base64," +
-                                plaidInstitution?.logo,
-                            }}
-                          />
-                        )}
-                        <Text
-                          style={[
-                            { marginLeft: 20, flex: 1 },
-                            Style.text.md,
-                            Style.text.semibold,
-                            plaidInstitution?.primary_color != null
-                              ? { color: plaidInstitution?.primary_color }
-                              : Style.text.dark,
-                          ]}
-                        >
-                          {plaidInstitution?.name} - {plaidAccount?.name}
-                        </Text>
-                        <Text
-                          style={[
-                            { marginHorizontal: 4 },
-                            Style.text.sm,
-                            Style.text.semibold,
-                            Style.text.dark,
-                          ]}
-                        >
-                          {i18n.t("plaid_subtype_" + plaidAccount?.subtype)}
-                        </Text>
-                      </View>
-                    )} */}
                     {stripeInstitution != null && (
                       <View
                         style={{
@@ -592,38 +496,6 @@ export default function AccountScreen() {
                         </Text>
                       </View>
                     )}
-                    {/* <TouchableOpacity
-                      onPress={() => {
-                        handlePlaidTokenCreation();
-                      }}
-                    >
-                      <View
-                        style={[
-                          Style.button.container,
-                          {
-                            backgroundColor: theme["color-basic-800"],
-                            alignSelf: "center",
-                            marginTop: plaidAccount != null ? 20 : 0,
-                            width: width - 40,
-                            maxWidth: 300,
-                            marginBottom: 10,
-                          },
-                        ]}
-                      >
-                        <Text style={[Style.button.text, Style.text.semibold]}>
-                          {i18n.t("linkAccount")}
-                        </Text>
-                        <Image
-                          style={Style.button.suffix}
-                          width={100}
-                          height={30}
-                          contentFit="contain"
-                          source={{
-                            uri: "https://res.cloudinary.com/ticketsfour/image/upload/q_auto,f_auto/externals/plaid/Plaid_id25TiQUJW_4_cb5119.png",
-                          }}
-                        />
-                      </View>
-                    </TouchableOpacity> */}
                     <TouchableOpacity
                       onPress={() => {
                         handleCollectBankAccountPress();
@@ -635,7 +507,7 @@ export default function AccountScreen() {
                           {
                             backgroundColor: theme["color-basic-800"],
                             alignSelf: "center",
-                            marginTop: plaidAccount != null ? 20 : 0,
+                            marginTop: stripeInstitution != null ? 20 : 0,
                             width: width - 40,
                             maxWidth: 300,
                             marginBottom: 10,

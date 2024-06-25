@@ -22,7 +22,8 @@
         "NSBluetoothAlwaysUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner to scan tickets",
         "NSBluetoothPeripheralUsageDescription": "Our app uses bluetooth to find a compatible barcode scanner to scan tickets",
         "CFBundleAllowMixedLocalizations": true,
-        "LSApplicationQueriesSchemes": ["musics"]
+        "LSApplicationQueriesSchemes": ["musics"],
+        "NFCReaderUsageDescription": "We use NFC to make your ticket scanning experience faster and easier"
       },
       "associatedDomains": [
         "applinks:ticketsfour.com",
@@ -114,7 +115,8 @@
         }
       ],
       "expo-asset",
-      "expo-build-properties"
+      "expo-build-properties",
+      "react-native-nfc-manager"
     ],
     "extra": {
       "router": {

@@ -52,6 +52,7 @@ export default ArtistCard = ({
           paddingBottom: 0,
           overflow: "hidden",
         },
+        style,
       ]}
     >
       {/* <LinearGradient

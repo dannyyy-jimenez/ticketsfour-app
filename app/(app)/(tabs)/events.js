@@ -19,6 +19,7 @@ import Api from "../../../utils/Api";
 import EventComponent from "../../../utils/components/Event";
 import { router } from "expo-router";
 import { ReplaceWithStyle } from "../../../utils/Formatters";
+import SkeletonLoader from "expo-skeleton-loader";
 
 const RenderEvent = React.memo(
   ({ item: event, i18n }) => (
@@ -37,6 +38,7 @@ export default function EventsScreen() {
   const { width, height } = Dimensions.get("window");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [events, setEvents] = React.useState([]);
+  const skeletonTasks = new Array(4).fill(0);
 
   const load = async () => {
     setIsLoading(true);
@@ -135,6 +137,38 @@ export default function EventsScreen() {
                 />
               </View>
             </View>
+            {isLoading &&
+              skeletonTasks.map((_d, lidx) => (
+                <SkeletonLoader
+                  key={"loading-" + lidx}
+                  highlightColor="#DDD"
+                  boneColor="#EEE"
+                >
+                  <SkeletonLoader.Container
+                    style={[
+                      Style.cards.creativeText,
+                      {
+                        backgroundColor: "transparent",
+                        width: width * 0.9,
+                        height: height * 0.4,
+                        margin: 10,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item
+                      style={[
+                        Style.cards.creativeText,
+                        {
+                          backgroundColor: "transparent",
+                          width: width * 0.9,
+                          height: height * 0.4,
+                          margin: 10,
+                        },
+                      ]}
+                    />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              ))}
           </View>
         ),
       }}

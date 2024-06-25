@@ -28,6 +28,8 @@ import Ticket from "../../../models/Ticket";
 import PagerView from "react-native-pager-view";
 import TicketComponent from "../../../utils/components/Ticket";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ArtistCard from "../../../utils/components/Talent";
+import WebView from "react-native-webview";
 
 export default function TicketVerifierScreen() {
   const { i18n } = useLocalization();
@@ -176,13 +178,80 @@ export default function TicketVerifierScreen() {
     );
 
   return (
-    <ScrollContainer
-      style={{ paddingVertical: 20, flex: 1, paddingBottom: 75 }}
-    >
+    <ScrollContainer style={{ paddingVertical: 20, paddingBottom: 5 }}>
+      {artists.length > 0 && (
+        <>
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.semibold,
+              { textAlign: "center", paddingVertical: 4 },
+            ]}
+          >
+            You Got{" "}
+            <Text style={{ color: theme["color-primary-500"] }}>
+              Tickets Four
+            </Text>
+          </Text>
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.semibold,
+              { textAlign: "center", paddingVertical: 4 },
+            ]}
+          >
+            An Unforgettable{" "}
+            <Text style={{ color: theme["color-primary-500"] }}>Lineup</Text>
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.semibold,
+              Style.transparency.md,
+              { textAlign: "center", paddingVertical: 2, marginBottom: 8 },
+            ]}
+          >
+            Make sure to practice for the event!
+          </Text>
+          {artists.map((talent) => (
+            <ArtistCard style={{ marginVertical: 10 }} talent={talent} />
+          ))}
+
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.semibold,
+              { textAlign: "center", paddingVertical: 4, marginTop: 8 },
+            ]}
+          >
+            <Text style={{ color: theme["color-primary-500"] }}>Music</Text>{" "}
+            That{" "}
+            <Text style={{ color: theme["color-primary-500"] }}>Elevates</Text>{" "}
+            Your <Text style={{ color: theme["color-primary-500"] }}>Soul</Text>
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.semibold,
+              Style.transparency.md,
+              { textAlign: "center", paddingVertical: 2, marginBottom: 15 },
+            ]}
+          >
+            Checkout the most recent music from these artists
+          </Text>
+          {artists.map((talent, tidx) => (
+            <WebView
+              key={"talent-" + tidx}
+              style={{ width: "100%", marginVertical: 4, height: 480 }}
+              source={{ uri: talent.embed }}
+            />
+          ))}
+        </>
+      )}
       <Text
         style={[
           Style.text.dark,
-          Style.text.xxl,
+          Style.text.xl,
           Style.text.semibold,
           { textAlign: "center", paddingVertical: 2 },
         ]}
@@ -199,40 +268,14 @@ export default function TicketVerifierScreen() {
       >
         {i18n.t("danceNoOneWatching")}
       </Text>
-
-      <PagerView
-        onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
-        style={{ flex: 1, marginTop: 10, marginBottom: 10 }}
-        initialPage={0}
-      >
-        {tickets.map((ticket, tidx) => (
-          <TicketComponent key={tidx} hidden ticket={ticket} />
-        ))}
-      </PagerView>
-      <View style={[Style.containers.row, { marginTop: 5 }]}>
-        {tickets.map((_p, pidx) => (
-          <View
-            style={{
-              height: 8,
-              width: 8,
-              borderRadius: 4,
-              marginHorizontal: 4,
-              backgroundColor:
-                pidx == activePager
-                  ? theme["color-primary-500"]
-                  : theme["color-basic-500"],
-            }}
-          />
-        ))}
-      </View>
       <View
         style={[
           Style.containers.row,
           {
             justifyContent: "space-evenly",
-            width: width,
-            marginTop: 25,
-            marginBottom: 5,
+            width: "100%",
+            marginTop: 15,
+            marginBottom: 10,
           },
         ]}
       >
@@ -285,6 +328,36 @@ export default function TicketVerifierScreen() {
             size={24}
           />
         </TouchableOpacity>
+      </View>
+      <PagerView
+        onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
+        style={{
+          flex: 1,
+          minHeight: height * 0.68,
+          marginTop: 10,
+          marginBottom: 10,
+        }}
+        initialPage={0}
+      >
+        {tickets.map((ticket, tidx) => (
+          <TicketComponent key={tidx} hidden ticket={ticket} />
+        ))}
+      </PagerView>
+      <View style={[Style.containers.row, { marginTop: 5 }]}>
+        {tickets.map((_p, pidx) => (
+          <View
+            style={{
+              height: 8,
+              width: 8,
+              borderRadius: 4,
+              marginHorizontal: 4,
+              backgroundColor:
+                pidx == activePager
+                  ? theme["color-primary-500"]
+                  : theme["color-basic-500"],
+            }}
+          />
+        ))}
       </View>
     </ScrollContainer>
   );

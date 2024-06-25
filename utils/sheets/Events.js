@@ -18,10 +18,10 @@ import {
 import React from "react";
 import ActionSheet, { SheetManager } from "react-native-actions-sheet";
 import { useLocalization } from "../../locales/provider";
-import { useSession } from "../ctx";
+import { useOfflineProvider, useSession } from "../ctx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Style, { theme } from "../Styles";
-import { CurrencyFormatter, FormatPhoneNumber } from "../Formatters";
+import { Commasize, CurrencyFormatter, FormatPhoneNumber } from "../Formatters";
 import Api from "../Api";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
@@ -36,6 +36,7 @@ import { Pressable } from "react-native";
 import { ActivityIndicator } from "react-native";
 import PagerView from "react-native-pager-view";
 import TicketComponent from "../components/Ticket";
+import NfcManager, { Ndef, NfcEvents, NfcTech } from "react-native-nfc-manager";
 
 const blurhash = "L6Pj0^jE.AyE_3t7t7R**0o#DgR4";
 
@@ -744,8 +745,9 @@ function EventPhysicalTicketsSheet({ sheetId, payload }) {
                 width: "100%",
                 paddingHorizontal: 20,
                 paddingVertical: 15,
+                marginVertical: 6,
                 backgroundColor: theme["color-basic-400"],
-                borderRadius: 14,
+                borderRadius: 6,
               },
             ]}
           >
@@ -1036,10 +1038,430 @@ function EventTierSheet({ sheetId, payload }) {
   );
 }
 
+function EventNodeTierSheet({ sheetId, payload }) {
+  const { auth, defaultOrganization: oid } = useSession();
+  const { width, height } = Dimensions.get("window");
+  const { i18n } = useLocalization();
+  const [isLoading, setIsLoading] = React.useState(false);
+  const event = payload?.event;
+  const eid = event?.id;
+  const node = payload?.node;
+  const nidx = payload?.nodeIdx;
+
+  const [activeTier, setActiveTier] = React.useState(node.tier);
+
+  const onUpdateNode = async () => {
+    setIsLoading(true);
+
+    try {
+      const res = await Api.post("/organizations/events/node", {
+        auth,
+        oid,
+        eid,
+        idx: nidx,
+        identifier: node.identifier,
+        capacity: node.capacity,
+        holdings: node.holdings,
+        tier: activeTier,
+      });
+      if (res.isError) throw "e";
+
+      SheetManager.hide("event-node-tier-sheet");
+    } catch (e) {
+      console.log(e);
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <ActionSheet
+      id={sheetId}
+      isModal={false}
+      keyboardHandlerEnabled={false}
+      useBottomSafeAreaPadding={false}
+      gestureEnabled={false}
+      indicatorStyle={{ backgroundColor: theme["color-organizer-500"] }}
+      containerStyle={{
+        padding: 10,
+        justifyContent: "center",
+        alignItems: "center",
+        display: "flex",
+        width: "100%",
+      }}
+    >
+      <View
+        style={[
+          Style.containers.column,
+          {
+            alignItems: "center",
+            marginTop: 10,
+            width: "100%",
+            paddingHorizontal: 10,
+          },
+        ]}
+      >
+        <View
+          style={{
+            borderRadius: 5,
+            paddingVertical: 8,
+            width: "100%",
+            backgroundColor: theme["color-basic-100"],
+            marginBottom: 10,
+            flexDirection: "row",
+          }}
+        >
+          <Text
+            style={[
+              Style.text.semibold,
+              Style.text.xl,
+              Style.text.organizer,
+              {
+                flex: 1,
+                textAlign: "left",
+                width: "100%",
+                marginBottom: 4,
+              },
+            ]}
+          >
+            Section {node.getTitle()}
+          </Text>
+          <View
+            style={[
+              Style.badge,
+              {
+                backgroundColor: theme["color-organizer-500"],
+                shadowColor: theme["color-organizer-500"],
+                alignSelf: "center",
+              },
+            ]}
+          >
+            <Text style={[Style.text.semibold, Style.text.basic]}>
+              Capacity {Commasize(node.capacity)}{" "}
+              {node.holdings > 0 ? `(${node.holdings} Holds)` : ""}
+            </Text>
+          </View>
+        </View>
+
+        {event?.tiers.map((tier, tidx) => (
+          <Pressable
+            key={"tier-" + tidx}
+            onPress={() => setActiveTier(tier.identifier)}
+            style={[
+              Style.containers.row,
+              {
+                width: "100%",
+                paddingHorizontal: 20,
+                paddingVertical: 15,
+                marginVertical: 6,
+                backgroundColor: theme["color-basic-400"],
+                borderRadius: 6,
+              },
+            ]}
+          >
+            <View>
+              <Text
+                style={[
+                  Style.text.dark,
+                  Style.text.semibold,
+                  Style.text.xl,
+                  { marginBottom: 4 },
+                ]}
+              >
+                ${CurrencyFormatter(tier.amount)}
+              </Text>
+              <Text style={[Style.text.dark, Style.text.semibold]}>
+                {tier.name}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }} />
+            {activeTier == tier.identifier && (
+              <Feather
+                name="check"
+                size={24}
+                color={theme["color-organizer-500"]}
+              />
+            )}
+          </Pressable>
+        ))}
+
+        {isLoading && (
+          <ActivityIndicator size="small" color={theme["color-primary-500"]} />
+        )}
+        {!isLoading && (
+          <TouchableOpacity
+            onPress={onUpdateNode}
+            style={[
+              Style.button.container,
+              {
+                marginTop: 30,
+                width: "100%",
+                backgroundColor: theme["color-organizer-500"],
+              },
+            ]}
+          >
+            <Text style={[Style.button.text, Style.text.semibold]}>
+              {i18n.t("update")}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* {tierTasks
+        .filter(
+          (t) => t.node == ev.nodes[activeNode].identifier,
+        )
+        .map((task, ttidx) => (
+          <Col
+            key={
+              "TT-" + activeNode.identifier + task.identifier
+            }
+          >
+            <Spacer y={1} />
+            {task.date !== "2000-01-01" && (
+              <Row justify="center" align="center">
+                <Text
+                  h3
+                  css={{ m: 0 }}
+                  align="center"
+                  color={
+                    validateTaskDate(task) ? "primary" : "error"
+                  }
+                >
+                  and on
+                </Text>
+                <Spacer x={1} />
+                <Input
+                  value={task.date}
+                  status={
+                    validateTaskDate(task) ? "default" : "error"
+                  }
+                  size="xl"
+                  width={300}
+                  placeholder="Enter date"
+                  type="date"
+                  onChange={(e) =>
+                    onDateTaskChange(task, e.target.value || "")
+                  }
+                />
+                <Spacer x={1} />
+                <Text
+                  h3
+                  css={{ m: 0 }}
+                  align="center"
+                  color={
+                    validateTaskDate(task) ? "primary" : "error"
+                  }
+                >
+                  change to
+                </Text>
+              </Row>
+            )}
+            {task.date == "2000-01-01" && (
+              <Row justify="center" align="center">
+                <Text
+                  h3
+                  css={{ m: 0 }}
+                  align="center"
+                  color={task.amount > 0 ? "primary" : "error"}
+                >
+                  and when
+                </Text>
+                <Spacer x={1} />
+                <Input
+                  value={task.amount}
+                  status={task.amount > 0 ? "default" : "error"}
+                  size="xl"
+                  width={300}
+                  placeholder="Enter amount"
+                  type="number"
+                  onChange={(e) =>
+                    onAmountTaskChange(
+                      task,
+                      e.target.value || "",
+                    )
+                  }
+                />
+                <Spacer x={1} />
+                <Text
+                  h3
+                  css={{ m: 0 }}
+                  align="center"
+                  color={task.amount > 0 ? "primary" : "error"}
+                >
+                  tickets sell change to
+                </Text>
+              </Row>
+            )}
+            <Spacer y={1} />
+            <Radio.Group
+              aria-label="Seating Tier"
+              value={task.tier}
+            >
+              <Grid.Container gap={2} wrap="wrap">
+                {ev?.tiers.map((tier, tidx) => (
+                  <Grid key={"tier-card-" + tidx}>
+                    <Card
+                      variant="flat"
+                      onPress={() =>
+                        onTierTaskChange(task, tier)
+                      }
+                      isPressable
+                      css={{ w: "200px" }}
+                    >
+                      <Card.Body>
+                        <Row justify="end">
+                          <Radio
+                            aria-label={tier.name}
+                            value={tier.identifier}
+                          ></Radio>
+                        </Row>
+                        <Row justify="center">
+                          <Text h3>
+                            ${CurrencyFormatter(tier.amount)}
+                          </Text>
+                        </Row>
+                        <Row justify="center">
+                          <Text h5>{tier.name}</Text>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid.Container>
+            </Radio.Group>
+            <Row justify="end">
+              {task.date != "2000-01-01" && (
+                <Button
+                  color="primary"
+                  onPress={() =>
+                    onTaskTypeSwitch(task, "tickets")
+                  }
+                  ripple={false}
+                  auto
+                  light
+                >
+                  Switch to Tickets Sold Based
+                </Button>
+              )}
+              {task.date == "2000-01-01" && (
+                <Button
+                  color="primary"
+                  onPress={() => onTaskTypeSwitch(task, "date")}
+                  ripple={false}
+                  auto
+                  light
+                >
+                  Switch to Date Based
+                </Button>
+              )}
+              <Button
+                color="error"
+                onPress={() => onTaskRemove(task)}
+                ripple={false}
+                auto
+                light
+              >
+                Remove
+              </Button>
+            </Row>
+          </Col>
+        ))}
+      <Spacer y={1}></Spacer>
+      <Row css={{ flexDirection: "column" }}>
+        <Text h4 weight="normal">
+          {ev.nodes[activeNode].getIdentifier()}'s Capacity
+        </Text>
+        <Text>
+          Limit the capacity of this section. By default this is
+          the capacity established by the venue.
+        </Text>
+        <Spacer y={1}></Spacer>
+        <Input
+          {...capacityBindings}
+          status={capacityHelper.color}
+          helperText={capacityHelper.text}
+          helperColor={capacityHelper.color}
+          color={capacityHelper.color}
+          size="xl"
+          aria-label="Holdings"
+          width="80%"
+          placeholder="Enter amount..."
+          contentLeft={
+            <Text>
+              {ev.nodes[activeNode].capacity -
+                ev.nodes[activeNode].available}
+            </Text>
+          }
+          contentRight={
+            <Text css={{ marginLeft: "-1em" }}>
+              /&nbsp;
+              {Commasize(ev.nodes[activeNode].extra.maxCap)}
+            </Text>
+          }
+        />
+      </Row>
+      <Spacer y={1}></Spacer>
+      <Row css={{ flexDirection: "column" }}>
+        <Text h4 weight="normal">
+          {ev.nodes[activeNode].getIdentifier()}'s Holds
+        </Text>
+        <Text>Reserve seats for your team</Text>
+        <Spacer y={1}></Spacer>
+        <Input
+          {...holdingsBindings}
+          status={holdingsHelper.color}
+          helperText={holdingsHelper.text}
+          helperColor={holdingsHelper.color}
+          color={holdingsHelper.color}
+          size="xl"
+          aria-label="Holdings"
+          width="80%"
+          placeholder="Enter amount..."
+          contentRight={
+            <Text css={{ marginLeft: "-1em" }}>
+              /&nbsp;
+              {Commasize(
+                parseInt(capacityAmount) -
+                  ev.nodes[activeNode].booked,
+              )}
+            </Text>
+          }
+        />
+      </Row> */}
+    </ActionSheet>
+  );
+}
+
 function EventTicketViewerSheet({ sheetId, payload }) {
   const { tickets, event } = payload;
   const [activePager, setActivePager] = React.useState(0);
   const { height, width } = Dimensions.get("window");
+
+  const passNfc = async () => {
+    try {
+      await NfcManager.requestTechnology(NfcTech.Ndef);
+      const bytes = Ndef.encodeMessage([Ndef.textRecord("hi")]);
+      await NfcManager.ndefHandler.writeNdefMessage(bytes);
+    } catch (ex) {
+      console.warn(ex);
+      Alert.alert("Error", "Failed to write text to NFC tag");
+    } finally {
+      NfcManager.cancelTechnologyRequest();
+    }
+  };
+
+  React.useEffect(() => {
+    NfcManager.start().catch((_) => {});
+
+    // passNfc();
+    //
+    NfcManager.registerTagEvent();
+    NfcManager.setEventListener(NfcEvents.DiscoverTag, () => alert("D"));
+
+    return () => {
+      NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
+    };
+  }, []);
 
   return (
     <ActionSheet
@@ -1169,6 +1591,145 @@ function EventTicketViewerSheet({ sheetId, payload }) {
   );
 }
 
+function EventOfflineScannerSheet({ sheetId, payload }) {
+  const { sql, generateOfflineKey } = useOfflineProvider();
+  const { auth, defaultOrganization: oid } = useSession();
+  const { width, height } = Dimensions.get("window");
+  const { i18n } = useLocalization();
+  const [isLoading, setIsLoading] = React.useState(false);
+  const eid = payload.eid;
+  const [ticketsAmount, setTicketsAmount] = React.useState(0);
+  const [progressAmount, setProgressAmount] = React.useState(0);
+
+  const load = async () => {
+    setIsLoading(true);
+    setProgressAmount(0);
+
+    let checksum = await generateOfflineKey();
+
+    try {
+      const res = await Api.get("/organizations/events/offline", {
+        auth,
+        oid,
+        eid,
+        checksum,
+      });
+      if (res.isError) throw "e";
+
+      setTicketsAmount(res.data.ticketsAmount);
+      setIsLoading(false);
+
+      await sql.post(`
+        DELETE FROM APOCALYPSE
+      `);
+
+      for (let i = 0; i < res.data.tickets.length; i++) {
+        let ticket = res.data.tickets[i];
+
+        await sql.post(
+          `
+          REPLACE INTO APOCALYPSE (
+            eid,
+            id,
+            token,
+            attended,
+            timeAttended,
+            offloaded
+          ) VALUES (
+            $eid,
+            $id,
+            $token,
+            $attended,
+            $timeAttended,
+            $offloaded
+          );
+          `,
+          {
+            $eid: eid,
+            $id: ticket.id,
+            $token: ticket.token,
+            $attended: ticket.attended,
+            $timeAttended: ticket.timeAttended,
+            $offloaded: false,
+          },
+        );
+
+        setProgressAmount(i + 1);
+      }
+    } catch (e) {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <ActionSheet
+      id={sheetId}
+      isModal={false}
+      keyboardHandlerEnabled={false}
+      useBottomSafeAreaPadding={false}
+      gestureEnabled={false}
+      indicatorStyle={{ backgroundColor: theme["color-organizer-500"] }}
+      containerStyle={{
+        padding: 10,
+        justifyContent: "center",
+        alignItems: "center",
+        display: "flex",
+        width: "100%",
+      }}
+    >
+      <View
+        style={[
+          Style.containers.column,
+          {
+            alignItems: "center",
+            marginTop: 10,
+            width: "100%",
+            paddingHorizontal: 10,
+          },
+        ]}
+      >
+        {isLoading && (
+          <ActivityIndicator
+            size="small"
+            color={theme["color-organizer-500"]}
+          />
+        )}
+        {!isLoading && (
+          <>
+            <Text style={[Style.text.semibold, Style.text.dark]}>
+              {i18n.t("savingTickets")}
+            </Text>
+            <Text
+              style={[
+                Style.text.bold,
+                { fontSize: 52, marginTop: 20 },
+                Style.text.organizer,
+              ]}
+            >
+              {progressAmount} / {ticketsAmount}
+            </Text>
+
+            <Text
+              style={[
+                Style.text.semibold,
+                Style.text.lg,
+                Style.text.dark,
+                { marginTop: 30, textAlign: "center" },
+              ]}
+            >
+              {i18n.t("offlineAirplane")}
+            </Text>
+          </>
+        )}
+      </View>
+    </ActionSheet>
+  );
+}
+
 export {
   EventsShareSheet,
   EventAboutSheet,
@@ -1177,5 +1738,7 @@ export {
   EventPhysicalTicketsSheet,
   EventTierSheet,
   EventTicketViewerSheet,
+  EventOfflineScannerSheet,
+  EventNodeTierSheet,
 };
 export default EventsShareSheet;

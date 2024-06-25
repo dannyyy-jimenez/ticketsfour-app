@@ -1,5 +1,5 @@
 import React from "react";
-import { useSession } from "../../../utils/ctx";
+import { useOfflineProvider, useSession } from "../../../utils/ctx";
 import {
   View,
   Text,
@@ -26,8 +26,10 @@ import SkeletonLoader from "expo-skeleton-loader";
 import EventModel from "../../../models/Event";
 import { OrgEventComponent } from "../../../utils/components/Event";
 import { HoldItem } from "react-native-hold-menu";
+import moment from "moment";
 
 export default function EventsScreen() {
+  const { sql } = useOfflineProvider();
   const { auth, defaultOrganization: oid, signOut, isGuest } = useSession();
   const { i18n } = useLocalization();
   const { width, height } = Dimensions.get("window");
@@ -82,6 +84,29 @@ export default function EventsScreen() {
   const loadFuture = async () => {
     setIsLoading(true);
     try {
+      let _events = [];
+
+      let now = moment.utc();
+      const localres = await sql.get(`
+        SELECT *
+          FROM GENESIS
+          WHERE
+            oid = '${oid}'
+            AND
+            start > '${now.format("Y-MM-DD hh:mm")}'
+          ORDER BY start DESC
+      `);
+
+      _events = localres
+        .map((ev) => new EventModel({ ...ev }))
+        .sort((a, b) => a.start - b.start);
+
+      setUpcomingEvents(_events);
+
+      if (localres.length > 0) {
+        setIsLoading(false);
+      }
+
       const res = await Api.get("/organizations/events", {
         auth,
         oid,
@@ -100,9 +125,15 @@ export default function EventsScreen() {
         res.data.permissions.includes("EVENT_DASHBOARD_VIEW"),
       );
       setIsLoading(false);
-      let parsedEvs = res.data.events.map((ev) => new EventModel({ ...ev }));
 
-      setUpcomingEvents(parsedEvs);
+      for (let event of res.data.events) {
+        if (localres.findIndex((e) => e.id == event.id) != -1) continue;
+
+        let _event = new EventModel({ ...event });
+        _events = [_event, ..._events];
+      }
+
+      setUpcomingEvents(_events);
     } catch (e) {
       console.log(e);
       setIsLoading(false);

@@ -21,7 +21,7 @@ import { Commasize, CurrencyFormatter, NumFormatter } from "../Formatters";
 import { SheetManager } from "react-native-actions-sheet";
 import { Pressable } from "react-native";
 import SkeletonLoader from "expo-skeleton-loader";
-import { useSession } from "../ctx";
+import { useOfflineProvider, useSession } from "../ctx";
 import Api from "../Api";
 
 export function OrgEventComponent({
@@ -30,7 +30,9 @@ export function OrgEventComponent({
   reload,
   withinMap = false,
   showPrice = true,
+  lazyLoaded = true,
 }) {
+  const { sql } = useOfflineProvider();
   const { auth, defaultOrganization: oid } = useSession();
   const animation = new Animated.Value(0);
   const inputRange = [0, 1];
@@ -45,6 +47,7 @@ export function OrgEventComponent({
   const [views, setViews] = React.useState(0);
   const [shares, setShares] = React.useState(0);
   const [attendees, setAttendees] = React.useState(0);
+  const [basePrice, setBasePrice] = React.useState(0);
 
   const onPressIn = () => {
     Animated.spring(animation, {
@@ -122,7 +125,38 @@ export function OrgEventComponent({
         setAttendees(Commasize(res.data.attendees));
         setShares(NumFormatter(res.data.shares));
         setViews(NumFormatter(res.data.views));
+        setBasePrice(res.data.event.basePrice);
 
+        sql.post(
+          `
+          REPLACE INTO GENESIS (
+            oid,
+            id,
+            cover,
+            name,
+            start,
+            status,
+            active
+          ) VALUES (
+            $oid,
+            $id,
+            $cover,
+            $name,
+            $start,
+            $status,
+            $active
+          );
+          `,
+          {
+            $oid: oid,
+            $id: res.data.event.id,
+            $cover: res.data.event.cover,
+            $name: res.data.event.name,
+            $start: res.data.event.start,
+            $status: res.data.event.status,
+            $active: res.data.event.active,
+          },
+        );
         setIsLoading(false);
       } catch (e) {
         setAttendees(event.getAttendees());
@@ -281,7 +315,26 @@ export function OrgEventComponent({
                 name="more-horizontal"
               />
             </TouchableOpacity>
-            {showPrice && (
+            {isLoading && (
+              <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                <SkeletonLoader.Container
+                  style={[
+                    {
+                      padding: 0,
+                      height: 15,
+                      borderRadius: 2,
+                      opacity: 0.3,
+                      marginTop: 4,
+                      overflow: "hidden",
+                      width: 100,
+                    },
+                  ]}
+                >
+                  <SkeletonLoader.Item style={[{ width: 100 }]} />
+                </SkeletonLoader.Container>
+              </SkeletonLoader>
+            )}
+            {showPrice && !isLoading && (
               <View
                 style={[
                   Style.containers.row,
@@ -312,7 +365,7 @@ export function OrgEventComponent({
                     { lineHeight: 30, left: -4 },
                   ]}
                 >
-                  {CurrencyFormatter(event.basePrice).split(".")[0]}
+                  {CurrencyFormatter(basePrice).split(".")[0]}
                 </Text>
                 <Text
                   style={[
@@ -322,7 +375,7 @@ export function OrgEventComponent({
                     { lineHeight: 24, left: -2 },
                   ]}
                 >
-                  {CurrencyFormatter(event.basePrice).split(".")[1]}
+                  {CurrencyFormatter(basePrice).split(".")[1]}
                 </Text>
               </View>
             )}
@@ -390,7 +443,7 @@ export function OrgEventComponent({
                 <Text
                   style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {event.getShares()}
+                  {NumFormatter(shares)}
                 </Text>
               )}
             </View>
@@ -423,7 +476,7 @@ export function OrgEventComponent({
                 <Text
                   style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {event.getViews()}
+                  {NumFormatter(views)}
                 </Text>
               )}
             </View>
@@ -456,7 +509,7 @@ export function OrgEventComponent({
                 <Text
                   style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {event.getAttendees()}
+                  {Commasize(attendees)}
                 </Text>
               )}
             </View>
@@ -540,6 +593,7 @@ export function EventPurchaseComponent({
           {
             maxWidth: 400,
             width: width - 24,
+            alignSelf: "center",
             padding: 0,
             transform: [{ scale }],
           },
@@ -585,10 +639,7 @@ export function EventPurchaseComponent({
           ]}
         >
           <View
-            style={[
-              Style.containers.row,
-              { maxWidth: 380, width: width - 100 },
-            ]}
+            style={[Style.containers.row, { maxWidth: 380, width: "100%" }]}
           >
             <Image
               style={{
@@ -605,7 +656,7 @@ export function EventPurchaseComponent({
             <View
               style={[
                 Style.containers.column,
-                { alignItems: "flex-start", marginHorizontal: 12 },
+                { alignItems: "flex-start", flex: 1, marginHorizontal: 12 },
               ]}
             >
               <Text style={[Style.text.xl, Style.text.bold, Style.text.basic]}>
@@ -663,13 +714,6 @@ export function EventPurchaseComponent({
               </Text>
             </View>
             <View style={{ flex: 1 }} />
-            <TouchableOpacity onPress={onShare} style={{ padding: 10 }}>
-              <Feather
-                color={theme["color-basic-100"]}
-                size={24}
-                name="more-horizontal"
-              />
-            </TouchableOpacity>
             <View style={[Style.badge, { alignSelf: "center" }]}>
               <Text
                 style={[Style.text.lg, Style.text.basic, Style.text.semibold]}
@@ -680,6 +724,13 @@ export function EventPurchaseComponent({
                 )}
               </Text>
             </View>
+            <TouchableOpacity onPress={onShare} style={{ padding: 10 }}>
+              <Feather
+                color={theme["color-basic-100"]}
+                size={24}
+                name="more-horizontal"
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </Pressable>

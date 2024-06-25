@@ -9,6 +9,8 @@ import {
   EventVisibilitySheet,
   EventsShareSheet,
   EventTicketViewerSheet,
+  EventOfflineScannerSheet,
+  EventNodeTierSheet,
 } from "./sheets/Events";
 import {
   HelperSheet,
@@ -57,6 +59,22 @@ registerSheet(
 registerSheet(
   "event-tier-sheet",
   EventTierSheet,
+  "global",
+  "local",
+  "local-local",
+);
+
+registerSheet(
+  "event-node-tier-sheet",
+  EventNodeTierSheet,
+  "global",
+  "local",
+  "local-local",
+);
+
+registerSheet(
+  "offline-scanner",
+  EventOfflineScannerSheet,
   "global",
   "local",
   "local-local",

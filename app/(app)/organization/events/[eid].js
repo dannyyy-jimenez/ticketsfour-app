@@ -1,5 +1,5 @@
 import React from "react";
-import { useSession } from "../../../../utils/ctx";
+import { useOfflineProvider, useSession } from "../../../../utils/ctx";
 import {
   View,
   Text,
@@ -54,8 +54,13 @@ import Purchase from "../../../../models/Purchase";
 import { BarChart, PieChart, XAxis } from "react-native-svg-charts";
 import { Text as SvgText } from "react-native-svg";
 import { CameraView } from "expo-camera";
+import NfcManager, { NfcAdapter, NfcTech } from "react-native-nfc-manager";
+import { Vibration } from "react-native";
+
+NfcManager.start().catch((_) => {});
 
 export default function EventScreen() {
+  const { sql, isOfflineMode, validateOffloadScan } = useOfflineProvider();
   const { auth, defaultOrganization: oid, isGuest, signOut } = useSession();
   const { eid } = useLocalSearchParams();
   const { i18n } = useLocalization();
@@ -163,7 +168,6 @@ export default function EventScreen() {
   const [openArtistSuggest, setOpenArtistSuggest] = React.useState(false);
   const [artistSuggestions, setArtistSuggestions] = React.useState([]);
 
-  const [activeNode, setActiveNode] = React.useState(null);
   const [activeTierIdx, setActiveTierIdx] = React.useState(0);
   const [tierTasks, setTierTasks] = React.useState([]);
   const [scheduledTasks, setScheduledTasks] = React.useState([]);
@@ -172,6 +176,7 @@ export default function EventScreen() {
   const [scannerResult, setScannerResult] = React.useState(null);
 
   const [scannedCode, setScannedCode] = React.useState(null);
+  const [nfcMode, setNFCMode] = React.useState(null);
 
   const enoughSalesDataPoints = React.useMemo(() => {
     return (
@@ -261,8 +266,6 @@ export default function EventScreen() {
 
   const [hostQuery, setHostQuery] = React.useState("");
   const [venueQuery, setVenueQuery] = React.useState("");
-  const [holdingsAmount, setHoldingsAmount] = React.useState("Default");
-  const [capacityAmount, setCapacityAmount] = React.useState("Default");
   const [deleteConfirmValue, setDeleteConfirmValue] = React.useState("Default");
   const [holdsTransferPhone, setHoldsTransferPhone] = React.useState("Default");
   const [scannerSearchQuery, setScannerSearchQuery] = React.useState("Default");
@@ -273,104 +276,6 @@ export default function EventScreen() {
   const [scannerResultsDatum, setScannerResultsDatum] = React.useState(null);
   const [scanStamp, setScanStamp] = React.useState(null);
 
-  const holdingsHelper = React.useMemo(() => {
-    if (!ev?.nodes)
-      return {
-        status: "default",
-        color: "default",
-        valid: false,
-        text: "",
-      };
-
-    if (!ev.nodes[activeNode])
-      return {
-        status: "default",
-        color: "default",
-        valid: false,
-        text: "",
-      };
-
-    if (
-      parseInt(holdingsAmount) >
-      parseInt(capacityAmount) - ev.nodes[activeNode].booked
-    )
-      return {
-        status: "error",
-        color: "error",
-        valid: false,
-        text: "Holds must be less than capacity",
-      };
-
-    if (parseInt(holdingsAmount) < 0)
-      return {
-        status: "error",
-        color: "error",
-        valid: false,
-        text: "Holds must be greater than 0",
-      };
-
-    return {
-      status: "default",
-      color: "default",
-      valid: true,
-      text: "",
-    };
-  }, [holdingsAmount]);
-  const capacityHelper = React.useMemo(() => {
-    if (!ev?.nodes)
-      return {
-        status: "default",
-        color: "default",
-        valid: false,
-        text: "",
-      };
-
-    if (!ev.nodes[activeNode])
-      return {
-        status: "default",
-        color: "default",
-        valid: false,
-        text: "",
-      };
-
-    if (parseInt(capacityAmount) > ev.nodes[activeNode].extra.maxCap)
-      return {
-        status: "error",
-        color: "error",
-        valid: false,
-        text: "Capacity must be less than or equal to the venues' established capacity",
-      };
-
-    if (parseInt(capacityAmount) < 0)
-      return {
-        status: "error",
-        color: "error",
-        valid: false,
-        text: "Capacity must be at least 0",
-      };
-
-    if (
-      parseInt(capacityAmount) <
-      ev.nodes[activeNode].booked + ev.nodes[activeNode].holdings
-    )
-      return {
-        status: "error",
-        color: "error",
-        valid: false,
-        text:
-          "Capacity must be at least " +
-          Commasize(
-            ev.nodes[activeNode].booked + ev.nodes[activeNode].holdings,
-          ),
-      };
-
-    return {
-      status: "default",
-      color: "default",
-      valid: true,
-      text: "",
-    };
-  }, [capacityAmount]);
   const holdsTransferPhoneHelper = React.useMemo(() => {
     if (holdsTransferError === "USER_NOT_REGISTERED")
       return {
@@ -391,25 +296,6 @@ export default function EventScreen() {
       valid: true,
     };
   }, [holdsTransferPhone, holdsTransferError]);
-
-  const activeNodeEarnings = React.useMemo(() => {
-    if (activeNode == null) return;
-    if (activeTierIdx < 0) return;
-
-    let activeTierObj = ev.tiers.find(
-      (t) => t.identifier == ev.tiers[activeTierIdx].identifier,
-    );
-    if (!activeTierObj) return 0;
-
-    let holdings = parseInt(holdingsAmount);
-    let capacity =
-      ev.nodes[activeNode].capacity -
-      (isNaN(holdings) || holdings < 0 ? 0 : holdings);
-
-    let earnings = activeTierObj.amount * capacity;
-
-    return earnings > 0 ? earnings : 0;
-  }, [activeNode, holdingsAmount, activeTierIdx]);
 
   React.useEffect(() => {
     if (hostQuery.trim().length < 3) return;
@@ -447,17 +333,6 @@ export default function EventScreen() {
   }, [venueQuery]);
 
   React.useEffect(() => {
-    if (activeNode == null) return;
-
-    let tieridx = ev.tiers.findIndex(
-      (t) => t.identifier == ev.nodes[activeNode].tier,
-    );
-    setActiveTierIdx(tieridx);
-    setHoldingsAmount(ev.nodes[activeNode].holdings);
-    setCapacityAmount(ev.nodes[activeNode].capacity);
-  }, [activeNode]);
-
-  React.useEffect(() => {
     if (!auth || !oid || !eid) return;
     load();
   }, [eid]);
@@ -469,12 +344,23 @@ export default function EventScreen() {
   React.useEffect(() => {
     if (!scannerResult) return;
 
-    setTimeout(() => {
-      setScannerResultsDatum(null);
-      setScannerResult(null);
-      setIsLoadingScan(false);
-      setScannedCode(null);
-    }, 1500);
+    if (scannerResult != "VALID") {
+      Vibration.vibrate([500, 1000, 500, 1000, 500]);
+    }
+
+    setTimeout(
+      () => {
+        setScannerResultsDatum(null);
+        setScannerResult(null);
+        setIsLoadingScan(false);
+        setScannedCode(null);
+
+        if (nfcMode) {
+          initNFC();
+        }
+      },
+      nfcMode ? 4500 : 1500,
+    );
   }, [scannerResult]);
 
   React.useEffect(() => {
@@ -598,6 +484,7 @@ export default function EventScreen() {
         oid,
         eid,
       });
+
       if (res.isError) throw "e";
 
       if (!res.data.has_permission) {
@@ -636,7 +523,11 @@ export default function EventScreen() {
 
   const loadBreakdown = async () => {
     try {
-      const res = await Api.get("/organizations/breakdown", { auth, oid, eid });
+      const res = await Api.get("/organizations/event/breakdown", {
+        auth,
+        oid,
+        eid,
+      });
       if (res.isError) throw "e";
 
       if (!res.data.has_permission) {
@@ -670,6 +561,22 @@ export default function EventScreen() {
   };
 
   const load = async () => {
+    const localres = await sql.get(`
+      SELECT *
+        FROM GENESIS
+        WHERE
+          oid = '${oid}'
+          AND
+          id = '${eid}'
+        LIMIT 1
+    `);
+
+    if (localres.length == 1) {
+      let _offloaded = localres[0];
+
+      setEvent(new EventModel({ ..._offloaded }));
+    }
+
     loadDetails();
     loadBreakdown();
   };
@@ -698,6 +605,65 @@ export default function EventScreen() {
     setIsLoadingScan(true);
 
     try {
+      if (isOfflineMode) {
+        let offloaded_ticket = await validateOffloadScan(eid, scannedCode);
+
+        if (!offloaded_ticket) {
+          setScannerResult("INVALID_TICKET");
+          setScanStamp(null);
+
+          setIsLoadingScan(false);
+          return;
+        }
+
+        if (offloaded_ticket.attended) {
+          setScannerResult("USED_VALID_TICKET");
+          setScanStamp(moment(offloaded_ticket.timeAttended).format("hh:mm A"));
+
+          setIsLoadingScan(false);
+          return;
+        }
+
+        setScanStamp(null);
+        setScannerResult("VALID");
+
+        await sql.post(
+          `
+          REPLACE INTO APOCALYPSE (
+            id,
+            attended,
+            timeAttended,
+            offloaded
+          ) VALUES (
+            $id,
+            $attended,
+            $timeAttended,
+            $offloaded
+          );
+          `,
+          {
+            $id: offloaded_ticket.id,
+            $attended: 1,
+            $timeAttended: moment().format("YYYY-MM-DD hh:ss"),
+            $offloaded: 1,
+          },
+        );
+
+        let scanned = (
+          await sql.get(`
+          SELECT *
+            FROM APOCALYPSE
+            WHERE attended = 1
+        `)
+        ).length;
+
+        let updatedEv = ev.updateScanned(scanned);
+        setEvent(updatedEv);
+        setIsLoadingScan(false);
+
+        return;
+      }
+
       const res = await Api.post("/organizations/events/scan", {
         auth,
         oid,
@@ -717,6 +683,7 @@ export default function EventScreen() {
       setEvent(updatedEv);
       setIsLoadingScan(false);
     } catch (e) {
+      console.log(e);
       if (e === "NO_EVENT") load();
       setIsLoadingScan(false);
     }
@@ -871,6 +838,17 @@ export default function EventScreen() {
     });
   };
 
+  const onNodeEdit = (node, nidx) => {
+    SheetManager.show("event-node-tier-sheet", {
+      payload: {
+        event: ev,
+        node: node,
+        nodeIdx: nidx,
+      },
+      onClose: load,
+    });
+  };
+
   const onTierAdd = () => {
     SheetManager.show("event-tier-sheet", {
       payload: {
@@ -997,38 +975,6 @@ export default function EventScreen() {
       load();
     } catch (e) {
       console.log(e);
-      setIsLoading(false);
-    }
-  };
-
-  const onUpdateNode = async () => {
-    setIsLoading(true);
-
-    try {
-      const res = await Api.post("/organizations/events/node", {
-        auth,
-        oid,
-        eid,
-        idx: activeNode,
-        identifier: ev.nodes[activeNode].identifier,
-        capacity: capacityAmount,
-        holdings: holdingsAmount,
-        tier: ev.tiers[activeTierIdx].identifier,
-        tierTasks: tierTasks.map((t) => ({
-          date: t.date,
-          tier: t.tier,
-          node: t.node,
-          amount: t.amount,
-        })),
-      });
-      if (res.isError) throw "e";
-
-      setPublishModalVisible(false);
-      setActiveNode(null);
-      load();
-    } catch (e) {
-      console.log(e);
-      setIsLoadingVenues(false);
       setIsLoading(false);
     }
   };
@@ -1227,6 +1173,14 @@ export default function EventScreen() {
     } catch (e) {}
   };
 
+  const onOfflineScanner = async () => {
+    SheetManager.show("offline-scanner", {
+      payload: {
+        eid,
+      },
+    });
+  };
+
   const AgeLabels = ({ slices, height, width }) => {
     return slices.map((slice, index) => {
       const { labelCentroid, pieCentroid, data } = slice;
@@ -1264,6 +1218,45 @@ export default function EventScreen() {
       router.replace("(organization)/events");
     }
   };
+
+  const initNFC = async () => {
+    try {
+      // register for the NFC tag with NDEF in it
+      await NfcManager.requestTechnology(NfcTech.Ndef, {
+        readerModeFlags: NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+        isReaderModeEnabled: false,
+        alertMessage: i18n.t("nfcTicketScan", {
+          remaining: ev.attendees - ev.scanned,
+        }),
+      });
+      // the resolved tag object will contain `ndefMessage` property
+      const tag = await NfcManager.getTag();
+
+      setScannerResult("INVALID_TICKET");
+      setScannerResultsDatum("2434553");
+    } catch (ex) {
+      //setNFCMode(false);
+      NfcManager.cancelTechnologyRequest();
+    } finally {
+      NfcManager.cancelTechnologyRequest();
+    }
+  };
+
+  React.useEffect(() => {
+    // if (ev?.promptScanner) {
+    //   if (section == 4) {
+    //     initNFC();
+    //   } else {
+    //     NfcManager.cancelTechnologyRequest();
+    //   }
+    // }
+
+    if (section == 4 && nfcMode) {
+      initNFC();
+    } else {
+      NfcManager.cancelTechnologyRequest();
+    }
+  }, [section, nfcMode]);
 
   if (!isLoading && !hasPermission) {
     return <LockedView />;
@@ -1354,22 +1347,24 @@ export default function EventScreen() {
               </Text>
             )}
           </View>
-          <View style={[{ padding: 14 }, Style.containers.column]}>
-            <MaterialCommunityIcons
-              color={
-                section == 4
-                  ? theme["color-organizer-500"]
-                  : theme["color-basic-700"]
-              }
-              name="qrcode-scan"
-              size={26}
-            />
-            {section == 4 && (
-              <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("scanner")}
-              </Text>
-            )}
-          </View>
+          {ev?.promptScanner && (
+            <View style={[{ padding: 14 }, Style.containers.column]}>
+              <MaterialCommunityIcons
+                color={
+                  section == 4
+                    ? theme["color-organizer-500"]
+                    : theme["color-basic-700"]
+                }
+                name="qrcode-scan"
+                size={26}
+              />
+              {section == 4 && (
+                <Text style={[Style.text.organizer, Style.text.semibold]}>
+                  {i18n.t("scanner")}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
         <View
           style={[
@@ -1377,15 +1372,59 @@ export default function EventScreen() {
             { justifyContent: "flex-start", marginTop: 20 },
           ]}
         >
+          {ev != null ? (
+            <Text style={[Style.text.dark, Style.text.normal]}>
+              {ev?.getStart("dddd - MMM Do, YYYY")}
+            </Text>
+          ) : (
+            <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+              <SkeletonLoader.Container
+                style={[
+                  {
+                    backgroundColor: "transparent",
+                    width: 120,
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    height: 30,
+                  },
+                ]}
+              >
+                <SkeletonLoader.Item
+                  style={[
+                    {
+                      backgroundColor: "transparent",
+                      width: 120,
+                      height: 30,
+                    },
+                  ]}
+                />
+              </SkeletonLoader.Container>
+            </SkeletonLoader>
+          )}
+        </View>
+        {ev != null ? (
+          <Text
+            style={[
+              Style.text.organizer,
+              Style.text.bold,
+              Style.text.xxl,
+              { paddingVertical: 8 },
+            ]}
+          >
+            {ev.name}
+          </Text>
+        ) : (
           <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
             <SkeletonLoader.Container
               style={[
                 {
                   backgroundColor: "transparent",
-                  width: 120,
+                  width: 250,
                   borderRadius: 4,
                   overflow: "hidden",
-                  height: 30,
+                  height: 45,
+                  marginTop: 12,
+                  marginBottom: 14,
                 },
               ]}
             >
@@ -1393,39 +1432,14 @@ export default function EventScreen() {
                 style={[
                   {
                     backgroundColor: "transparent",
-                    width: 120,
-                    height: 30,
+                    width: 250,
+                    height: 45,
                   },
                 ]}
               />
             </SkeletonLoader.Container>
           </SkeletonLoader>
-        </View>
-        <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
-          <SkeletonLoader.Container
-            style={[
-              {
-                backgroundColor: "transparent",
-                width: 250,
-                borderRadius: 4,
-                overflow: "hidden",
-                height: 45,
-                marginTop: 12,
-                marginBottom: 14,
-              },
-            ]}
-          >
-            <SkeletonLoader.Item
-              style={[
-                {
-                  backgroundColor: "transparent",
-                  width: 250,
-                  height: 45,
-                },
-              ]}
-            />
-          </SkeletonLoader.Container>
-        </SkeletonLoader>
+        )}
         <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
           <SkeletonLoader.Container
             style={[
@@ -1808,25 +1822,27 @@ export default function EventScreen() {
               </Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSection(4)}
-            style={[{ padding: 14 }, Style.containers.column]}
-          >
-            <MaterialCommunityIcons
-              color={
-                section == 4
-                  ? theme["color-organizer-500"]
-                  : theme["color-basic-700"]
-              }
-              name="qrcode-scan"
-              size={26}
-            />
-            {section == 4 && (
-              <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("scanner")}
-              </Text>
-            )}
-          </TouchableOpacity>
+          {ev?.promptScanner && (
+            <TouchableOpacity
+              onPress={() => setSection(4)}
+              style={[{ padding: 14 }, Style.containers.column]}
+            >
+              <MaterialCommunityIcons
+                color={
+                  section == 4
+                    ? theme["color-organizer-500"]
+                    : theme["color-basic-700"]
+                }
+                name="qrcode-scan"
+                size={26}
+              />
+              {section == 4 && (
+                <Text style={[Style.text.organizer, Style.text.semibold]}>
+                  {i18n.t("scanner")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         <View
@@ -2847,15 +2863,13 @@ export default function EventScreen() {
               </ScrollView>
 
               <View style={[Style.containers.row, { marginTop: 10 }]}>
-                <Text
-                  style={[Style.text.dark, Style.text.bold, Style.text.xxl]}
-                >
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
                   {i18n.t("availability")}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <MaterialCommunityIcons
                   name="view-grid-plus-outline"
-                  size={28}
+                  size={22}
                   color={theme["color-basic-700"]}
                 />
               </View>
@@ -2863,7 +2877,7 @@ export default function EventScreen() {
                 style={[
                   Style.text.dark,
                   Style.text.normal,
-                  { marginVertical: 10 },
+                  { marginVertical: 6 },
                 ]}
               >
                 {i18n.t("availabilityDesc")}
@@ -2942,15 +2956,13 @@ export default function EventScreen() {
                 ))}
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
-                <Text
-                  style={[Style.text.dark, Style.text.bold, Style.text.xxl]}
-                >
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
                   {i18n.t("salesByPrice")}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <MaterialCommunityIcons
                   name="ballot-outline"
-                  size={28}
+                  size={22}
                   color={theme["color-basic-700"]}
                 />
               </View>
@@ -2958,7 +2970,7 @@ export default function EventScreen() {
                 style={[
                   Style.text.dark,
                   Style.text.normal,
-                  { marginVertical: 10 },
+                  { marginVertical: 6 },
                 ]}
               >
                 {i18n.t("salesByPriceDesc")}
@@ -3030,15 +3042,13 @@ export default function EventScreen() {
               ))}
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
-                <Text
-                  style={[Style.text.dark, Style.text.bold, Style.text.xxl]}
-                >
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
                   {i18n.t("purchases")}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <MaterialCommunityIcons
                   name="currency-usd"
-                  size={28}
+                  size={22}
                   color={theme["color-basic-700"]}
                 />
               </View>
@@ -3046,7 +3056,7 @@ export default function EventScreen() {
                 style={[
                   Style.text.dark,
                   Style.text.normal,
-                  { marginVertical: 10 },
+                  { marginVertical: 6 },
                 ]}
               >
                 {ReplaceWithStyle(
@@ -3180,297 +3190,144 @@ export default function EventScreen() {
               )}
               {ev?.venue && (
                 <>
-                  {activeNode == null && (
-                    <View
+                  <View
+                    style={[
+                      Style.containers.column,
+                      { alignItems: "flex-start", marginVertical: 30 },
+                    ]}
+                  >
+                    <View style={[Style.containers.row]}>
+                      <Text
+                        style={[
+                          Style.text.dark,
+                          Style.text.bold,
+                          Style.text.xl,
+                        ]}
+                      >
+                        {i18n.t("ticketTiers")}
+                      </Text>
+                      <View style={{ flex: 1 }} />
+                      <MaterialCommunityIcons
+                        name="layers-triple-outline"
+                        size={22}
+                        color={theme["color-basic-700"]}
+                      />
+                    </View>
+                    <Text
                       style={[
-                        Style.containers.column,
-                        { alignItems: "flex-start", marginVertical: 30 },
+                        Style.text.dark,
+                        Style.text.normal,
+                        { marginVertical: 6 },
                       ]}
                     >
-                      <View style={[Style.containers.row]}>
-                        <Text
-                          style={[
-                            Style.text.dark,
-                            Style.text.bold,
-                            Style.text.xxl,
-                          ]}
-                        >
-                          {i18n.t("ticketTiers")}
-                        </Text>
-                        <View style={{ flex: 1 }} />
-                        <MaterialCommunityIcons
-                          name="layers-triple-outline"
-                          size={28}
-                          color={theme["color-basic-700"]}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          Style.text.dark,
-                          Style.text.normal,
-                          { marginVertical: 10 },
-                        ]}
-                      >
-                        {i18n.t("ticketTiersDesc")}
-                      </Text>
+                      {i18n.t("ticketTiersDesc")}
+                    </Text>
 
-                      {ev?.tiers.map((tier, tidx) => (
-                        <TouchableOpacity
-                          key={"tier-view-" + tidx}
-                          onPress={() => onTierEdit(tidx)}
-                          style={[
-                            Style.containers.row,
-                            { paddingVertical: 15 },
-                          ]}
-                        >
-                          <View
-                            style={[
-                              Style.containers.column,
-                              { alignItems: "flex-start", marginLeft: 8 },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                Style.text.dark,
-                                Style.text.semibold,
-                                Style.text.lg,
-                              ]}
-                            >
-                              {tier.name}
-                            </Text>
-                            <Text
-                              style={[
-                                Style.text.dark,
-                                Style.transparency.md,
-                                Style.text.normal,
-                              ]}
-                            >
-                              {i18n.t("tierName")}
-                            </Text>
-                          </View>
-
-                          <View style={{ flex: 1 }} />
-
-                          <Text
-                            style={[
-                              Style.text.dark,
-                              Style.text.lg,
-                              Style.text.normal,
-                              {
-                                marginHorizontal: 8,
-                                maxWidth: "35%",
-                                marginRight: 20,
-                              },
-                            ]}
-                          >
-                            {"$" + CurrencyFormatter(tier.amount)}
-                          </Text>
-                          <Feather
-                            name="edit-3"
-                            size={20}
-                            color={theme["color-organizer-500"]}
-                          />
-                        </TouchableOpacity>
-                      ))}
-
+                    {ev?.tiers.map((tier, tidx) => (
                       <TouchableOpacity
-                        onPress={onTierAdd}
-                        style={[
-                          Style.button.container,
-                          {
-                            flex: 1,
-                            marginTop: 10,
-                            marginBottom: 40,
-                            backgroundColor: theme["color-organizer-500"],
-                          },
-                        ]}
+                        key={"tier-view-" + tidx}
+                        onPress={() => onTierEdit(tidx)}
+                        style={[Style.containers.row, { paddingVertical: 15 }]}
                       >
-                        <Text style={[Style.button.text, Style.text.semibold]}>
-                          {i18n.t("createTier")}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <View style={[Style.containers.row]}>
-                        <Text
+                        <View
                           style={[
-                            Style.text.dark,
-                            Style.text.bold,
-                            Style.text.xxl,
+                            Style.containers.column,
+                            { alignItems: "flex-start", marginLeft: 8 },
                           ]}
                         >
-                          {i18n.t("ticketPrices")}
-                        </Text>
-                        <View style={{ flex: 1 }} />
-                        <MaterialCommunityIcons
-                          name="ticket-percent-outline"
-                          size={28}
-                          color={theme["color-basic-700"]}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          Style.text.dark,
-                          Style.text.normal,
-                          { marginVertical: 10 },
-                        ]}
-                      >
-                        {i18n.t("ticketPricesDesc")}
-                      </Text>
-                      {ev.nodes
-                        .filter((n) => !n.isDecorative && n.isExposed)
-                        .map((node, nodeidx) => (
-                          <TouchableOpacity
-                            key={"node-tiers-" + nodeidx}
-                            onPress={() =>
-                              SheetManager.show("helper-sheet-nested", {
-                                payload: {
-                                  text: "hi",
-                                },
-                              })
-                            }
-                            //onPress={() => setActiveNode(nodeidx)}
-                            style={[
-                              Style.containers.row,
-                              { paddingVertical: 15 },
-                            ]}
-                          >
-                            <View
-                              style={[
-                                Style.badge,
-                                {
-                                  backgroundColor: theme["color-organizer-500"],
-                                  shadowColor: theme["color-organizer-500"],
-                                  marginRight: 6,
-                                  alignSelf: "center",
-                                },
-                              ]}
-                            >
-                              <Text style={[Style.text.basic, Style.text.bold]}>
-                                {node.type == "ga-sec" && (
-                                  <>{node.getIdentifier()}</>
-                                )}
-                                {node.type == "seat" && (
-                                  <>{node.getTitle(ev.nodes)}</>
-                                )}
-                              </Text>
-                            </View>
-
-                            <View
-                              style={[
-                                Style.containers.column,
-                                { alignItems: "flex-start", marginLeft: 8 },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  Style.text.dark,
-                                  Style.text.semibold,
-                                  Style.text.lg,
-                                ]}
-                              >
-                                {i18n.t("xOutOfy", {
-                                  x: node.booked,
-                                  y: Commasize(node.capacity),
-                                })}
-                              </Text>
-                              <Text
-                                style={[
-                                  Style.text.dark,
-                                  Style.transparency.md,
-                                  Style.text.normal,
-                                ]}
-                              >
-                                {i18n.t("ticketsBooked")}
-                              </Text>
-                            </View>
-
-                            <View style={{ flex: 1 }} />
-
-                            <Text
-                              style={[
-                                Style.text.dark,
-                                Style.text.lg,
-                                Style.text.normal,
-                                {
-                                  marginHorizontal: 8,
-                                  maxWidth: "35%",
-                                  marginRight: 20,
-                                },
-                              ]}
-                            >
-                              ${CurrencyFormatter(node.price)}
-                            </Text>
-                            {canEditTiers && (
-                              <Feather
-                                name="edit-3"
-                                size={20}
-                                color={theme["color-organizer-500"]}
-                              />
-                            )}
-                          </TouchableOpacity>
-                        ))}
-                      <View style={[Style.containers.row, { marginTop: 30 }]}>
-                        <Text
-                          style={[
-                            Style.text.dark,
-                            Style.text.bold,
-                            Style.text.xxl,
-                          ]}
-                        >
-                          {i18n.t("physicalTickets")}
-                        </Text>
-                        <View style={{ flex: 1 }} />
-                        <MaterialCommunityIcons
-                          name="ticket-confirmation-outline"
-                          size={28}
-                          color={theme["color-basic-700"]}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          Style.text.dark,
-                          Style.text.normal,
-                          { marginVertical: 10 },
-                        ]}
-                      >
-                        {i18n.t("physicalTicketsDesc")}
-                      </Text>
-                      {Object.keys(physicalTickets).length == 0 && (
-                        <View style={[Style.containers.column]}>
                           <Text
                             style={[
                               Style.text.dark,
                               Style.text.semibold,
-                              Style.transparency.lg,
-                              {
-                                textAlign: "center",
-                                marginTop: 10,
-                                marginBottom: 6,
-                              },
+                              Style.text.lg,
                             ]}
                           >
-                            {i18n.t("noPhysTicks")}
+                            {tier.name}
                           </Text>
                           <Text
                             style={[
                               Style.text.dark,
-                              Style.text.semibold,
-                              Style.transparency.lg,
-                              { textAlign: "center", marginBottom: 10 },
+                              Style.transparency.md,
+                              Style.text.normal,
                             ]}
                           >
-                            {i18n.t("noPhysTicksDesc")}
+                            {i18n.t("tierName")}
                           </Text>
                         </View>
-                      )}
-                      {Object.keys(physicalTickets).map((node, nodeidx) => (
+
+                        <View style={{ flex: 1 }} />
+
+                        <Text
+                          style={[
+                            Style.text.dark,
+                            Style.text.lg,
+                            Style.text.normal,
+                            {
+                              marginHorizontal: 8,
+                              maxWidth: "35%",
+                              marginRight: 20,
+                            },
+                          ]}
+                        >
+                          {"$" + CurrencyFormatter(tier.amount)}
+                        </Text>
+                        <Feather
+                          name="edit-3"
+                          size={20}
+                          color={theme["color-organizer-500"]}
+                        />
+                      </TouchableOpacity>
+                    ))}
+
+                    <TouchableOpacity
+                      onPress={onTierAdd}
+                      style={[
+                        Style.button.container,
+                        {
+                          flex: 1,
+                          marginTop: 10,
+                          marginBottom: 40,
+                          backgroundColor: theme["color-organizer-500"],
+                        },
+                      ]}
+                    >
+                      <Text style={[Style.button.text, Style.text.semibold]}>
+                        {i18n.t("createTier")}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={[Style.containers.row]}>
+                      <Text
+                        style={[
+                          Style.text.dark,
+                          Style.text.bold,
+                          Style.text.xl,
+                        ]}
+                      >
+                        {i18n.t("ticketPrices")}
+                      </Text>
+                      <View style={{ flex: 1 }} />
+                      <MaterialCommunityIcons
+                        name="ticket-percent-outline"
+                        size={22}
+                        color={theme["color-basic-700"]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        Style.text.dark,
+                        Style.text.normal,
+                        { marginVertical: 6 },
+                      ]}
+                    >
+                      {i18n.t("ticketPricesDesc")}
+                    </Text>
+                    {ev.nodes
+                      .filter((n) => !n.isDecorative && n.isExposed)
+                      .map((node, nodeidx) => (
                         <TouchableOpacity
-                          key={"node-physticks-" + nodeidx}
-                          onPress={() =>
-                            Linking.openURL(
-                              `${Config.apiUrl}api/organizations/events/physical_tickets/download?auth=${auth}&oid=${oid}&eid=${eid}&node=${physicalTickets[node][0].node.identifier}`,
-                            )
-                          }
+                          key={"node-tiers-" + nodeidx}
+                          onPress={() => onNodeEdit(node, nodeidx)}
                           style={[
                             Style.containers.row,
                             { paddingVertical: 15 },
@@ -3488,7 +3345,12 @@ export default function EventScreen() {
                             ]}
                           >
                             <Text style={[Style.text.basic, Style.text.bold]}>
-                              {physicalTickets[node][0].node.name}
+                              {node.type == "ga-sec" && (
+                                <>{node.getIdentifier()}</>
+                              )}
+                              {node.type == "seat" && (
+                                <>{node.getTitle(ev.nodes)}</>
+                              )}
                             </Text>
                           </View>
 
@@ -3505,7 +3367,10 @@ export default function EventScreen() {
                                 Style.text.lg,
                               ]}
                             >
-                              {Commasize(physicalTickets[node].length)}
+                              {i18n.t("xOutOfy", {
+                                x: node.booked,
+                                y: Commasize(node.capacity),
+                              })}
                             </Text>
                             <Text
                               style={[
@@ -3514,7 +3379,7 @@ export default function EventScreen() {
                                 Style.text.normal,
                               ]}
                             >
-                              {i18n.t("ticketsCreated")}
+                              {i18n.t("ticketsBooked")}
                             </Text>
                           </View>
 
@@ -3532,340 +3397,291 @@ export default function EventScreen() {
                               },
                             ]}
                           >
-                            ${CurrencyFormatter(physicalTickets[node][0].total)}
+                            ${CurrencyFormatter(node.price)}
                           </Text>
-                          <Feather
-                            name="printer"
-                            size={20}
-                            color={theme["color-organizer-500"]}
-                          />
+                          {canEditTiers && (
+                            <Feather
+                              name="edit-3"
+                              size={20}
+                              color={theme["color-organizer-500"]}
+                            />
+                          )}
                         </TouchableOpacity>
                       ))}
-                      <TouchableOpacity
-                        onPress={onShowPhysicalTicketsGenerator}
+                    <View style={[Style.containers.row, { marginTop: 30 }]}>
+                      <Text
                         style={[
-                          Style.button.container,
-                          {
-                            flex: 1,
-                            marginTop: 20,
-                            backgroundColor: theme["color-organizer-500"],
-                          },
+                          Style.text.dark,
+                          Style.text.bold,
+                          Style.text.xl,
                         ]}
                       >
-                        <Text style={[Style.button.text, Style.text.semibold]}>
-                          {i18n.t("addPhysTicks")}
+                        {i18n.t("physicalTickets")}
+                      </Text>
+                      <View style={{ flex: 1 }} />
+                      <MaterialCommunityIcons
+                        name="ticket-confirmation-outline"
+                        size={22}
+                        color={theme["color-basic-700"]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        Style.text.dark,
+                        Style.text.normal,
+                        { marginVertical: 10 },
+                      ]}
+                    >
+                      {i18n.t("physicalTicketsDesc")}
+                    </Text>
+                    {Object.keys(physicalTickets).length == 0 && (
+                      <View style={[Style.containers.column]}>
+                        <Text
+                          style={[
+                            Style.text.dark,
+                            Style.text.semibold,
+                            Style.transparency.lg,
+                            {
+                              textAlign: "center",
+                              marginTop: 10,
+                              marginBottom: 6,
+                            },
+                          ]}
+                        >
+                          {i18n.t("noPhysTicks")}
                         </Text>
+                        <Text
+                          style={[
+                            Style.text.dark,
+                            Style.text.semibold,
+                            Style.transparency.lg,
+                            { textAlign: "center", marginBottom: 10 },
+                          ]}
+                        >
+                          {i18n.t("noPhysTicksDesc")}
+                        </Text>
+                      </View>
+                    )}
+                    {Object.keys(physicalTickets).map((node, nodeidx) => (
+                      <TouchableOpacity
+                        key={"node-physticks-" + nodeidx}
+                        onPress={() =>
+                          Linking.openURL(
+                            `${Config.apiUrl}api/organizations/events/physical_tickets/download?auth=${auth}&oid=${oid}&eid=${eid}&node=${physicalTickets[node][0].node.identifier}`,
+                          )
+                        }
+                        style={[Style.containers.row, { paddingVertical: 15 }]}
+                      >
+                        <View
+                          style={[
+                            Style.badge,
+                            {
+                              backgroundColor: theme["color-organizer-500"],
+                              shadowColor: theme["color-organizer-500"],
+                              marginRight: 6,
+                              alignSelf: "center",
+                            },
+                          ]}
+                        >
+                          <Text style={[Style.text.basic, Style.text.bold]}>
+                            {physicalTickets[node][0].node.name}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={[
+                            Style.containers.column,
+                            { alignItems: "flex-start", marginLeft: 8 },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              Style.text.dark,
+                              Style.text.semibold,
+                              Style.text.lg,
+                            ]}
+                          >
+                            {Commasize(physicalTickets[node].length)}
+                          </Text>
+                          <Text
+                            style={[
+                              Style.text.dark,
+                              Style.transparency.md,
+                              Style.text.normal,
+                            ]}
+                          >
+                            {i18n.t("ticketsCreated")}
+                          </Text>
+                        </View>
+
+                        <View style={{ flex: 1 }} />
+
+                        <Text
+                          style={[
+                            Style.text.dark,
+                            Style.text.lg,
+                            Style.text.normal,
+                            {
+                              marginHorizontal: 8,
+                              maxWidth: "35%",
+                              marginRight: 20,
+                            },
+                          ]}
+                        >
+                          ${CurrencyFormatter(physicalTickets[node][0].total)}
+                        </Text>
+                        <Feather
+                          name="printer"
+                          size={20}
+                          color={theme["color-organizer-500"]}
+                        />
                       </TouchableOpacity>
-                      {/* {typeof venueEarnings != null &&
-                        typeof venueEarnings != "string" &&
-                        ev.nodes.filter((n) => !n.isDecorative && !n.isExposed)
-                          .length > 0 && (
-                          <>
-                            <Spacer y={2}></Spacer>
-                            <Text h4 weight="semibold">
-                              Add-ons
-                            </Text>
-                            <Text>
-                              To manage add-on's prices and tiers, click here
-                            </Text>
-                            <Spacer y={1}></Spacer>
-                            <Table
-                              aria-label="tiers and holds table"
-                              containerCss={{ width: "100%" }}
-                              css={{ height: "auto", width: "100%" }}
-                              selectionMode="none"
-                              shadow
-                            >
-                              <Table.Header>
-                                <Table.Column hideHeader>identifier</Table.Column>
-                                <Table.Column
-                                  css={{ minWidth: 100 }}
-                                  align="center"
-                                >
-                                  Status
-                                </Table.Column>
-                                <Table.Column
-                                  css={{ minWidth: 120 }}
-                                  align="center"
-                                  hideHeader
-                                >
-                                  Actions
-                                </Table.Column>
-                              </Table.Header>
-                              <Table.Body>
-                                {ev.nodes
-                                  .filter((n) => !n.isDecorative && !n.isExposed)
-                                  .map((node, nodeidx) => (
-                                    <Table.Row
-                                      key={ev.nodes
-                                        .findIndex(
-                                          (n) => n.identifier == node.identifier,
+                    ))}
+                    <TouchableOpacity
+                      onPress={onShowPhysicalTicketsGenerator}
+                      style={[
+                        Style.button.container,
+                        {
+                          flex: 1,
+                          marginTop: 20,
+                          backgroundColor: theme["color-organizer-500"],
+                        },
+                      ]}
+                    >
+                      <Text style={[Style.button.text, Style.text.semibold]}>
+                        {i18n.t("addPhysTicks")}
+                      </Text>
+                    </TouchableOpacity>
+                    {/* {typeof venueEarnings != null &&
+                      typeof venueEarnings != "string" &&
+                      ev.nodes.filter((n) => !n.isDecorative && !n.isExposed)
+                        .length > 0 && (
+                        <>
+                          <Spacer y={2}></Spacer>
+                          <Text h4 weight="semibold">
+                            Add-ons
+                          </Text>
+                          <Text>
+                            To manage add-on's prices and tiers, click here
+                          </Text>
+                          <Spacer y={1}></Spacer>
+                          <Table
+                            aria-label="tiers and holds table"
+                            containerCss={{ width: "100%" }}
+                            css={{ height: "auto", width: "100%" }}
+                            selectionMode="none"
+                            shadow
+                          >
+                            <Table.Header>
+                              <Table.Column hideHeader>identifier</Table.Column>
+                              <Table.Column
+                                css={{ minWidth: 100 }}
+                                align="center"
+                              >
+                                Status
+                              </Table.Column>
+                              <Table.Column
+                                css={{ minWidth: 120 }}
+                                align="center"
+                                hideHeader
+                              >
+                                Actions
+                              </Table.Column>
+                            </Table.Header>
+                            <Table.Body>
+                              {ev.nodes
+                                .filter((n) => !n.isDecorative && !n.isExposed)
+                                .map((node, nodeidx) => (
+                                  <Table.Row
+                                    key={ev.nodes
+                                      .findIndex(
+                                        (n) => n.identifier == node.identifier,
+                                      )
+                                      .toString()}
+                                  >
+                                    <Table.Cell>
+                                      <Badge
+                                        enableShadow={node.available !== 0}
+                                        disableOutline
+                                        color={
+                                          node.holdings == 1 ||
+                                          node.available == 0
+                                            ? "default"
+                                            : "primary"
+                                        }
+                                      >
+                                        {node.getIdentifier()} (
+                                        {Pluralize(node.seatsAvailable, "seat")}
                                         )
-                                        .toString()}
-                                    >
-                                      <Table.Cell>
-                                        <Badge
-                                          enableShadow={node.available !== 0}
-                                          disableOutline
-                                          color={
-                                            node.holdings == 1 ||
-                                            node.available == 0
-                                              ? "default"
-                                              : "primary"
-                                          }
-                                        >
-                                          {node.getIdentifier()} (
-                                          {Pluralize(node.seatsAvailable, "seat")}
-                                          )
-                                        </Badge>
-                                      </Table.Cell>
-                                      <Table.Cell>
-                                        {node.holdings == 0 &&
-                                          node.available == 0 && (
-                                            <Text
-                                              align="center"
-                                              color="grey"
-                                              weight="semibold"
-                                            >
-                                              Already purchased
-                                            </Text>
-                                          )}
-                                        {node.holdings == 1 && (
+                                      </Badge>
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                      {node.holdings == 0 &&
+                                        node.available == 0 && (
                                           <Text
                                             align="center"
                                             color="grey"
                                             weight="semibold"
                                           >
-                                            Currently being held
+                                            Already purchased
                                           </Text>
                                         )}
-                                        {node.holdings == 0 &&
-                                          node.available == 1 && (
-                                            <Text
-                                              align="center"
-                                              color="grey"
-                                              weight="semibold"
-                                            >
-                                              Available to purchase or hold
-                                            </Text>
-                                          )}
-                                      </Table.Cell>
-                                      <Table.Cell>
-                                        {canEditTiers && node.holdings == 1 && (
+                                      {node.holdings == 1 && (
+                                        <Text
+                                          align="center"
+                                          color="grey"
+                                          weight="semibold"
+                                        >
+                                          Currently being held
+                                        </Text>
+                                      )}
+                                      {node.holdings == 0 &&
+                                        node.available == 1 && (
+                                          <Text
+                                            align="center"
+                                            color="grey"
+                                            weight="semibold"
+                                          >
+                                            Available to purchase or hold
+                                          </Text>
+                                        )}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                      {canEditTiers && node.holdings == 1 && (
+                                        <Button
+                                          onPress={() =>
+                                            removeHold(node.identifier)
+                                          }
+                                          align="center"
+                                          auto
+                                          light
+                                          ripple={false}
+                                          color="error"
+                                          weight="semibold"
+                                        >
+                                          Remove hold
+                                        </Button>
+                                      )}
+                                      {canEditTiers &&
+                                        node.holdings == 0 &&
+                                        node.available == 1 && (
                                           <Button
                                             onPress={() =>
-                                              removeHold(node.identifier)
+                                              placeHold(node.identifier)
                                             }
                                             align="center"
                                             auto
                                             light
                                             ripple={false}
-                                            color="error"
+                                            color="primary"
                                             weight="semibold"
                                           >
-                                            Remove hold
+                                            Place hold
                                           </Button>
                                         )}
-                                        {canEditTiers &&
-                                          node.holdings == 0 &&
-                                          node.available == 1 && (
-                                            <Button
-                                              onPress={() =>
-                                                placeHold(node.identifier)
-                                              }
-                                              align="center"
-                                              auto
-                                              light
-                                              ripple={false}
-                                              color="primary"
-                                              weight="semibold"
-                                            >
-                                              Place hold
-                                            </Button>
-                                          )}
-                                      </Table.Cell>
-                                    </Table.Row>
-                                  ))}
-                              </Table.Body>
-                              <Table.Pagination
-                                shadow
-                                noMargin
-                                align="center"
-                                rowsPerPage={5}
-                                onPageChange={(page) => {}}
-                              />
-                            </Table>
-                          </>
-                        )}
-                      {scheduledTasks.length > 0 && (
-                        <>
-                          <Spacer y={2}></Spacer>
-                          <Text h4 css={{ m: 0 }}>
-                            Active Automatic Tier Changes
-                          </Text>
-                          <Spacer y={1} />
-                          <Table
-                            aria-label="tiers and holds table"
-                            containerCss={{ width: "100%" }}
-                            css={{ height: "auto", width: "100%" }}
-                            shadow
-                          >
-                            <Table.Header>
-                              <Table.Column>Date</Table.Column>
-                              <Table.Column>Jobs</Table.Column>
-                              <Table.Column hideHeader>Actions</Table.Column>
-                            </Table.Header>
-                            <Table.Body>
-                              {scheduledTasks.map((task) => (
-                                <Table.Row
-                                  key={task.id}
-                                  css={{ mb: "$5" }}
-                                  align="center"
-                                >
-                                  <Table.Cell>
-                                    {task.tasks[0]?.amount != 0 && (
-                                      <Text weight="semibold">
-                                        Tickets Sold &ge; {task.tasks[0].amount}
-                                      </Text>
-                                    )}
-                                    {task.tasks[0]?.amount == 0 && (
-                                      <Text weight="semibold">
-                                        {moment(task.date)
-                                          .utc()
-                                          .format("dddd, MMM Do")}
-                                      </Text>
-                                    )}
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Row>
-                                      <Col>
-                                        {task.tasks.map((job, jidx) => {
-                                          return (
-                                            <Text key={"J-" + jidx}>
-                                              {
-                                                ev?.nodes.find(
-                                                  (n) => n.identifier == job.node,
-                                                )?.text
-                                              }{" "}
-                                              <Text span color="primary">
-                                                {
-                                                  ev?.nodes.find(
-                                                    (n) =>
-                                                      n.identifier == job.node,
-                                                  )?.name
-                                                }
-                                              </Text>
-                                              's tier will become{" "}
-                                              <Text span color="primary">
-                                                {
-                                                  ev?.tiers.find(
-                                                    (t) =>
-                                                      t.identifier == job.tier,
-                                                  )?.name
-                                                }
-                                              </Text>
-                                            </Text>
-                                          );
-                                        })}
-                                      </Col>
-                                    </Row>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Row justify="center">
-                                      {canEditTiers && (
-                                        <Button
-                                          onPress={() => onDeleteTask(task.id)}
-                                          ripple={false}
-                                          color="error"
-                                          auto
-                                          light
-                                        >
-                                          Delete
-                                        </Button>
-                                      )}
-                                    </Row>
-                                  </Table.Cell>
-                                </Table.Row>
-                              ))}
-                            </Table.Body>
-                          </Table>
-                        </>
-                      )} */}
-                      {/* {ev?.active && availableHolds.length > 0 && (
-                        <>
-                          <Spacer y={2}></Spacer>
-                          <Text h4 weight="semibold">
-                            Available Holds
-                          </Text>
-                          <Text>
-                            These are the holds you have placed, you can transfer
-                            these tickets to anyone you'd like. Whoever you're
-                            transfering tickets to must have an account created.
-                            You can ask them to create an account by sending them
-                            this link,{" "}
-                            <Link
-                              href="https://www.ticketsfour.com/register"
-                              color="primary"
-                              target="_blank"
-                            >
-                              https://www.ticketsfour.com/register
-                            </Link>
-                            .{" "}
-                            <Text span b>
-                              All ticket transfers are final.
-                            </Text>
-                          </Text>
-                          <Spacer y={1}></Spacer>
-                          <Table
-                            aria-label="holds available table"
-                            containerCss={{ width: "100%" }}
-                            css={{ height: "auto", width: "100%" }}
-                            selectionMode={canEditTiers ? "multiple" : "none"}
-                            shadow
-                            onSelectionChange={(e) =>
-                              setSelectedHolds(Array.from(e))
-                            }
-                          >
-                            <Table.Header>
-                              <Table.Column>Section</Table.Column>
-                              <Table.Column>Information</Table.Column>
-                              <Table.Column hideHeader>Actions</Table.Column>
-                            </Table.Header>
-                            <Table.Body>
-                              {availableHolds.map((hold, holdidx) => (
-                                <Table.Row key={hold.key}>
-                                  <Table.Cell
-                                    css={{ cursor: "pointer", pl: "$4" }}
-                                  >
-                                    <Badge
-                                      enableShadow
-                                      disableOutline
-                                      color="primary"
-                                    >
-                                      {hold.node.text} -{" "}
-                                      {hold.node.getIdentifier()}
-                                    </Badge>
-                                  </Table.Cell>
-                                  <Table.Cell css={{ cursor: "pointer" }}>
-                                    {hold.selected} ticket transferable, no
-                                    designated spot
-                                  </Table.Cell>
-                                  <Table.Cell css={{ cursor: "pointer" }}>
-                                    {canEditTiers &&
-                                      selectedHolds.includes("H-" + holdidx) && (
-                                        <Text color="primary" weight="semibold">
-                                          Selected
-                                        </Text>
-                                      )}
-                                    {canEditTiers &&
-                                      !selectedHolds.includes("H-" + holdidx) && (
-                                        <Text color="primary" weight="semibold">
-                                          Select
-                                        </Text>
-                                      )}
-                                  </Table.Cell>
-                                </Table.Row>
-                              ))}
+                                    </Table.Cell>
+                                  </Table.Row>
+                                ))}
                             </Table.Body>
                             <Table.Pagination
                               shadow
@@ -3875,444 +3691,247 @@ export default function EventScreen() {
                               onPageChange={(page) => {}}
                             />
                           </Table>
-                          {canEditTiers && (
-                            <>
-                              <Container
-                                css={{
-                                  opacity: selectedHolds.length > 0 ? 1 : 0.3,
-                                  cursor:
-                                    selectedHolds.length > 0
-                                      ? "default"
-                                      : "not-allowed",
-                                }}
-                              >
-                                <Spacer y={2}></Spacer>
-                                <Text h4 weight="semibold">
-                                  Attendee's Phone Number
-                                </Text>
-                                <Text>
-                                  Enter the phone number of the person to who we
-                                  should send the tickets.
-                                </Text>
-                                <Spacer y={1}></Spacer>
-                                <Row>
-                                  <Col>
-                                    <Input
-                                      disabled={
-                                        isLoadingBackground ||
-                                        selectedHolds.length == 0
-                                      }
-                                      aria-label="phone number"
-                                      color={holdsTransferPhoneHelper.color}
-                                      status={holdsTransferPhoneHelper.color}
-                                      helperColor={holdsTransferPhoneHelper.color}
-                                      helperText={holdsTransferPhoneHelper.text}
-                                      {...holdsTransferPhoneBindings}
-                                      placeholder="Enter phone number..."
-                                      width="100%"
-                                      size="xl"
-                                    />
-                                  </Col>
-                                </Row>
-                                <Spacer y={2}></Spacer>
-                                <Row justify="center">
-                                  <Button
-                                    onPress={onHoldsTransfer}
-                                    disabled={
-                                      isLoadingBackground ||
-                                      selectedHolds.length == 0 ||
-                                      !holdsTransferPhoneHelper.valid
-                                    }
-                                    color="primary"
-                                    shadow
-                                    size="lg"
-                                  >
-                                    Send Tickets
-                                  </Button>
-                                </Row>
-                              </Container>
-                            </>
-                          )}
                         </>
-                      )} */}
-                    </View>
-                  )}
-                  {activeNode != null && (
-                    <>
-                      <Row css={{ flexDirection: "column" }}>
-                        <Row>
-                          <Text h2 weight="semibold">
-                            Tiers & Ticket Prices
-                          </Text>
-                        </Row>
-                        <Text>
-                          Tiers can be assigned to sections of tickets, defining
-                          their price. Some examples of tiers can include VIP
-                          sections, General Admission, and Front Row.
+                      )}
+                    {scheduledTasks.length > 0 && (
+                      <>
+                        <Spacer y={2}></Spacer>
+                        <Text h4 css={{ m: 0 }}>
+                          Active Automatic Tier Changes
                         </Text>
-                        <Spacer y={1}></Spacer>
-                      </Row>
-                      <Spacer y={2} />
-                      <Row css={{ flexDirection: "column" }}>
-                        <Row
-                          align="center"
-                          css={{ mb: "$4", "@xsMax": { flexWrap: "wrap" } }}
-                        >
-                          <Col>
-                            <Row align="center">
-                              <Text h2 css={{ m: 0 }} weight="semibold">
-                                Section {ev.nodes[activeNode].getTitle()}
-                              </Text>
-                              <Badge
-                                css={{ ml: "$8" }}
-                                enableShadow
-                                disableOutline
-                                color="primary"
-                              >
-                                Capacity{" "}
-                                {Commasize(ev.nodes[activeNode].capacity)}{" "}
-                                {ev.nodes[activeNode].holdings > 0
-                                  ? `(${ev.nodes[activeNode].holdings} Holds)`
-                                  : ""}
-                              </Badge>
-                            </Row>
-                          </Col>
-                        </Row>
-                        <Row css={{ mb: "$4", "@xsMax": { flexWrap: "wrap" } }}>
-                          <Col>
-                            <Text
-                              h4
-                              color={
-                                ev.nodes[activeNode].tier == ""
-                                  ? "error"
-                                  : "text"
-                              }
-                              css={{ m: 0 }}
-                              weight="semibold"
-                            >
-                              Assign this section a tier, this will be the
-                              ticket's price.
-                            </Text>
-                          </Col>
-                          <Col align="end" span={3}>
-                            <Tooltip
-                              placement="left"
-                              css={{ float: "right" }}
-                              content={<TierTaskExample />}
-                            >
-                              <Button
-                                disabled={ev?.tiers.length == 0}
-                                onPress={() =>
-                                  onTierTaskAdd(ev.nodes[activeNode])
-                                }
-                                css={{ float: "right" }}
-                                ripple={false}
-                                color="primary"
-                                bordered
-                                light
-                                auto
-                              >
-                                Add automatic tier change
-                              </Button>
-                            </Tooltip>
-                          </Col>
-                        </Row>
-                        <Spacer y={1}></Spacer>
-                        {ev?.tiers.length == 0 && (
-                          <Text h5 color="error">
-                            You have not created any tiers. Please create a tier
-                            to assign a tier to this section. When you have
-                            created tiers, they will be available for you to
-                            choose.
-                          </Text>
-                        )}
-                        <Radio.Group
-                          aria-label="Seating Tier"
-                          value={activeTierIdx}
-                        >
-                          <Grid.Container gap={2} wrap="wrap">
-                            {ev.tiers.map((tier, tidx) => (
-                              <Grid key={"tier-card-" + tidx}>
-                                <Card
-                                  variant="flat"
-                                  onPress={() => setActiveTierIdx(tidx)}
-                                  isPressable
-                                  css={{ w: "200px" }}
-                                >
-                                  <Card.Body>
-                                    <Row justify="end">
-                                      <Radio
-                                        aria-label={tier.name}
-                                        value={tidx}
-                                      ></Radio>
-                                    </Row>
-                                    <Row justify="center">
-                                      <Text h3>
-                                        ${CurrencyFormatter(tier.amount)}
-                                      </Text>
-                                    </Row>
-                                    <Row justify="center">
-                                      <Text h5>{tier.name}</Text>
-                                    </Row>
-                                  </Card.Body>
-                                </Card>
-                              </Grid>
-                            ))}
-                          </Grid.Container>
-                        </Radio.Group>
-                      </Row>
-                      {tierTasks
-                        .filter(
-                          (t) => t.node == ev.nodes[activeNode].identifier,
-                        )
-                        .map((task, ttidx) => (
-                          <Col
-                            key={
-                              "TT-" + activeNode.identifier + task.identifier
-                            }
-                          >
-                            <Spacer y={1} />
-                            {task.date !== "2000-01-01" && (
-                              <Row justify="center" align="center">
-                                <Text
-                                  h3
-                                  css={{ m: 0 }}
-                                  align="center"
-                                  color={
-                                    validateTaskDate(task) ? "primary" : "error"
-                                  }
-                                >
-                                  and on
-                                </Text>
-                                <Spacer x={1} />
-                                <Input
-                                  value={task.date}
-                                  status={
-                                    validateTaskDate(task) ? "default" : "error"
-                                  }
-                                  size="xl"
-                                  width={300}
-                                  placeholder="Enter date"
-                                  type="date"
-                                  onChange={(e) =>
-                                    onDateTaskChange(task, e.target.value || "")
-                                  }
-                                />
-                                <Spacer x={1} />
-                                <Text
-                                  h3
-                                  css={{ m: 0 }}
-                                  align="center"
-                                  color={
-                                    validateTaskDate(task) ? "primary" : "error"
-                                  }
-                                >
-                                  change to
-                                </Text>
-                              </Row>
-                            )}
-                            {task.date == "2000-01-01" && (
-                              <Row justify="center" align="center">
-                                <Text
-                                  h3
-                                  css={{ m: 0 }}
-                                  align="center"
-                                  color={task.amount > 0 ? "primary" : "error"}
-                                >
-                                  and when
-                                </Text>
-                                <Spacer x={1} />
-                                <Input
-                                  value={task.amount}
-                                  status={task.amount > 0 ? "default" : "error"}
-                                  size="xl"
-                                  width={300}
-                                  placeholder="Enter amount"
-                                  type="number"
-                                  onChange={(e) =>
-                                    onAmountTaskChange(
-                                      task,
-                                      e.target.value || "",
-                                    )
-                                  }
-                                />
-                                <Spacer x={1} />
-                                <Text
-                                  h3
-                                  css={{ m: 0 }}
-                                  align="center"
-                                  color={task.amount > 0 ? "primary" : "error"}
-                                >
-                                  tickets sell change to
-                                </Text>
-                              </Row>
-                            )}
-                            <Spacer y={1} />
-                            <Radio.Group
-                              aria-label="Seating Tier"
-                              value={task.tier}
-                            >
-                              <Grid.Container gap={2} wrap="wrap">
-                                {ev?.tiers.map((tier, tidx) => (
-                                  <Grid key={"tier-card-" + tidx}>
-                                    <Card
-                                      variant="flat"
-                                      onPress={() =>
-                                        onTierTaskChange(task, tier)
-                                      }
-                                      isPressable
-                                      css={{ w: "200px" }}
-                                    >
-                                      <Card.Body>
-                                        <Row justify="end">
-                                          <Radio
-                                            aria-label={tier.name}
-                                            value={tier.identifier}
-                                          ></Radio>
-                                        </Row>
-                                        <Row justify="center">
-                                          <Text h3>
-                                            ${CurrencyFormatter(tier.amount)}
-                                          </Text>
-                                        </Row>
-                                        <Row justify="center">
-                                          <Text h5>{tier.name}</Text>
-                                        </Row>
-                                      </Card.Body>
-                                    </Card>
-                                  </Grid>
-                                ))}
-                              </Grid.Container>
-                            </Radio.Group>
-                            <Row justify="end">
-                              {task.date != "2000-01-01" && (
-                                <Button
-                                  color="primary"
-                                  onPress={() =>
-                                    onTaskTypeSwitch(task, "tickets")
-                                  }
-                                  ripple={false}
-                                  auto
-                                  light
-                                >
-                                  Switch to Tickets Sold Based
-                                </Button>
-                              )}
-                              {task.date == "2000-01-01" && (
-                                <Button
-                                  color="primary"
-                                  onPress={() => onTaskTypeSwitch(task, "date")}
-                                  ripple={false}
-                                  auto
-                                  light
-                                >
-                                  Switch to Date Based
-                                </Button>
-                              )}
-                              <Button
-                                color="error"
-                                onPress={() => onTaskRemove(task)}
-                                ripple={false}
-                                auto
-                                light
-                              >
-                                Remove
-                              </Button>
-                            </Row>
-                          </Col>
-                        ))}
-                      <Spacer y={1}></Spacer>
-                      <Row css={{ flexDirection: "column" }}>
-                        <Text h4 weight="normal">
-                          {ev.nodes[activeNode].getIdentifier()}'s Capacity
-                        </Text>
-                        <Text>
-                          Limit the capacity of this section. By default this is
-                          the capacity established by the venue.
-                        </Text>
-                        <Spacer y={1}></Spacer>
-                        <Input
-                          {...capacityBindings}
-                          status={capacityHelper.color}
-                          helperText={capacityHelper.text}
-                          helperColor={capacityHelper.color}
-                          color={capacityHelper.color}
-                          size="xl"
-                          aria-label="Holdings"
-                          width="80%"
-                          placeholder="Enter amount..."
-                          contentLeft={
-                            <Text>
-                              {ev.nodes[activeNode].capacity -
-                                ev.nodes[activeNode].available}
-                            </Text>
-                          }
-                          contentRight={
-                            <Text css={{ marginLeft: "-1em" }}>
-                              /&nbsp;
-                              {Commasize(ev.nodes[activeNode].extra.maxCap)}
-                            </Text>
-                          }
-                        />
-                      </Row>
-                      <Spacer y={1}></Spacer>
-                      <Row css={{ flexDirection: "column" }}>
-                        <Text h4 weight="normal">
-                          {ev.nodes[activeNode].getIdentifier()}'s Holds
-                        </Text>
-                        <Text>Reserve seats for your team</Text>
-                        <Spacer y={1}></Spacer>
-                        <Input
-                          {...holdingsBindings}
-                          status={holdingsHelper.color}
-                          helperText={holdingsHelper.text}
-                          helperColor={holdingsHelper.color}
-                          color={holdingsHelper.color}
-                          size="xl"
-                          aria-label="Holdings"
-                          width="80%"
-                          placeholder="Enter amount..."
-                          contentRight={
-                            <Text css={{ marginLeft: "-1em" }}>
-                              /&nbsp;
-                              {Commasize(
-                                parseInt(capacityAmount) -
-                                  ev.nodes[activeNode].booked,
-                              )}
-                            </Text>
-                          }
-                        />
-                      </Row>
-                      <Spacer y={2} />
-                      <Row
-                        justify="center"
-                        align="center"
-                        css={{ mb: "$4", "@xsMax": { flexWrap: "wrap" } }}
-                      >
-                        <Button
-                          onPress={() => setActiveNode(null)}
-                          size="lg"
-                          color="error"
-                          light
-                        >
-                          Back
-                        </Button>
-                        <Button
-                          disabled={
-                            isLoading ||
-                            !holdingsHelper.valid ||
-                            !capacityHelper.valid ||
-                            activeTierIdx < 0
-                          }
-                          onPress={onUpdateNode}
-                          size="lg"
+                        <Spacer y={1} />
+                        <Table
+                          aria-label="tiers and holds table"
+                          containerCss={{ width: "100%" }}
+                          css={{ height: "auto", width: "100%" }}
                           shadow
                         >
-                          Update
-                        </Button>
-                      </Row>
-                    </>
-                  )}
+                          <Table.Header>
+                            <Table.Column>Date</Table.Column>
+                            <Table.Column>Jobs</Table.Column>
+                            <Table.Column hideHeader>Actions</Table.Column>
+                          </Table.Header>
+                          <Table.Body>
+                            {scheduledTasks.map((task) => (
+                              <Table.Row
+                                key={task.id}
+                                css={{ mb: "$5" }}
+                                align="center"
+                              >
+                                <Table.Cell>
+                                  {task.tasks[0]?.amount != 0 && (
+                                    <Text weight="semibold">
+                                      Tickets Sold &ge; {task.tasks[0].amount}
+                                    </Text>
+                                  )}
+                                  {task.tasks[0]?.amount == 0 && (
+                                    <Text weight="semibold">
+                                      {moment(task.date)
+                                        .utc()
+                                        .format("dddd, MMM Do")}
+                                    </Text>
+                                  )}
+                                </Table.Cell>
+                                <Table.Cell>
+                                  <Row>
+                                    <Col>
+                                      {task.tasks.map((job, jidx) => {
+                                        return (
+                                          <Text key={"J-" + jidx}>
+                                            {
+                                              ev?.nodes.find(
+                                                (n) => n.identifier == job.node,
+                                              )?.text
+                                            }{" "}
+                                            <Text span color="primary">
+                                              {
+                                                ev?.nodes.find(
+                                                  (n) =>
+                                                    n.identifier == job.node,
+                                                )?.name
+                                              }
+                                            </Text>
+                                            's tier will become{" "}
+                                            <Text span color="primary">
+                                              {
+                                                ev?.tiers.find(
+                                                  (t) =>
+                                                    t.identifier == job.tier,
+                                                )?.name
+                                              }
+                                            </Text>
+                                          </Text>
+                                        );
+                                      })}
+                                    </Col>
+                                  </Row>
+                                </Table.Cell>
+                                <Table.Cell>
+                                  <Row justify="center">
+                                    {canEditTiers && (
+                                      <Button
+                                        onPress={() => onDeleteTask(task.id)}
+                                        ripple={false}
+                                        color="error"
+                                        auto
+                                        light
+                                      >
+                                        Delete
+                                      </Button>
+                                    )}
+                                  </Row>
+                                </Table.Cell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                        </Table>
+                      </>
+                    )} */}
+                    {/* {ev?.active && availableHolds.length > 0 && (
+                      <>
+                        <Spacer y={2}></Spacer>
+                        <Text h4 weight="semibold">
+                          Available Holds
+                        </Text>
+                        <Text>
+                          These are the holds you have placed, you can transfer
+                          these tickets to anyone you'd like. Whoever you're
+                          transfering tickets to must have an account created.
+                          You can ask them to create an account by sending them
+                          this link,{" "}
+                          <Link
+                            href="https://www.ticketsfour.com/register"
+                            color="primary"
+                            target="_blank"
+                          >
+                            https://www.ticketsfour.com/register
+                          </Link>
+                          .{" "}
+                          <Text span b>
+                            All ticket transfers are final.
+                          </Text>
+                        </Text>
+                        <Spacer y={1}></Spacer>
+                        <Table
+                          aria-label="holds available table"
+                          containerCss={{ width: "100%" }}
+                          css={{ height: "auto", width: "100%" }}
+                          selectionMode={canEditTiers ? "multiple" : "none"}
+                          shadow
+                          onSelectionChange={(e) =>
+                            setSelectedHolds(Array.from(e))
+                          }
+                        >
+                          <Table.Header>
+                            <Table.Column>Section</Table.Column>
+                            <Table.Column>Information</Table.Column>
+                            <Table.Column hideHeader>Actions</Table.Column>
+                          </Table.Header>
+                          <Table.Body>
+                            {availableHolds.map((hold, holdidx) => (
+                              <Table.Row key={hold.key}>
+                                <Table.Cell
+                                  css={{ cursor: "pointer", pl: "$4" }}
+                                >
+                                  <Badge
+                                    enableShadow
+                                    disableOutline
+                                    color="primary"
+                                  >
+                                    {hold.node.text} -{" "}
+                                    {hold.node.getIdentifier()}
+                                  </Badge>
+                                </Table.Cell>
+                                <Table.Cell css={{ cursor: "pointer" }}>
+                                  {hold.selected} ticket transferable, no
+                                  designated spot
+                                </Table.Cell>
+                                <Table.Cell css={{ cursor: "pointer" }}>
+                                  {canEditTiers &&
+                                    selectedHolds.includes("H-" + holdidx) && (
+                                      <Text color="primary" weight="semibold">
+                                        Selected
+                                      </Text>
+                                    )}
+                                  {canEditTiers &&
+                                    !selectedHolds.includes("H-" + holdidx) && (
+                                      <Text color="primary" weight="semibold">
+                                        Select
+                                      </Text>
+                                    )}
+                                </Table.Cell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                          <Table.Pagination
+                            shadow
+                            noMargin
+                            align="center"
+                            rowsPerPage={5}
+                            onPageChange={(page) => {}}
+                          />
+                        </Table>
+                        {canEditTiers && (
+                          <>
+                            <Container
+                              css={{
+                                opacity: selectedHolds.length > 0 ? 1 : 0.3,
+                                cursor:
+                                  selectedHolds.length > 0
+                                    ? "default"
+                                    : "not-allowed",
+                              }}
+                            >
+                              <Spacer y={2}></Spacer>
+                              <Text h4 weight="semibold">
+                                Attendee's Phone Number
+                              </Text>
+                              <Text>
+                                Enter the phone number of the person to who we
+                                should send the tickets.
+                              </Text>
+                              <Spacer y={1}></Spacer>
+                              <Row>
+                                <Col>
+                                  <Input
+                                    disabled={
+                                      isLoadingBackground ||
+                                      selectedHolds.length == 0
+                                    }
+                                    aria-label="phone number"
+                                    color={holdsTransferPhoneHelper.color}
+                                    status={holdsTransferPhoneHelper.color}
+                                    helperColor={holdsTransferPhoneHelper.color}
+                                    helperText={holdsTransferPhoneHelper.text}
+                                    {...holdsTransferPhoneBindings}
+                                    placeholder="Enter phone number..."
+                                    width="100%"
+                                    size="xl"
+                                  />
+                                </Col>
+                              </Row>
+                              <Spacer y={2}></Spacer>
+                              <Row justify="center">
+                                <Button
+                                  onPress={onHoldsTransfer}
+                                  disabled={
+                                    isLoadingBackground ||
+                                    selectedHolds.length == 0 ||
+                                    !holdsTransferPhoneHelper.valid
+                                  }
+                                  color="primary"
+                                  shadow
+                                  size="lg"
+                                >
+                                  Send Tickets
+                                </Button>
+                              </Row>
+                            </Container>
+                          </>
+                        )}
+                      </>
+                    )} */}
+                  </View>
                 </>
               )}
             </>
@@ -4369,6 +3988,11 @@ export default function EventScreen() {
                 </Text>
 
                 <TouchableOpacity
+                  onPress={() =>
+                    Linking.openURL(
+                      `${Config.apiUrl}api/organizations/events/reports/purchasers/download?auth=${auth}&oid=${oid}&eid=${eid}`,
+                    )
+                  }
                   style={[
                     Style.button.container,
                     {
@@ -4425,9 +4049,12 @@ export default function EventScreen() {
                 </Text>
 
                 <TouchableOpacity
-                  disabled
+                  onPress={() =>
+                    Linking.openURL(
+                      `${Config.apiUrl}api/organizations/events/reports/statement/download?auth=${auth}&oid=${oid}&eid=${eid}`,
+                    )
+                  }
                   style={[
-                    Style.button.disabled,
                     Style.button.container,
                     {
                       backgroundColor: theme["color-organizer-500"],
@@ -4652,8 +4279,138 @@ export default function EventScreen() {
                   </Text>
                 </View>
               )}
-              {true && (
-                <View style={[Style.containers.column, { marginVertical: 30 }]}>
+              {!nfcMode && (
+                <TouchableOpacity
+                  onPress={() => setNFCMode(true)}
+                  style={[
+                    Style.containers.row,
+                    {
+                      paddingHorizontal: 6,
+                      alignSelf: "flex-end",
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    size={32}
+                    color={theme["color-organizer-500"]}
+                    name="contactless-payment-circle-outline"
+                  />
+                  <Text
+                    style={[
+                      Style.text.organizer,
+                      Style.text.lg,
+                      Style.text.semibold,
+                      {
+                        marginHorizontal: 6,
+                      },
+                    ]}
+                  >
+                    {i18n.t("tapToScanMode")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {nfcMode && (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setNFCMode(false)}
+                    style={[
+                      Style.containers.row,
+                      {
+                        paddingHorizontal: 6,
+                        alignSelf: "flex-end",
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      size={32}
+                      color={theme["color-organizer-500"]}
+                      name="qrcode-scan"
+                    />
+                    <Text
+                      style={[
+                        Style.text.organizer,
+                        Style.text.lg,
+                        Style.text.semibold,
+                        {
+                          marginHorizontal: 6,
+                        },
+                      ]}
+                    >
+                      {i18n.t("scanner")}
+                    </Text>
+                  </TouchableOpacity>
+                  <Pressable onPress={initNFC}>
+                    <MaterialCommunityIcons
+                      style={{ alignSelf: "center", padding: 10 }}
+                      size={124}
+                      color={
+                        scannerResult == null
+                          ? theme["color-basic-700"]
+                          : scannerResult == "INVALID_TICKET"
+                            ? theme["color-danger-500"]
+                            : theme["color-organizer-500"]
+                      }
+                      name="contactless-payment-circle-outline"
+                    />
+                  </Pressable>
+                  {scannerResultsDatum != null && (
+                    <View
+                      style={[
+                        Style.badge,
+                        {
+                          backgroundColor: isLoadingScan
+                            ? theme["color-basic-700"]
+                            : scannerResult == "VALID"
+                              ? theme["color-success-500"]
+                              : theme["color-primary-500"],
+                          shadowColor: isLoadingScan
+                            ? theme["color-basic-700"]
+                            : scannerResult == "VALID"
+                              ? theme["color-success-500"]
+                              : theme["color-primary-500"],
+                          alignSelf: "center",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          Style.text.basic,
+                          Style.text.lg,
+                          Style.text.semibold,
+                        ]}
+                      >
+                        {i18n.t(scannerResult, { stamp: scanStamp })}
+                      </Text>
+                    </View>
+                  )}
+                  {scannerResultsDatum == null && (
+                    <View
+                      style={[
+                        Style.badge,
+                        {
+                          backgroundColor: theme["color-basic-700"],
+                          shadowColor: theme["color-basic-700"],
+                          alignSelf: "center",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          Style.text.basic,
+                          Style.text.lg,
+                          Style.text.semibold,
+                        ]}
+                      >
+                        {i18n.t("xTicketsRemaining", {
+                          x: ev.attendees + -ev.scanned,
+                        })}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              )}
+              <View style={[Style.containers.column, { marginVertical: 30 }]}>
+                {!nfcMode && (
                   <CameraView
                     onBarcodeScanned={handleScannerResponse}
                     barcodeScannerSettings={{
@@ -4733,197 +4490,219 @@ export default function EventScreen() {
                       </View>
                     )}
                   </CameraView>
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.semibold,
-                      Style.text.xl,
-                      { marginTop: 20, marginBottom: 10, textAlign: "left" },
-                    ]}
-                  >
-                    {i18n.t("scannerTips")}
-                  </Text>
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.lg,
-                      Style.transparency.md,
-                    ]}
-                  >
-                    {i18n.t("scannerTipsDesc")}
-                  </Text>
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.semibold,
-                      Style.text.lg,
-                      { marginTop: 20, marginBottom: 10, textAlign: "left" },
-                    ]}
-                  >
-                    <Text style={[Style.text.organizer]}>
-                      {i18n.t("validTicket")}
-                    </Text>{" "}
-                    {i18n.t("validTicketDesc")}
-                  </Text>
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.semibold,
-                      Style.text.lg,
-                      {
-                        marginTop: 10,
-                        marginBottom: 10,
-                        textAlign: "left",
-                        alignSelf: "flex-start",
-                      },
-                    ]}
-                  >
-                    <Text style={[Style.text.danger]}>
-                      {i18n.t("ticketScanned")}
-                    </Text>{" "}
-                    {i18n.t("ticketScannedDesc")}
-                  </Text>
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.semibold,
-                      Style.text.lg,
-                      {
-                        marginTop: 10,
-                        marginBottom: 10,
-                        textAlign: "left",
-                        alignSelf: "flex-start",
-                      },
-                    ]}
-                  >
-                    <Text style={[Style.text.danger]}>
-                      {i18n.t("invalidTicket")}
-                    </Text>{" "}
-                    {i18n.t("invalidTicketDesc")}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={onShareScanner}
-                    style={{
+                )}
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.text.xl,
+                    { marginTop: 20, marginBottom: 10, textAlign: "left" },
+                  ]}
+                >
+                  {i18n.t("scannerTips")}
+                </Text>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.lg,
+                    Style.transparency.md,
+                  ]}
+                >
+                  {i18n.t("scannerTipsDesc")}
+                </Text>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.text.lg,
+                    { marginTop: 20, marginBottom: 10, textAlign: "left" },
+                  ]}
+                >
+                  <Text style={[Style.text.organizer]}>
+                    {i18n.t("validTicket")}
+                  </Text>{" "}
+                  {i18n.t("validTicketDesc")}
+                </Text>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.text.lg,
+                    {
                       marginTop: 10,
                       marginBottom: 10,
+                      textAlign: "left",
                       alignSelf: "flex-start",
-                    }}
+                    },
+                  ]}
+                >
+                  <Text style={[Style.text.danger]}>
+                    {i18n.t("ticketScanned")}
+                  </Text>{" "}
+                  {i18n.t("ticketScannedDesc")}
+                </Text>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.text.semibold,
+                    Style.text.lg,
+                    {
+                      marginTop: 10,
+                      marginBottom: 10,
+                      textAlign: "left",
+                      alignSelf: "flex-start",
+                    },
+                  ]}
+                >
+                  <Text style={[Style.text.danger]}>
+                    {i18n.t("invalidTicket")}
+                  </Text>{" "}
+                  {i18n.t("invalidTicketDesc")}
+                </Text>
+                <TouchableOpacity
+                  onPress={onShareScanner}
+                  style={{
+                    marginTop: 10,
+                    marginBottom: 10,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text
+                    style={[
+                      Style.text.dark,
+                      Style.text.semibold,
+                      Style.text.lg,
+                      { textAlign: "left" },
+                    ]}
                   >
-                    <Text
-                      style={[
-                        Style.text.dark,
-                        Style.text.semibold,
-                        Style.text.lg,
-                        { textAlign: "left" },
-                      ]}
-                    >
-                      {i18n.t("shareScanner")}{" "}
-                      <Text style={[Style.text.organizer]}>
-                        {i18n.t("shareScannerDesc")}
-                      </Text>
+                    {i18n.t("shareScanner")}{" "}
+                    <Text style={[Style.text.organizer]}>
+                      {i18n.t("shareScannerDesc")}
                     </Text>
-                  </TouchableOpacity>
-                  {/* <Spacer y={1} />
-                  <Text h4 align="start">
-                    Having an issue scanning?
                   </Text>
-                  <Text>
-                    You can look up a ticket by owner, card last 4, phone number
-                    last 4
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onOfflineScanner}
+                  style={{
+                    marginTop: 10,
+                    marginBottom: 10,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text
+                    style={[
+                      Style.text.dark,
+                      Style.text.semibold,
+                      Style.text.lg,
+                      { textAlign: "left" },
+                    ]}
+                  >
+                    {i18n.t("badConnection")}{" "}
+                    <Text style={[Style.text.organizer]}>
+                      {i18n.t("offlineMode")}
+                    </Text>
                   </Text>
-                  <Spacer y={1} />
-                  <Row w="100%">
-                    <Col span={8}>
-                      <Input
-                        {...scannerSearchQueryBindings}
-                        placeholder="Search name, last 4 of phone number, or receipt number..."
-                        width="100%"
-                        size="lg"
-                      />
-                    </Col>
-                    <Col span={4} align="center">
-                      <Button shadow onPress={onSearchScan}>
-                        Search
-                      </Button>
-                    </Col>
+                </TouchableOpacity>
+                {/* <Spacer y={1} />
+                <Text h4 align="start">
+                  Having an issue scanning?
+                </Text>
+                <Text>
+                  You can look up a ticket by owner, card last 4, phone number
+                  last 4
+                </Text>
+                <Spacer y={1} />
+                <Row w="100%">
+                  <Col span={8}>
+                    <Input
+                      {...scannerSearchQueryBindings}
+                      placeholder="Search name, last 4 of phone number, or receipt number..."
+                      width="100%"
+                      size="lg"
+                    />
+                  </Col>
+                  <Col span={4} align="center">
+                    <Button shadow onPress={onSearchScan}>
+                      Search
+                    </Button>
+                  </Col>
+                </Row>
+                <Spacer y={2} />
+                {isLoadingScan && (
+                  <Row justify="center">
+                    <Loading type="points" />
                   </Row>
-                  <Spacer y={2} />
-                  {isLoadingScan && (
-                    <Row justify="center">
-                      <Loading type="points" />
-                    </Row>
-                  )}
-                  {!isLoadingScan && (
-                    <Grid.Container gap={2}>
-                      <Grid>
-                        <Collapse.Group splitted>
-                          {scannerSearchResults.map((result, ridx) => (
-                            <Collapse
-                              title={
-                                <Text h4>
-                                  {result.person.first_name}{" "}
-                                  {result.person.last_name}
-                                </Text>
-                              }
-                              key={ridx + "_collapsable"}
-                            >
-                              <Text>
-                                Before verifying a purchase, keep in mind, all
-                                members of party must be present, as tickets will
-                                no longer show up once marked as present. Verify
-                                that the information displayed below matches the
-                                information the attendee gives you.
+                )}
+                {!isLoadingScan && (
+                  <Grid.Container gap={2}>
+                    <Grid>
+                      <Collapse.Group splitted>
+                        {scannerSearchResults.map((result, ridx) => (
+                          <Collapse
+                            title={
+                              <Text h4>
+                                {result.person.first_name}{" "}
+                                {result.person.last_name}
                               </Text>
-                              <Spacer y={1}></Spacer>
-                              <Text>
-                                Receipt Number:{" "}
-                                <Text span weight="semibold" color="primary">
-                                  {result.receipt}
-                                </Text>
+                            }
+                            key={ridx + "_collapsable"}
+                          >
+                            <Text>
+                              Before verifying a purchase, keep in mind, all
+                              members of party must be present, as tickets will
+                              no longer show up once marked as present. Verify
+                              that the information displayed below matches the
+                              information the attendee gives you.
+                            </Text>
+                            <Spacer y={1}></Spacer>
+                            <Text>
+                              Receipt Number:{" "}
+                              <Text span weight="semibold" color="primary">
+                                {result.receipt}
                               </Text>
-                              <Text>
-                                Last 4 Digits of Card on File:{" "}
-                                <Text span weight="semibold" color="primary">
-                                  {result.card4}
-                                </Text>
+                            </Text>
+                            <Text>
+                              Last 4 Digits of Card on File:{" "}
+                              <Text span weight="semibold" color="primary">
+                                {result.card4}
                               </Text>
-                              <Text>
-                                Phone Number:{" "}
-                                <Text span weight="semibold" color="primary">
-                                  (***) ***-{result.person.phone}
-                                </Text>
+                            </Text>
+                            <Text>
+                              Phone Number:{" "}
+                              <Text span weight="semibold" color="primary">
+                                (***) ***-{result.person.phone}
                               </Text>
-                              <Spacer y={1}></Spacer>
-                              <Text h5>Tickets</Text>
-                              {result.tickets.map((ticket) => {
-                                return (
-                                  <Text css={{ px: "$4" }}>
-                                    <Badge color="primary" variant="dot" />
-                                    {ticket.node.getIdentifier()} - $
-                                    {CurrencyFormatter(ticket.total)}
-                                  </Text>
-                                );
-                              })}
-                              <Spacer y={1}></Spacer>
-                              <Row justify="center">
-                                <Button
-                                  onPress={() =>
-                                    onValidateTickets(result.tickets)
-                                  }
-                                  shadow
-                                  auto
-                                >
-                                  Validate
-                                </Button>
-                              </Row>
-                            </Collapse>
-                          ))}
-                        </Collapse.Group>
-                      </Grid>
-                    </Grid.Container>
-                  )} */}
-                </View>
-              )}
+                            </Text>
+                            <Spacer y={1}></Spacer>
+                            <Text h5>Tickets</Text>
+                            {result.tickets.map((ticket) => {
+                              return (
+                                <Text css={{ px: "$4" }}>
+                                  <Badge color="primary" variant="dot" />
+                                  {ticket.node.getIdentifier()} - $
+                                  {CurrencyFormatter(ticket.total)}
+                                </Text>
+                              );
+                            })}
+                            <Spacer y={1}></Spacer>
+                            <Row justify="center">
+                              <Button
+                                onPress={() =>
+                                  onValidateTickets(result.tickets)
+                                }
+                                shadow
+                                auto
+                              >
+                                Validate
+                              </Button>
+                            </Row>
+                          </Collapse>
+                        ))}
+                      </Collapse.Group>
+                    </Grid>
+                  </Grid.Container>
+                )} */}
+              </View>
             </>
           )}
         </View>

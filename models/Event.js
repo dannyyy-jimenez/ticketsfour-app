@@ -85,7 +85,7 @@ export default class Ev {
 
       return new Misc({ ...node });
     });
-    this.hosts = hosts.map((org) => new Organization({ ...org }));
+    this.hosts = hosts?.map((org) => new Organization({ ...org }));
     this.sales = sales;
     this.views = views;
     this.shares = shares;

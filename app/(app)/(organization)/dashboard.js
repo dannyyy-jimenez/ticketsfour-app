@@ -1,5 +1,5 @@
 import React from "react";
-import { useSession } from "../../../utils/ctx";
+import { useOfflineProvider, useSession } from "../../../utils/ctx";
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import { CurrencyFormatter, PhoneFormatter } from "../../../utils/Formatters";
 import { OrgEventComponent } from "../../../utils/components/Event";
 
 export default function DashboardScreen() {
+  const { sql } = useOfflineProvider();
   const { auth, signOut, isGuest, defaultOrganization: oid } = useSession();
   const { i18n } = useLocalization();
   const [isLoading, setIsLoading] = React.useState(true);
@@ -227,11 +228,31 @@ export default function DashboardScreen() {
   const load = async () => {
     setIsLoading(true);
     setRoles([]);
+
     try {
+      let _events = [];
+
+      const localres = await sql.get(`
+        SELECT *
+          FROM GENESIS
+          WHERE
+            oid = '${oid}'
+          ORDER BY start DESC
+      `);
+
+      _events = localres
+        .map((ev) => new EventModel({ ...ev }))
+        .sort((a, b) => a.start - b.start);
+      setEvents(_events);
+
+      if (localres.length > 0) {
+        setIsLoading(false);
+      }
+
       const res = await Api.get("/organizations/dashboard", {
         auth,
         oid,
-        lazy: false,
+        lazy: true,
       });
       if (res.isError) throw "e";
 
@@ -240,14 +261,16 @@ export default function DashboardScreen() {
         throw "NO_PERMISSION";
       }
 
-      console.log(res);
-
       setPayouts(res.data.payouts);
-      setEvents(
-        res.data.events
-          .map((ev) => new EventModel({ ...ev }))
-          .filter((e) => !e.isInPast),
-      );
+
+      for (let event of res.data.events) {
+        if (localres.findIndex((e) => e.id == event.id) != -1) continue;
+
+        let _event = new EventModel({ ...event });
+        _events = [_event, ..._events];
+      }
+
+      setEvents(_events);
       // setVenues(res.data.venues.map((venue) => new Venue({ ...venue })));
       setCompletedTasks(res.data.tasks);
       setMembers(
@@ -281,7 +304,7 @@ export default function DashboardScreen() {
       //setInvitePhone('')
       setIsLoading(false);
     } catch (e) {
-      console.log(e);
+      console.log("AHH", e);
       setIsLoading(false);
     }
   };

@@ -30,6 +30,7 @@ import TicketComponent from "../../../utils/components/Ticket";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReplaceWithStyle } from "../../../utils/Formatters";
 import { TypeAnimation } from "react-native-type-animation";
+import WebView from "react-native-webview";
 
 export default function TicketBundlerScreen() {
   const { i18n } = useLocalization();
@@ -235,10 +236,78 @@ export default function TicketBundlerScreen() {
     <ScrollContainer
       style={{
         paddingTop: 20,
-        flex: 1,
         paddingBottom: 0,
       }}
     >
+      {artists.length > 0 && (
+        <>
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.semibold,
+              { textAlign: "center", paddingVertical: 4 },
+            ]}
+          >
+            You Got{" "}
+            <Text style={{ color: theme["color-primary-500"] }}>
+              Tickets Four
+            </Text>
+          </Text>
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.semibold,
+              { textAlign: "center", paddingVertical: 4 },
+            ]}
+          >
+            An Unforgettable{" "}
+            <Text style={{ color: theme["color-primary-500"] }}>Lineup</Text>
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.semibold,
+              Style.transparency.md,
+              { textAlign: "center", paddingVertical: 2, marginBottom: 8 },
+            ]}
+          >
+            Make sure to practice for the event!
+          </Text>
+          {artists.map((talent) => (
+            <ArtistCard style={{ marginVertical: 10 }} talent={talent} />
+          ))}
+
+          <Text
+            style={[
+              Style.text.xxl,
+              Style.text.semibold,
+              { textAlign: "center", paddingVertical: 4, marginTop: 8 },
+            ]}
+          >
+            <Text style={{ color: theme["color-primary-500"] }}>Music</Text>{" "}
+            That{" "}
+            <Text style={{ color: theme["color-primary-500"] }}>Elevates</Text>{" "}
+            Your <Text style={{ color: theme["color-primary-500"] }}>Soul</Text>
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.semibold,
+              Style.transparency.md,
+              { textAlign: "center", paddingVertical: 2, marginBottom: 15 },
+            ]}
+          >
+            Checkout the most recent music from these artists
+          </Text>
+          {artists.map((talent, tidx) => (
+            <WebView
+              key={"talent-" + tidx}
+              style={{ width: "100%", marginVertical: 4, height: 480 }}
+              source={{ uri: talent.embed }}
+            />
+          ))}
+        </>
+      )}
       <TouchableOpacity
         style={[
           Style.button.round,
@@ -275,8 +344,9 @@ export default function TicketBundlerScreen() {
         onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
         style={{
           flex: 1,
+          minHeight: height * 0.68,
           width: "100%",
-          left: -10,
+          left: 0,
           marginTop: 10,
           marginBottom: 10,
         }}

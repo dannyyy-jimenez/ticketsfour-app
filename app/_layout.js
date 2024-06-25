@@ -1,6 +1,6 @@
 import React from "react";
 import { Slot } from "expo-router";
-import { SessionProvider, TeamProvider } from "../utils/ctx";
+import { OfflineProvider, SessionProvider, TeamProvider } from "../utils/ctx";
 import { StatusBar } from "react-native";
 import "../utils/Sheets";
 import { SheetProvider } from "react-native-actions-sheet";
@@ -14,19 +14,21 @@ export default function Root() {
   return (
     <>
       <SessionProvider>
-        <StatusBar barStyle="dark-content" />
-        <LocalizationProvider>
-          <ActionSheetProvider>
-            <HoldMenuProvider
-              iconComponent={MaterialCommunityIcons}
-              theme="light"
-            >
-              <SheetProvider>
-                <Slot />
-              </SheetProvider>
-            </HoldMenuProvider>
-          </ActionSheetProvider>
-        </LocalizationProvider>
+        <OfflineProvider>
+          <StatusBar barStyle="dark-content" />
+          <LocalizationProvider>
+            <ActionSheetProvider>
+              <HoldMenuProvider
+                iconComponent={MaterialCommunityIcons}
+                theme="light"
+              >
+                <SheetProvider>
+                  <Slot />
+                </SheetProvider>
+              </HoldMenuProvider>
+            </ActionSheetProvider>
+          </LocalizationProvider>
+        </OfflineProvider>
       </SessionProvider>
     </>
   );

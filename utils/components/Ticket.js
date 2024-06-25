@@ -85,11 +85,20 @@ export default function TicketComponent({ ticket, hidden = false }) {
               style={[
                 Style.text.basic,
                 Style.text.xxl,
-                { fontFamily: "Flix-Normal", letterSpacing: 0.5 },
+                {
+                  fontFamily: "Flix-Normal",
+                  letterSpacing: 0.5,
+                },
               ]}
             >
-              Tickets Four
+              Tickets Four{" "}
             </Text>
+            <MaterialCommunityIcons
+              style={{ opacity: 0.8, position: "absolute", right: 10, top: 10 }}
+              color={theme["color-basic-100"]}
+              size={22}
+              name="contactless-payment"
+            />
           </View>
         )}
         {!ticket?.node?.isExposed && (
