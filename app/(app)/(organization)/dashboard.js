@@ -409,7 +409,7 @@ export default function DashboardScreen() {
     load();
   };
 
-  if (true) {
+  if (!isLoading && !hasPermission) {
     return <LockedView />;
   }
 

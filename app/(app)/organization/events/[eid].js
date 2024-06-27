@@ -12,6 +12,7 @@ import {
   Alert,
 } from "react-native";
 import LayoutContainer, {
+  LockedView,
   ScrollContainer,
 } from "../../../../utils/components/Layout";
 import Style, { theme } from "../../../../utils/Styles";
@@ -1720,7 +1721,7 @@ export default function EventScreen() {
     (section == 3 && !canViewSales) ||
     (section == 4 && !canViewScanner)
   )
-    return <LockedView noHeight />;
+    return <LockedView />;
 
   return (
     <SheetProvider>
