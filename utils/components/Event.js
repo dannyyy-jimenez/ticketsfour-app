@@ -23,6 +23,7 @@ import { Pressable } from "react-native";
 import SkeletonLoader from "expo-skeleton-loader";
 import { useOfflineProvider, useSession } from "../ctx";
 import Api from "../Api";
+import { LinearGradient } from "expo-linear-gradient";
 
 export function OrgEventComponent({
   i18n,
@@ -752,6 +753,9 @@ export default function EventComponent({
   const event = React.useMemo(() => {
     return new EventModel({ ..._event });
   }, [_event]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [venue, setVenue] = React.useState(null);
+
   const { width, height } = Dimensions.get("window");
 
   const onPressIn = () => {
@@ -807,6 +811,7 @@ export default function EventComponent({
             maxWidth: 400,
             width: width - 24,
             padding: 0,
+            overflow: "hidden",
             transform: [{ scale }],
           },
         ]}
@@ -815,13 +820,33 @@ export default function EventComponent({
       </Animated.View>
     );
 
+  React.useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+
+      try {
+        const res = await Api.get("/event/lazy", {
+          eid: _event.id,
+        });
+        if (res.isError) throw "e";
+
+        setVenue(res.data.venue);
+        setIsLoading(false);
+      } catch (e) {
+        setIsLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
   return (
     <Container>
       <Pressable
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         onPress={onView}
-        style={{ width: "100%" }}
+        style={{ width: "100%", overflow: "hidden" }}
       >
         <Image
           style={{
@@ -835,19 +860,29 @@ export default function EventComponent({
           width={500}
           height={800}
         />
-        <BlurView
-          intensity={40}
+        <LinearGradient
+          // Background Linear Gradient
+          colors={["transparent", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.95)"]}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: "100%",
+            height: "100%",
+          }}
+        />
+        <View
           style={[
             Style.containers.column,
             {
               position: "absolute",
-              backgroundColor: "rgba(255,255,255,0.7)",
               paddingHorizontal: 10,
               paddingVertical: 15,
-              bottom: 10,
+              bottom: 0,
+              borderTopLeftRadius: 6,
+              borderTopRightRadius: 6,
               alignSelf: "center",
-              width: "94%",
-              borderRadius: 10,
+              width: "100%",
               overflow: "hidden",
             },
           ]}
@@ -864,7 +899,8 @@ export default function EventComponent({
             >
               <Text
                 numberOfLines={3}
-                style={[Style.text.xl, Style.text.bold, Style.text.dark]}
+                style={[Style.text.xxl, Style.text.bold, Style.text.basic]}
+                adjustsFontSizeToFit
               >
                 {event.name}
               </Text>
@@ -872,8 +908,8 @@ export default function EventComponent({
                 style={[
                   Style.text.md,
                   Style.text.semibold,
-                  Style.text.dark,
-                  { marginTop: 4 },
+                  Style.text.basic,
+                  { marginTop: 8 },
                 ]}
               >
                 {event.getStart("MMMM Do, YYYY")} • {event.getStart("hh:mm A")}
@@ -881,16 +917,61 @@ export default function EventComponent({
             </View>
           </View>
           <View style={[Style.containers.row]}>
-            <View
-              style={[Style.containers.column, { alignItems: "flex-start" }]}
-            >
-              <Text style={[Style.text.md, Style.text.bold, Style.text.dark]}>
-                {event.venue.name} | {event.venue.city}, {event.venue.region_ab}
-              </Text>
-            </View>
+            {isLoading && (
+              <>
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        overflow: "hidden",
+                        width: 40,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 40 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        marginTop: 4,
+                        overflow: "hidden",
+                        width: 100,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 100 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              </>
+            )}
+            {!isLoading && (
+              <View
+                style={[Style.containers.column, { alignItems: "flex-start" }]}
+              >
+                <Text
+                  style={[Style.text.md, Style.text.bold, Style.text.basic]}
+                >
+                  {venue?.name} | {venue?.city}, {venue?.region_ab}
+                </Text>
+              </View>
+            )}
             <View style={{ flex: 1 }} />
             <TouchableOpacity onPress={onShare} style={{ padding: 4 }}>
-              <Feather color={theme["color-basic-700"]} size={20} name="send" />
+              <Feather
+                color={theme["color-basic-100"]}
+                size={20}
+                name="share"
+              />
             </TouchableOpacity>
             {/* <View
               style={[
@@ -932,7 +1013,7 @@ export default function EventComponent({
               </Text>
             </View> */}
           </View>
-        </BlurView>
+        </View>
       </Pressable>
     </Container>
   );

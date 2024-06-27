@@ -416,7 +416,7 @@ export default function AccountScreen() {
                     </View>
                   </View>
                 </View>
-                <View
+                {/* <View
                   style={[
                     Style.containers.row,
                     { marginTop: 6, marginBottom: 20 },
@@ -529,7 +529,7 @@ export default function AccountScreen() {
                       </View>
                     </TouchableOpacity>
                   </>
-                )}
+                )} */}
               </>
             )}
             {isGuest && (

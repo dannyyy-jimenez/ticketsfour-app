@@ -44,7 +44,10 @@ export default function EventsScreen() {
     setIsLoading(true);
 
     try {
-      let res = await Api.get("/events", { auth: session, q: searchQuery });
+      let res = await Api.get("/events", {
+        auth: session,
+        q: searchQuery,
+      });
       if (res.isError) throw "e";
 
       setEvents(res.data.events);

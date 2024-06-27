@@ -1624,7 +1624,7 @@ export default function EventScreen() {
                                 Style.text.primary,
                                 Style.text.bold,
                                 Style.text.lg,
-                                { marginTop: 20 },
+                                { marginVertical: 20, alignSelf: "center" },
                               ]}
                             >
                               {i18n.t("price_amount_count", {
@@ -1641,7 +1641,7 @@ export default function EventScreen() {
                                 Style.text.primary,
                                 Style.text.bold,
                                 Style.text.lg,
-                                { marginTop: 20 },
+                                { marginVertical: 20, alignSelf: "center" },
                               ]}
                             >
                               {i18n.t("price_amount_date", {
