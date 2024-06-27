@@ -1190,11 +1190,19 @@ export default function EventScreen() {
           key={index}
           x={pieCentroid[0]}
           y={pieCentroid[1]}
-          fill={theme["color-basic-100"]}
+          fill={
+            data.svg.opacity < 0.3
+              ? theme["color-organizer-500"]
+              : theme["color-basic-100"]
+          }
           textAnchor={"middle"}
           alignmentBaseline={"middle"}
           fontSize={20}
-          stroke={theme["color-basic-100"]}
+          stroke={
+            data.svg.opacity < 0.3
+              ? theme["color-organizer-500"]
+              : theme["color-basic-100"]
+          }
           strokeWidth={0.4}
         >
           {data.label}

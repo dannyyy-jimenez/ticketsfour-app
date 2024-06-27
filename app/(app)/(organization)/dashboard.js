@@ -224,35 +224,13 @@ export default function DashboardScreen() {
   //     valid: true
   //   }
   // }, [newRoleName, newRolePermissions])
+  //
 
-  const load = async () => {
-    setIsLoading(true);
-    setRoles([]);
-
+  const loadDashboard = async () => {
     try {
-      let _events = [];
-
-      const localres = await sql.get(`
-        SELECT *
-          FROM GENESIS
-          WHERE
-            oid = '${oid}'
-          ORDER BY start DESC
-      `);
-
-      _events = localres
-        .map((ev) => new EventModel({ ...ev }))
-        .sort((a, b) => a.start - b.start);
-      setEvents(_events);
-
-      if (localres.length > 0) {
-        setIsLoading(false);
-      }
-
-      const res = await Api.get("/organizations/dashboard", {
+      const res = await Api.get("/organizations/dashboard/details", {
         auth,
         oid,
-        lazy: true,
       });
       if (res.isError) throw "e";
 
@@ -262,16 +240,6 @@ export default function DashboardScreen() {
       }
 
       setPayouts(res.data.payouts);
-
-      for (let event of res.data.events) {
-        if (localres.findIndex((e) => e.id == event.id) != -1) continue;
-
-        let _event = new EventModel({ ...event });
-        _events = [_event, ..._events];
-      }
-
-      setEvents(_events);
-      // setVenues(res.data.venues.map((venue) => new Venue({ ...venue })));
       setCompletedTasks(res.data.tasks);
       setMembers(
         res.data.members.map((member) => {
@@ -302,11 +270,64 @@ export default function DashboardScreen() {
       setPermissions(res.data.org_permissions);
       setInviteRole("role");
       //setInvitePhone('')
-      setIsLoading(false);
     } catch (e) {
-      console.log("AHH", e);
       setIsLoading(false);
     }
+  };
+
+  const loadEvents = async () => {
+    try {
+      let _events = [];
+
+      const localres = await sql.get(`
+        SELECT *
+          FROM GENESIS
+          WHERE
+            oid = '${oid}'
+          ORDER BY start DESC
+      `);
+
+      _events = localres
+        .map((ev) => new EventModel({ ...ev }))
+        .sort((a, b) => a.start - b.start);
+      setEvents(_events);
+
+      if (localres.length > 0) {
+        setIsLoading(false);
+      }
+
+      const res = await Api.get("/organizations/dashboard/events", {
+        auth,
+        oid,
+        lazy: true,
+      });
+      if (res.isError) throw "e";
+
+      if (!res.data.has_permission) {
+        setHasPermission(false);
+        throw "NO_PERMISSION";
+      }
+
+      for (let event of res.data.events) {
+        if (localres.findIndex((e) => e.id == event.id) != -1) continue;
+
+        let _event = new EventModel({ ...event });
+        _events = [_event, ..._events];
+      }
+
+      setEvents(_events);
+      setIsLoading(false);
+    } catch (e) {
+      setIsLoading(false);
+    }
+  };
+
+  const load = async () => {
+    setIsLoading(true);
+
+    setRoles([]);
+    loadDashboard();
+    loadEvents();
   };
 
   const onCreateTeamRole = async () => {

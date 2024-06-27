@@ -563,7 +563,7 @@ export default function EventScreen() {
           console.log("ER", e);
         });
 
-    setTimeout(pay, 1500);
+    setTimeout(pay, 1000);
   }, [checkoutSection, customerStripe, ephemeralStripe]);
 
   const onShare = async () => {
@@ -1961,6 +1961,11 @@ export default function EventScreen() {
                             {i18n.t("tickets_to_mobile")}
                           </Text>
 
+                          <ActivityIndicator
+                            color={theme["color-primary-500"]}
+                            size={20}
+                            style={{ alignSelf: "center", marginVertical: 10 }}
+                          />
                           {/* {missingEntry && (
                       <>
                         <Text
@@ -2301,6 +2306,12 @@ export default function EventScreen() {
                           >
                             {i18n.t("tickets_to_mobile")}
                           </Text>
+
+                          <ActivityIndicator
+                            color={theme["color-primary-500"]}
+                            size={20}
+                            style={{ alignSelf: "center", marginVertical: 10 }}
+                          />
                         </>
                       )}
                       {checkoutSection == 2 && total == 0 && (
@@ -2330,6 +2341,12 @@ export default function EventScreen() {
                           >
                             {i18n.t("tickets_to_mobile")}
                           </Text>
+
+                          <ActivityIndicator
+                            color={theme["color-primary-500"]}
+                            size={20}
+                            style={{ alignSelf: "center", marginVertical: 10 }}
+                          />
                           {/* <CheckoutFormFree auth={auth} eid={eid} leaves={selectedLeaves} personal={{ firstName: fnameValue, lastName: lnameValue, phone: phoneValue, email: emailValue, auth: auth != null }} ev={ev} onBack={auth ? null : () => setCheckoutSection(1)} total={total}></CheckoutFormFree> */}
                         </>
                       )}
