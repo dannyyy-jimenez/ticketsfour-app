@@ -339,5 +339,6 @@
   "badConnection": "¿Mala conexión?",
   "offlineMode": "Habilitar modo sin conexión",
   "savingTickets": "Guardando boletos sin conexión",
-  "offlineAirplane": "Pon el teléfono en modo avión y reconéctalo una vez que hayas terminado de escanear"
+  "offlineAirplane": "Pon el teléfono en modo avión y reconéctalo una vez que hayas terminado de escanear",
+  "lockedView": "Lo siento, pero no tienes permiso para acceder a esta página. Puedes contactar a tu líder de equipo y pedirle que cambie tu rol."
 }

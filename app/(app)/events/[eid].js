@@ -506,58 +506,64 @@ export default function EventScreen() {
   React.useEffect(() => {
     if (!customerStripe || checkoutSection != 2 || !ephemeralStripe) return;
 
-    initPaymentSheet({
-      returnURL: `${Config.basePath}/tickets/verify?eid=${params?.eid}`,
-      merchantDisplayName: "Tickets Four,LLC",
-      customerId: customerStripe,
-      customerEphemeralKeySecret: ephemeralStripe,
-      paymentIntentClientSecret: paymentIntentSecret,
-      billingDetailsCollectionConfiguration: {
-        name: "automatic",
-        email: "automatic",
-        address: "never",
-        attachDefaultsToPaymentMethod: true,
-      },
-      // Set `allowsDelayedPaymentMethods` to true if your business can handle payment
-      //methods that complete payment after a delay, like SEPA Debit and Sofort.
-      allowsDelayedPaymentMethods: false,
-      defaultBillingDetails: {
-        name: firstName + " " + lastName,
-      },
-      applePay: {
-        merchantCountryCode: "US",
-      },
-      appearance: {
-        shapes: {
-          borderRadius: 8,
-          borderWidth: 0.5,
+    let pay = () =>
+      initPaymentSheet({
+        returnURL: `${Config.basePath}/tickets/verify?eid=${params?.eid}`,
+        merchantDisplayName: "Tickets Four",
+        customerId: customerStripe,
+        customerEphemeralKeySecret: ephemeralStripe,
+        paymentIntentClientSecret: paymentIntentSecret,
+        billingDetailsCollectionConfiguration: {
+          name: "automatic",
+          email: "automatic",
+          address: "never",
+          attachDefaultsToPaymentMethod: true,
         },
-        primaryButton: {
+        // Set `allowsDelayedPaymentMethods` to true if your business can handle payment
+        //methods that complete payment after a delay, like SEPA Debit and Sofort.
+        allowsDelayedPaymentMethods: false,
+        defaultBillingDetails: {
+          name: firstName + " " + lastName,
+        },
+        applePay: {
+          merchantCountryCode: "US",
+        },
+        appearance: {
           shapes: {
-            borderRadius: 20,
+            borderRadius: 8,
+            borderWidth: 0.5,
+            shadow: {
+              opacity: 0.05,
+            },
+          },
+          primaryButton: {
+            shapes: {
+              borderRadius: 20,
+            },
+          },
+          colors: {
+            primary: theme["color-primary-500"],
+            background: theme["color-basic-100"],
+            componentBackground: theme["color-basic-100"],
+            componentBorder: theme["color-basic-100"],
+            componentDivider: theme["color-basic-700"],
+            primaryText: theme["color-basic-700"],
+            secondaryText: theme["color-basic-700"],
+            componentText: theme["color-basic-700"],
+            placeholderText: theme["color-basic-600"],
           },
         },
-        colors: {
-          primary: theme["color-primary-500"],
-          background: theme["color-basic-100"],
-          componentBackground: theme["color-basic-100"],
-          componentBorder: theme["color-basic-100"],
-          componentDivider: theme["color-basic-700"],
-          primaryText: theme["color-basic-700"],
-          secondaryText: theme["color-basic-700"],
-          componentText: theme["color-basic-700"],
-          placeholderText: theme["color-basic-600"],
-        },
-      },
-    })
-      .then((res) => {
-        if (res.paymentOption == "undefined") return;
-
-        handlePaymentStripe();
       })
-      .catch((e) => {
-        console.log("ER", e);
-      });
+        .then((res) => {
+          if (res.paymentOption == "undefined") return;
+
+          handlePaymentStripe();
+        })
+        .catch((e) => {
+          console.log("ER", e);
+        });
+
+    setTimeout(pay, 1500);
   }, [checkoutSection, customerStripe, ephemeralStripe]);
 
   const onShare = async () => {
@@ -839,6 +845,7 @@ export default function EventScreen() {
               _ref={scrollContainer}
               paddingHorizontal={0}
               style={{ paddingBottom: 0 }}
+              scrollEnabled={!seatMapZoomEnabled}
             >
               <TouchableOpacity
                 style={[
@@ -1845,7 +1852,7 @@ export default function EventScreen() {
                                 </Text>
                               </View>
                             </View>
-                            <View
+                            {/* <View
                               style={[
                                 Style.containers.row,
                                 { paddingVertical: 10 },
@@ -1867,7 +1874,7 @@ export default function EventScreen() {
                                   -${CurrencyFormatter(total * 0.02)}
                                 </Text>
                               </View>
-                            </View>
+                            </View> */}
                             <View
                               style={[
                                 Style.containers.row,
@@ -1895,7 +1902,7 @@ export default function EventScreen() {
                                     Style.transparency.md,
                                   ]}
                                 >
-                                  ${CurrencyFormatter(total * 0.98)}
+                                  ${CurrencyFormatter(total)}
                                 </Text>
                               </View>
                             </View>
@@ -2326,7 +2333,7 @@ export default function EventScreen() {
                           {/* <CheckoutFormFree auth={auth} eid={eid} leaves={selectedLeaves} personal={{ firstName: fnameValue, lastName: lnameValue, phone: phoneValue, email: emailValue, auth: auth != null }} ev={ev} onBack={auth ? null : () => setCheckoutSection(1)} total={total}></CheckoutFormFree> */}
                         </>
                       )}
-                      {locale == "es" && (
+                      {/* {locale == "es" && (
                         <Text
                           style={[
                             Style.text.dark,
@@ -2427,9 +2434,75 @@ export default function EventScreen() {
                           pay you may not revoke this authorization or cancel
                           this payment.
                         </Text>
-                      )}
+                      )} */}
                     </View>
                   )}
+              </View>
+              <View style={{ paddingVertical: 10, paddingHorizontal: 15 }}>
+                {locale == "es" && (
+                  <Text
+                    style={[Style.text.dark, Style.text.sm, { marginTop: 10 }]}
+                  >
+                    Al presionar Proceder con el pago, estas de acuerdo con{" "}
+                    <Link
+                      href="/legal/terms"
+                      style={[Style.text.primary, Style.text.semibold]}
+                    >
+                      Condiciones de Uso
+                    </Link>{" "}
+                    la{" "}
+                    <Link
+                      href="/legal/privacy"
+                      style={[Style.text.primary, Style.text.semibold]}
+                    >
+                      Politica de Privacidad
+                    </Link>{" "}
+                    nuestra{" "}
+                    <Link
+                      href="/legal/purchase"
+                      style={[Style.text.primary, Style.text.semibold]}
+                    >
+                      Politica de Compra
+                    </Link>
+                    , y{" "}
+                    <Text style={[Style.text.primary, Style.text.semibold]}>
+                      consentimiento para recibir mensajes SMS
+                    </Text>
+                  </Text>
+                )}
+                {locale !== "es" && (
+                  <Text
+                    style={[Style.text.dark, Style.text.sm, { marginTop: 10 }]}
+                  >
+                    By clicking Pay, you agree to the&nbsp;
+                    <Link
+                      href="/legal/terms"
+                      style={[Style.text.primary, Style.text.semibold]}
+                    >
+                      Terms of Use
+                    </Link>
+                    , the{" "}
+                    <Link
+                      target="_blank"
+                      href="/legal/privacy"
+                      style={[Style.text.primary, Style.text.semibold]}
+                    >
+                      Privacy Policy
+                    </Link>
+                    , our{" "}
+                    <Link
+                      href="/legal/purchase"
+                      style={[Style.text.primary, Style.text.semibold]}
+                    >
+                      Purchase Policy
+                    </Link>
+                    , and{" "}
+                    <Text style={[Style.text.primary, Style.text.semibold]}>
+                      consent to recieve SMS messages
+                    </Text>
+                    .
+                  </Text>
+                )}
               </View>
               {event.active && !event.soldOut && (
                 <TouchableOpacity

@@ -11,7 +11,7 @@ import {
   RefreshControl,
   TextInput,
 } from "react-native";
-import { ScrollContainer } from "../../../utils/components/Layout";
+import { LockedView, ScrollContainer } from "../../../utils/components/Layout";
 import Style, { theme } from "../../../utils/Styles";
 import { Feather, FontAwesome6 } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -409,7 +409,7 @@ export default function DashboardScreen() {
     load();
   };
 
-  if (!isLoading && !hasPermission) {
+  if (true) {
     return <LockedView />;
   }
 

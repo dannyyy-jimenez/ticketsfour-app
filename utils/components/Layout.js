@@ -7,10 +7,13 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
   View,
+  Text,
 } from "react-native";
 import Style, { theme } from "../Styles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FlatList } from "react-native";
+import Octicons from "@expo/vector-icons/Octicons";
+import { useLocalization } from "../../locales/provider";
 
 const ScrollContainer = ({
   children,
@@ -22,6 +25,7 @@ const ScrollContainer = ({
   style = {},
   paddingHorizontal = 10,
   refreshControl = <></>,
+  scrollEnabled = true,
   _ref = null,
 }) => {
   const { width, height } = Dimensions.get("window");
@@ -59,6 +63,7 @@ const ScrollContainer = ({
           onScroll={onScroll}
           refreshControl={refreshControl}
           scrollEventThrottle={scrollEventThrottle}
+          scrollEnabled={scrollEnabled}
         >
           {children}
         </ScrollView>
@@ -122,7 +127,47 @@ const FlatScrollContainer = ({
   );
 };
 
-export { ScrollContainer, FlatScrollContainer };
+const LockedView = ({ children, paddingHorizontal = 10 }) => {
+  const { width, height } = Dimensions.get("window");
+  const { i18n } = useLocalization();
+
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <View
+        style={{
+          height: "100%",
+          paddingHorizontal: paddingHorizontal,
+          backgroundColor: theme["color-basic-100"],
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <View
+          style={{
+            alignSelf: "center",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 20,
+          }}
+        >
+          <Octicons name="blocked" size={42} color={theme["color-basic-700"]} />
+          <Text
+            style={[
+              Style.text.lg,
+              Style.text.semibold,
+              { textAlign: "center", marginTop: 20 },
+            ]}
+          >
+            {i18n.t("lockedView")}
+          </Text>
+        </View>
+        {children}
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export { ScrollContainer, FlatScrollContainer, LockedView };
 
 export default function LayoutContainer({ children, paddingHorizontal = 10 }) {
   const { width, height } = Dimensions.get("window");
