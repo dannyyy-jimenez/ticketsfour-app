@@ -29,13 +29,10 @@ import moment from "moment";
 export function OrgEventComponent({ _event, withinMap = false }) {
   const { sql } = useOfflineProvider();
   const { auth, defaultOrganization: oid } = useSession();
-  const animation = new Animated.Value(0);
-  const inputRange = [0, 1];
-  const outputRange = [1, 0.8];
-  const scale = animation.interpolate({ inputRange, outputRange });
+  const [shortLink, setShortLink] = React.useState("");
   const event = React.useMemo(() => {
-    return new EventModel({ ..._event });
-  }, [_event]);
+    return new EventModel({ ..._event, shortLink });
+  }, [_event, shortLink]);
   const { status, coverT, start, name } = React.useMemo(() => {
     return {
       status: event.status,
@@ -44,26 +41,11 @@ export function OrgEventComponent({ _event, withinMap = false }) {
       name: event.name,
     };
   }, [event]);
-  const { width, height } = Dimensions.get("window");
   const [isLoading, setIsLoading] = React.useState(true);
   const [venue, setVenue] = React.useState(null);
   const [views, setViews] = React.useState(0);
   const [shares, setShares] = React.useState(0);
   const [attendees, setAttendees] = React.useState(0);
-  const [basePrice, setBasePrice] = React.useState(0);
-
-  const onPressIn = () => {
-    Animated.spring(animation, {
-      toValue: 0.3,
-      useNativeDriver: true,
-    }).start();
-  };
-  const onPressOut = () => {
-    Animated.spring(animation, {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-  };
 
   const onView = () => {
     router.push("/organization/events/" + event.id);
@@ -91,7 +73,11 @@ export function OrgEventComponent({ _event, withinMap = false }) {
         setAttendees(Commasize(res.data.attendees));
         setShares(NumFormatter(res.data.shares));
         setViews(NumFormatter(res.data.views));
-        setBasePrice(res.data.event.basePrice);
+        setShortLink(res.data.event.shortLink);
+
+        setIsLoading(false);
+
+        if (event.isInPast) return;
 
         sql.post(
           `
@@ -123,7 +109,6 @@ export function OrgEventComponent({ _event, withinMap = false }) {
             $active: res.data.event.active,
           },
         );
-        setIsLoading(false);
       } catch (e) {
         console.log(e);
         setAttendees(event.getAttendees());
@@ -153,8 +138,6 @@ export function OrgEventComponent({ _event, withinMap = false }) {
       ]}
     >
       <TouchableOpacity
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
         onPress={onView}
         style={[Style.containers.row, { minHeight: 130, width: "100%" }]}
       >
@@ -275,7 +258,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
               {
                 width: "100%",
                 justifyContent: "space-evenly",
-                alignItems: "center",
+                alignItems: "flex-end",
                 paddingTop: 15,
               },
             ]}
@@ -380,7 +363,13 @@ export function OrgEventComponent({ _event, withinMap = false }) {
               )}
             </View>
             <View style={{ flex: 1 }} />
-            <TouchableOpacity onPress={onShare} style={[Style.containers.row]}>
+            <TouchableOpacity
+              onPress={onShare}
+              style={[
+                Style.containers.row,
+                { paddingHorizontal: 15, paddingTop: 10 },
+              ]}
+            >
               <Feather
                 name="share"
                 color={theme["color-basic-700"]}

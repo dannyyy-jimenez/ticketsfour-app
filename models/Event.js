@@ -158,12 +158,24 @@ export default class Ev {
     return this;
   }
 
+  updateShortLink(uri) {
+    this.shortLink = uri;
+
+    return this;
+  }
+
   getAgeRequirement() {
     return AgeRequirement[this.ageRequirement] || false;
   }
 
   getShareBody() {
-    return this.description;
+    let path = `${Config.basePath}/events/${this.id}`;
+
+    if (this.shortLink !== "") {
+      path = this.shortLink;
+    }
+
+    return this.description + "\n\n" + path;
   }
 
   getStartLong() {
@@ -246,7 +258,7 @@ export default class Ev {
 
     if (type === "email") {
       return `mailto:?subject=${encodeURIComponent(
-        this.name,
+        "Get your tickets for " + this.name + "!",
       )}&body=${encodeURIComponent(this.getShareBody())}`;
     }
 

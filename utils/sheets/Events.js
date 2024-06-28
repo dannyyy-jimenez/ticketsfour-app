@@ -549,7 +549,7 @@ function EventDateSheet({ sheetId, payload }) {
   const eid = event?.id;
 
   const [startDateTime, setStartDateTime] = React.useState(event.start);
-  const [endDateTime, setEndDateTime] = React.useState(event.start);
+  const [endDateTime, setEndDateTime] = React.useState(event.end);
 
   const onDateUpdate = async () => {
     setIsLoading(true);
@@ -560,8 +560,8 @@ function EventDateSheet({ sheetId, payload }) {
         oid,
         eid,
         timezone: "Etc/Universal",
-        startDateTime: startDateTime.toISOString(),
-        endDateTime: endDateTime.toISOString(),
+        startDateTime: startDateTime.utc().format(),
+        endDateTime: endDateTime.utc().format(),
         startTimeVisibility: true,
         endTimeVisibility: true,
       });
@@ -624,7 +624,7 @@ function EventDateSheet({ sheetId, payload }) {
           mode="datetime"
           minuteInterval={15}
           minimumDate={new Date()}
-          timeZoneName="Etc/Universal"
+          // timeZoneName="Etc/Universal"
           onChange={(e, date) => setStartDateTime(moment(date))}
         />
         <View
@@ -642,7 +642,7 @@ function EventDateSheet({ sheetId, payload }) {
           </Text>
         </View>
         <DateTimePicker
-          timeZoneName="Etc/Universal"
+          // timeZoneName="Etc/Universal"
           value={endDateTime.toDate()}
           mode="datetime"
           display="spinner"

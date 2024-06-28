@@ -1191,19 +1191,20 @@ export default function EventScreen() {
           x={pieCentroid[0]}
           y={pieCentroid[1]}
           fill={
-            data.svg.opacity < 0.3
+            data.svg.opacity < 0.6
               ? theme["color-organizer-500"]
               : theme["color-basic-100"]
           }
           textAnchor={"middle"}
           alignmentBaseline={"middle"}
-          fontSize={20}
+          fontSize={data.svg.opacity < 0.6 ? 12 : 20}
           stroke={
-            data.svg.opacity < 0.3
+            data.svg.opacity < 0.6
               ? theme["color-organizer-500"]
               : theme["color-basic-100"]
           }
           strokeWidth={0.4}
+          adjustsFontSizeToFit
         >
           {data.label}
         </SvgText>
@@ -2278,7 +2279,7 @@ export default function EventScreen() {
                     Style.containers.column,
                     {
                       flex: 1,
-                      marginHorizontal: 10,
+                      marginRight: 4,
                       paddingHorizontal: 15,
                       paddingTop: 5,
                       paddingVertical: 15,
@@ -2328,7 +2329,7 @@ export default function EventScreen() {
                     Style.containers.column,
                     {
                       flex: 1,
-                      marginHorizontal: 10,
+                      marginHorizontal: 2,
                       paddingHorizontal: 15,
                       paddingTop: 5,
                       paddingVertical: 15,
@@ -2377,7 +2378,7 @@ export default function EventScreen() {
                     Style.containers.column,
                     {
                       flex: 1,
-                      marginHorizontal: 10,
+                      marginLeft: 4,
                       paddingHorizontal: 15,
                       paddingTop: 5,
                       paddingVertical: 15,
@@ -2652,7 +2653,8 @@ export default function EventScreen() {
                       }) || []
                     }
                     spacing={0}
-                    outerRadius={"99%"}
+                    innerRadius={10}
+                    outerRadius={"96%"}
                   >
                     <AgeLabels />
                   </PieChart>
@@ -3333,7 +3335,7 @@ export default function EventScreen() {
                           onPress={() => onNodeEdit(node, nodeidx)}
                           style={[
                             Style.containers.row,
-                            { paddingVertical: 15 },
+                            { paddingVertical: 15, width: "100%" },
                           ]}
                         >
                           <View
@@ -3344,10 +3346,14 @@ export default function EventScreen() {
                                 shadowColor: theme["color-organizer-500"],
                                 marginRight: 6,
                                 alignSelf: "center",
+                                maxWidth: width * 0.1,
                               },
                             ]}
                           >
-                            <Text style={[Style.text.basic, Style.text.bold]}>
+                            <Text
+                              allowFontScaling
+                              style={[Style.text.basic, Style.text.bold]}
+                            >
                               {node.type == "ga-sec" && (
                                 <>{node.getIdentifier()}</>
                               )}
@@ -3369,6 +3375,7 @@ export default function EventScreen() {
                                 Style.text.semibold,
                                 Style.text.lg,
                               ]}
+                              allowFontScaling
                             >
                               {i18n.t("xOutOfy", {
                                 x: node.booked,
