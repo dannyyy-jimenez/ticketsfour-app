@@ -645,7 +645,7 @@ export default function EventScreen() {
           {
             $id: offloaded_ticket.id,
             $attended: 1,
-            $timeAttended: moment().format("YYYY-MM-DD hh:ss"),
+            $timeAttended: moment().valueOf(),
             $offloaded: 1,
           },
         );

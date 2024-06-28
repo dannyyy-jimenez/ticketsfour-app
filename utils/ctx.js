@@ -8,6 +8,7 @@ import { router } from "expo-router";
 import NetInfo from "@react-native-community/netinfo";
 import * as Crypto from "expo-crypto";
 import Api from "./Api";
+import moment from "moment";
 
 const AuthContext = React.createContext(null);
 const OfflineContext = React.createContext(null);
@@ -297,25 +298,25 @@ export function OfflineProvider(props) {
     //
     await db.execAsync(
       `CREATE TABLE IF NOT EXISTS GENESIS (
-            oid VARCHAR,
-            id VARCHAR NOT NULL UNIQUE PRIMARY KEY,
-            cover VARCHAR,
-            name VARCHAR,
-            start DATETIME,
-            status VARCHAR,
-            active BOOLEAN
+            oid TEXT,
+            id TEXT NOT NULL UNIQUE PRIMARY KEY,
+            cover TEXT,
+            name TEXT,
+            start INTEGER,
+            status TEXT,
+            active INTEGER
       );`,
     );
 
     // APOCALYPSE
     await db.execAsync(
       `CREATE TABLE IF NOT EXISTS APOCALYPSE (
-            eid VARCHAR,
-            id VARCHAR NOT NULL UNIQUE PRIMARY KEY,
-            token VARCHAR,
-            attended BOOLEAN,
-            timeAttended DATETIME,
-            offloaded BOOLEAN
+            eid TEXT,
+            id TEXT NOT NULL UNIQUE PRIMARY KEY,
+            token TEXT,
+            attended INTEGER,
+            timeAttended INTEGER,
+            offloaded INTEGER
       );`,
     );
   };
@@ -477,6 +478,13 @@ export function OfflineProvider(props) {
 
           SecureStore.setItemAsync("VER", versioning);
         }
+
+        // remove old events from db
+        //
+        try {
+          let today = moment().startOf("d").valueOf();
+          await command(`DELETE FROM GENESIS WHERE start < ${today}`);
+        } catch (e) {}
 
         //loadLatestOffline();
       });

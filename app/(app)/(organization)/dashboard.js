@@ -23,15 +23,19 @@ import EventModel from "../../../models/Event";
 import Venue from "../../../models/Venue";
 import { CurrencyFormatter, PhoneFormatter } from "../../../utils/Formatters";
 import { OrgEventComponent } from "../../../utils/components/Event";
+import moment from "moment";
 
 export default function DashboardScreen() {
   const { sql } = useOfflineProvider();
   const { auth, signOut, isGuest, defaultOrganization: oid } = useSession();
   const { i18n } = useLocalization();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(true);
   const { width, height } = Dimensions.get("window");
   const skeletonTasks = new Array(4).fill(0);
   const [section, setSection] = React.useState(0);
+  const [eventsAmount, setEventsAmount] = React.useState(0);
+  const [venuesAmount, setVenuesAmount] = React.useState(0);
   const [events, setEvents] = React.useState([]);
   const [venues, setVenues] = React.useState([]);
   const [payouts, setPayouts] = React.useState(0);
@@ -269,6 +273,9 @@ export default function DashboardScreen() {
       setLogo(res.data.logo);
       setPermissions(res.data.org_permissions);
       setInviteRole("role");
+      setIsLoadingDashboard(false);
+      setEventsAmount(res.data.events);
+      setVenuesAmount(res.data.venues);
       //setInvitePhone('')
     } catch (e) {
       setIsLoading(false);
@@ -279,12 +286,14 @@ export default function DashboardScreen() {
     try {
       let _events = [];
 
+      let today = moment().format("YYYY-MM-DD HH:MM");
+
       const localres = await sql.get(`
         SELECT *
           FROM GENESIS
           WHERE
             oid = '${oid}'
-          ORDER BY start DESC
+          ORDER BY start
       `);
 
       _events = localres
@@ -324,9 +333,10 @@ export default function DashboardScreen() {
 
   const load = async () => {
     setIsLoading(true);
+    setIsLoadingDashboard(true);
 
     setRoles([]);
-    loadDashboard();
+    await loadDashboard();
     loadEvents();
   };
 
@@ -567,9 +577,34 @@ export default function DashboardScreen() {
               >
                 {i18n.t("events")}
               </Text>
-              <Text style={[Style.text.xl, Style.text.dark, Style.text.bold]}>
-                {events.length}
-              </Text>
+              {isLoadingDashboard && (
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      Style.skeleton.text,
+                      {
+                        backgroundColor: "transparent",
+                        width: 80,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item
+                      style={[
+                        Style.skeleton.text,
+                        {
+                          backgroundColor: "transparent",
+                          width: 80,
+                        },
+                      ]}
+                    />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              )}
+              {!isLoadingDashboard && (
+                <Text style={[Style.text.xl, Style.text.dark, Style.text.bold]}>
+                  {eventsAmount}
+                </Text>
+              )}
             </View>
             <View style={[Style.containers.column]}>
               <Text
@@ -581,9 +616,34 @@ export default function DashboardScreen() {
               >
                 {i18n.t("venues")}
               </Text>
-              <Text style={[Style.text.xl, Style.text.dark, Style.text.bold]}>
-                {venues.length}
-              </Text>
+              {isLoadingDashboard && (
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      Style.skeleton.text,
+                      {
+                        backgroundColor: "transparent",
+                        width: 80,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item
+                      style={[
+                        Style.skeleton.text,
+                        {
+                          backgroundColor: "transparent",
+                          width: 80,
+                        },
+                      ]}
+                    />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              )}
+              {!isLoadingDashboard && (
+                <Text style={[Style.text.xl, Style.text.dark, Style.text.bold]}>
+                  {venuesAmount}
+                </Text>
+              )}
             </View>
             <View style={[Style.containers.column]}>
               <Text
@@ -595,9 +655,34 @@ export default function DashboardScreen() {
               >
                 {i18n.t("payouts")}
               </Text>
-              <Text style={[Style.text.xl, Style.text.dark, Style.text.bold]}>
-                ${CurrencyFormatter(payouts)}
-              </Text>
+              {isLoadingDashboard && (
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      Style.skeleton.text,
+                      {
+                        backgroundColor: "transparent",
+                        width: 80,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item
+                      style={[
+                        Style.skeleton.text,
+                        {
+                          backgroundColor: "transparent",
+                          width: 80,
+                        },
+                      ]}
+                    />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              )}
+              {!isLoadingDashboard && (
+                <Text style={[Style.text.xl, Style.text.dark, Style.text.bold]}>
+                  ${CurrencyFormatter(payouts)}
+                </Text>
+              )}
             </View>
           </View>
 

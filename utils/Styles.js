@@ -430,6 +430,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignSelf: "flex-start",
   },
+  skeleton: {
+    text: {
+      overflow: "hidden",
+      marginTop: 4,
+      borderRadius: 4,
+      height: 25,
+    },
+  },
 });
 
 export { theme };

@@ -1649,7 +1649,7 @@ function EventOfflineScannerSheet({ sheetId, payload }) {
             $id: ticket.id,
             $token: ticket.token,
             $attended: ticket.attended,
-            $timeAttended: ticket.timeAttended,
+            $timeAttended: moment(ticket.timeAttended).valueOf(),
             $offloaded: false,
           },
         );

@@ -24,15 +24,9 @@ import SkeletonLoader from "expo-skeleton-loader";
 import { useOfflineProvider, useSession } from "../ctx";
 import Api from "../Api";
 import { LinearGradient } from "expo-linear-gradient";
+import moment from "moment";
 
-export function OrgEventComponent({
-  i18n,
-  _event,
-  reload,
-  withinMap = false,
-  showPrice = true,
-  lazyLoaded = true,
-}) {
+export function OrgEventComponent({ _event, withinMap = false }) {
   const { sql } = useOfflineProvider();
   const { auth, defaultOrganization: oid } = useSession();
   const animation = new Animated.Value(0);
@@ -42,6 +36,14 @@ export function OrgEventComponent({
   const event = React.useMemo(() => {
     return new EventModel({ ..._event });
   }, [_event]);
+  const { status, coverT, start, name } = React.useMemo(() => {
+    return {
+      status: event.status,
+      coverT: event.coverT,
+      start: event.getStart("MMM DD, YYYY"),
+      name: event.name,
+    };
+  }, [event]);
   const { width, height } = Dimensions.get("window");
   const [isLoading, setIsLoading] = React.useState(true);
   const [venue, setVenue] = React.useState(null);
@@ -74,43 +76,6 @@ export function OrgEventComponent({
       },
     });
   };
-
-  const Container = ({ children }) =>
-    withinMap ? (
-      <BlurView
-        key={event.id}
-        intensity={100}
-        style={[
-          Style.cards.showoff,
-          {
-            maxWidth: 400,
-            width: width - 24,
-            backgroundColor: "rgba(255,255,255,0.7)",
-            borderRadius: 10,
-            overflow: "hidden",
-          },
-        ]}
-      >
-        {children}
-      </BlurView>
-    ) : (
-      <Animated.View
-        key={event.id}
-        style={[
-          Style.cards.showoff,
-          Style.elevated,
-          {
-            margin: 0,
-            maxWidth: 400,
-            width: "100%",
-            padding: 0,
-            transform: [{ scale }],
-          },
-        ]}
-      >
-        {children}
-      </Animated.View>
-    );
 
   React.useEffect(() => {
     const load = async () => {
@@ -153,13 +118,14 @@ export function OrgEventComponent({
             $id: res.data.event.id,
             $cover: res.data.event.cover,
             $name: res.data.event.name,
-            $start: res.data.event.start,
+            $start: moment(res.data.event.start).valueOf(),
             $status: res.data.event.status,
             $active: res.data.event.active,
           },
         );
         setIsLoading(false);
       } catch (e) {
+        console.log(e);
         setAttendees(event.getAttendees());
         setShares(event.getShares());
         setViews(event.getViews());
@@ -172,215 +138,136 @@ export function OrgEventComponent({
   }, []);
 
   return (
-    <Container>
-      <Pressable
+    <View
+      key={event.id}
+      style={[
+        Style.cards.showoff,
+        Style.elevated,
+        {
+          margin: 0,
+          maxWidth: 400,
+          width: "100%",
+          padding: 0,
+          minHeight: 130,
+        },
+      ]}
+    >
+      <TouchableOpacity
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         onPress={onView}
-        style={{ width: "100%" }}
+        style={[Style.containers.row, { minHeight: 130, width: "100%" }]}
       >
         <Image
           style={{
-            width: "100%",
-            height: 400,
+            width: 100,
+            height: "100%",
             borderRadius: 4,
           }}
-          cachePolicy="memory-disk"
+          cachePolicy={"memory-disk"}
           contentFit="cover"
-          source={{ uri: event.coverT }}
-          width={500}
-          height={500}
+          source={{ uri: coverT }}
+          width={300}
+          height={400}
         />
+        {status != "" && (
+          <>
+            <View
+              style={[
+                Style.containers.row,
+                Style.badge,
+                {
+                  backgroundColor: theme["color-basic-700"],
+                  shadowColor: theme["color-basic-700"],
+                  alignSelf: "center",
+                  position: "absolute",
+                  left: 5,
+                  bottom: 5,
+                },
+              ]}
+            >
+              <Text style={[Style.text.basic, Style.text.bold, Style.text.xs]}>
+                {status}
+              </Text>
+            </View>
+          </>
+        )}
         <View
           style={[
             Style.containers.column,
             {
-              position: "absolute",
-              backgroundColor: theme["color-basic-800-40"],
-              padding: 10,
-              left: 0,
-              top: 0,
-              width: "100%",
-              height: "100%",
-              borderRadius: 10,
+              alignItems: "flex-start",
+              flex: 1,
+              paddingVertical: 10,
+              marginHorizontal: 12,
             },
           ]}
         >
-          <View style={[Style.containers.row, { width: "100%" }]}>
-            <Image
-              style={{
-                width: 75,
-                height: 100,
-                borderRadius: 4,
-              }}
-              cachePolicy={"memory-disk"}
-              contentFit="contain"
-              source={{ uri: event.coverT }}
-              width={300}
-              height={400}
-            />
-            <View
-              style={[
-                Style.containers.column,
-                { alignItems: "flex-start", flex: 1, marginHorizontal: 12 },
-              ]}
-            >
-              <Text style={[Style.text.xl, Style.text.bold, Style.text.basic]}>
-                {event.name}
-              </Text>
-              <Text
-                style={[
-                  Style.text.md,
-                  Style.text.semibold,
-                  Style.text.basic,
-                  { marginTop: 8 },
-                ]}
-              >
-                {event.getStart("MMMM Do, YYYY")} • {event.getStart("hh:mm A")}
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ flex: 1 }} />
-          <View style={[Style.containers.row]}>
-            <View
-              style={[Style.containers.column, { alignItems: "flex-start" }]}
-            >
-              {!isLoading && venue != null && (
-                <>
-                  <Text
-                    style={[
-                      Style.text.md,
-                      Style.text.bold,
-                      Style.text.basic,
-                      { marginVertical: 2 },
-                    ]}
-                  >
-                    {venue.name}
-                  </Text>
-                  <Text
-                    style={[
-                      Style.text.md,
-                      Style.text.bold,
-                      Style.text.basic,
-                      { marginVertical: 1 },
-                    ]}
-                  >
-                    {venue.city}, {venue.region_ab}
-                  </Text>
-                </>
-              )}
-              {isLoading && (
-                <>
-                  <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
-                    <SkeletonLoader.Container
-                      style={[
-                        {
-                          padding: 0,
-                          height: 15,
-                          borderRadius: 2,
-                          opacity: 0.3,
-                          overflow: "hidden",
-                          width: 40,
-                        },
-                      ]}
-                    >
-                      <SkeletonLoader.Item style={[{ width: 40 }]} />
-                    </SkeletonLoader.Container>
-                  </SkeletonLoader>
-                  <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
-                    <SkeletonLoader.Container
-                      style={[
-                        {
-                          padding: 0,
-                          height: 15,
-                          borderRadius: 2,
-                          opacity: 0.3,
-                          marginTop: 4,
-                          overflow: "hidden",
-                          width: 100,
-                        },
-                      ]}
-                    >
-                      <SkeletonLoader.Item style={[{ width: 100 }]} />
-                    </SkeletonLoader.Container>
-                  </SkeletonLoader>
-                </>
-              )}
-            </View>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity onPress={onShare} style={{ padding: 10 }}>
-              <Feather
-                color={theme["color-basic-100"]}
-                size={24}
-                name="more-horizontal"
-              />
-            </TouchableOpacity>
+          <View
+            style={[
+              Style.containers.row,
+              {
+                width: "100%",
+                justifyContent: "space-between",
+                marginBottom: 6,
+              },
+            ]}
+          >
+            <Text style={[Style.text.md, Style.text.semibold, Style.text.dark]}>
+              {start}
+            </Text>
             {isLoading && (
-              <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
-                <SkeletonLoader.Container
-                  style={[
-                    {
-                      padding: 0,
-                      height: 15,
-                      borderRadius: 2,
-                      opacity: 0.3,
-                      marginTop: 4,
-                      overflow: "hidden",
-                      width: 100,
-                    },
-                  ]}
-                >
-                  <SkeletonLoader.Item style={[{ width: 100 }]} />
-                </SkeletonLoader.Container>
-              </SkeletonLoader>
+              <>
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        overflow: "hidden",
+                        width: 40,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 40 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                  <SkeletonLoader.Container
+                    style={[
+                      {
+                        padding: 0,
+                        height: 15,
+                        borderRadius: 2,
+                        opacity: 0.3,
+                        overflow: "hidden",
+                        width: 100,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item style={[{ width: 100 }]} />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              </>
             )}
-            {showPrice && !isLoading && (
-              <View
-                style={[
-                  Style.containers.row,
-                  {
-                    alignSelf: "center",
-                    alignItems: "flex-start",
-                  },
-                ]}
+            {!isLoading && (
+              <Text
+                style={[Style.text.md, Style.text.semibold, Style.text.dark]}
               >
-                <Text
-                  style={[
-                    Style.text.basic,
-                    Style.text.bold,
-                    { lineHeight: 24 },
-                  ]}
-                >
-                  <MaterialIcons
-                    name="attach-money"
-                    size={22}
-                    color={theme["color-basic-100"]}
-                  />
-                </Text>
-                <Text
-                  style={[
-                    Style.text.xxl,
-                    Style.text.basic,
-                    Style.text.bold,
-                    { lineHeight: 30, left: -4 },
-                  ]}
-                >
-                  {CurrencyFormatter(basePrice).split(".")[0]}
-                </Text>
-                <Text
-                  style={[
-                    Style.text.md,
-                    Style.text.basic,
-                    Style.text.bold,
-                    { lineHeight: 24, left: -2 },
-                  ]}
-                >
-                  {CurrencyFormatter(basePrice).split(".")[1]}
-                </Text>
-              </View>
+                {venue?.city}, {venue?.region_ab}
+              </Text>
             )}
           </View>
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            style={[Style.text.lg, Style.text.bold, Style.text.dark]}
+          >
+            {name}
+          </Text>
+          <View style={{ flex: 1 }} />
 
           <View
             style={[
@@ -390,35 +277,13 @@ export function OrgEventComponent({
                 justifyContent: "space-evenly",
                 alignItems: "center",
                 paddingTop: 15,
-                paddingBottom: 5,
               },
             ]}
           >
-            {event.status != "" && (
-              <>
-                <View
-                  style={[
-                    Style.containers.row,
-                    Style.badge,
-                    {
-                      backgroundColor: theme["color-basic-100"],
-                      shadowColor: theme["color-basic-100"],
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[Style.text.dark, Style.text.bold, Style.text.xs]}
-                  >
-                    {event.status}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }} />
-              </>
-            )}
-            <View style={[Style.containers.row, { flex: 1 }]}>
+            <View style={[Style.containers.row, { paddingRight: 10 }]}>
               <Feather
                 name="share-2"
-                color={theme["color-basic-100"]}
+                color={theme["color-basic-700"]}
                 size={16}
               />
               {isLoading && (
@@ -442,16 +307,16 @@ export function OrgEventComponent({
               )}
               {!isLoading && (
                 <Text
-                  style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
+                  style={[Style.text.dark, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {NumFormatter(shares)}
+                  {shares}
                 </Text>
               )}
             </View>
-            <View style={[Style.containers.row, { flex: 1 }]}>
+            <View style={[Style.containers.row, { paddingHorizontal: 5 }]}>
               <Feather
                 name="bar-chart"
-                color={theme["color-basic-100"]}
+                color={theme["color-basic-700"]}
                 size={16}
               />
               {isLoading && (
@@ -475,16 +340,16 @@ export function OrgEventComponent({
               )}
               {!isLoading && (
                 <Text
-                  style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
+                  style={[Style.text.dark, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {NumFormatter(views)}
+                  {views}
                 </Text>
               )}
             </View>
-            <View style={[Style.containers.row, { flex: 1 }]}>
+            <View style={[Style.containers.row, { paddingLeft: 10 }]}>
               <Feather
                 name="check-square"
-                color={theme["color-basic-100"]}
+                color={theme["color-basic-700"]}
                 size={16}
               />
               {isLoading && (
@@ -508,16 +373,24 @@ export function OrgEventComponent({
               )}
               {!isLoading && (
                 <Text
-                  style={[Style.text.basic, Style.text.bold, { marginLeft: 4 }]}
+                  style={[Style.text.dark, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {Commasize(attendees)}
+                  {attendees}
                 </Text>
               )}
             </View>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={onShare} style={[Style.containers.row]}>
+              <Feather
+                name="share"
+                color={theme["color-basic-700"]}
+                size={24}
+              />
+            </TouchableOpacity>
           </View>
         </View>
-      </Pressable>
-    </Container>
+      </TouchableOpacity>
+    </View>
   );
 }
 

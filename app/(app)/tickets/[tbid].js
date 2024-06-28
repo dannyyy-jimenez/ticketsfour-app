@@ -76,7 +76,6 @@ export default function TicketBundlerScreen() {
         setTickets(res.data.tickets.map((t) => new Ticket({ ...t })));
       }
 
-      console.log(res);
       setIsLoading(false);
     } catch (e) {
       console.log(e);

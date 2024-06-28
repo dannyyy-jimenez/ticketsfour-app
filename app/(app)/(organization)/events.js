@@ -10,7 +10,10 @@ import {
   Switch,
   RefreshControl,
 } from "react-native";
-import { ScrollContainer } from "../../../utils/components/Layout";
+import {
+  FlatScrollContainer,
+  ScrollContainer,
+} from "../../../utils/components/Layout";
 import Style, { theme } from "../../../utils/Styles";
 import {
   Feather,
@@ -27,6 +30,17 @@ import EventModel from "../../../models/Event";
 import { OrgEventComponent } from "../../../utils/components/Event";
 import { HoldItem } from "react-native-hold-menu";
 import moment from "moment";
+
+const RenderEvent = React.memo(
+  ({ item: event }) => (
+    <View key={event.id} style={[Style.containers.row, { marginVertical: 10 }]}>
+      <OrgEventComponent showPrice={false} key={event.id} _event={event} />
+    </View>
+  ),
+  (prevProps, nextProps) => {
+    return prevProps.item.id == nextProps.item.id;
+  },
+);
 
 export default function EventsScreen() {
   const { sql } = useOfflineProvider();
@@ -92,9 +106,7 @@ export default function EventsScreen() {
           FROM GENESIS
           WHERE
             oid = '${oid}'
-            AND
-            start > '${now.format("Y-MM-DD hh:mm")}'
-          ORDER BY start DESC
+          ORDER BY start
       `);
 
       _events = localres
@@ -173,7 +185,8 @@ export default function EventsScreen() {
   }, [oid]);
 
   return (
-    <ScrollContainer
+    <FlatScrollContainer
+      paddingHorizontal={10}
       refreshControl={
         <RefreshControl
           tintColor={theme["color-organizer-500"]}
@@ -181,105 +194,120 @@ export default function EventsScreen() {
           onRefresh={onRefresh}
         />
       }
-    >
-      <View>
-        <View style={[Style.containers.row, { justifyContent: "flex-end" }]}>
-          <HoldItem
-            closeOnTap
-            activateOn="tap"
-            hapticFeedback="Heavy"
-            items={filterItems}
-          >
-            <View style={[{ padding: 15 }, Style.containers.column]}>
-              <MaterialCommunityIcons
-                name="filter-variant"
-                color={theme["color-basic-700"]}
-                size={26}
-              />
-              <Text
-                style={[
-                  Style.text.semibold,
-                  Style.text.sm,
-                  Style.text.dark,
-                  {
-                    marginTop: 4,
-                  },
-                ]}
-              >
-                {i18n.t("filters")}
-              </Text>
-            </View>
-          </HoldItem>
-          {/* <TouchableOpacity
-            onPress={() => setSection(2)}
-            style={[{ padding: 15 }, Style.containers.column]}
-          >
-            <Feather size={26} color={theme["color-basic-700"]} name="plus" />
-          </TouchableOpacity> */}
-        </View>
-        <View style={[Style.containers.row, { marginBottom: 10 }]}>
-          <Text style={[Style.text.dark, Style.text.bold, Style.text.xxl]}>
-            {i18n.t("events")}
-          </Text>
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            onPress={() =>
-              SheetManager.show("helper-sheet", {
-                payload: { text: "eventsDescFeed" },
-              })
-            }
-            style={{ padding: 10 }}
-          >
-            <Feather name="info" size={20} color={theme["color-basic-700"]} />
-          </TouchableOpacity>
-        </View>
-        {isLoading &&
-          skeletonTasks.map((_d, lidx) => (
-            <SkeletonLoader
-              key={"loading-" + lidx}
-              highlightColor="#DDD"
-              boneColor="#EEE"
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-evenly",
+      }}
+      attributes={{
+        ListHeaderComponent: (
+          <View style={{ width: "100%", flex: 1 }}>
+            <View
+              style={[
+                Style.containers.row,
+                { width: "100%", justifyContent: "flex-end" },
+              ]}
             >
-              <SkeletonLoader.Container
-                style={[
-                  Style.cards.creativeText,
-                  {
-                    backgroundColor: "transparent",
-                    width: width * 0.9,
-                    height: height * 0.4,
-                    margin: 10,
-                  },
-                ]}
+              <HoldItem
+                activateOn="tap"
+                hapticFeedback="Heavy"
+                items={filterItems}
               >
-                <SkeletonLoader.Item
-                  style={[
-                    Style.cards.creativeText,
-                    {
-                      backgroundColor: "transparent",
-                      width: width * 0.9,
-                      height: height * 0.4,
-                      margin: 10,
-                    },
-                  ]}
+                <View style={[{ padding: 15 }, Style.containers.column]}>
+                  <MaterialCommunityIcons
+                    name="filter-variant"
+                    color={theme["color-basic-700"]}
+                    size={26}
+                  />
+                  <Text
+                    style={[
+                      Style.text.semibold,
+                      Style.text.sm,
+                      Style.text.dark,
+                      {
+                        marginTop: 4,
+                      },
+                    ]}
+                  >
+                    {i18n.t("filters")}
+                  </Text>
+                </View>
+              </HoldItem>
+              {/* <TouchableOpacity
+              onPress={() => setSection(2)}
+              style={[{ padding: 15 }, Style.containers.column]}
+            >
+              <Feather size={26} color={theme["color-basic-700"]} name="plus" />
+            </TouchableOpacity> */}
+            </View>
+            <View
+              style={[
+                Style.containers.row,
+                { width: "100%", marginBottom: 10 },
+              ]}
+            >
+              <Text style={[Style.text.dark, Style.text.bold, Style.text.xxl]}>
+                {i18n.t("events")}
+              </Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={() =>
+                  SheetManager.show("helper-sheet", {
+                    payload: { text: "eventsDescFeed" },
+                  })
+                }
+                style={{ padding: 10 }}
+              >
+                <Feather
+                  name="info"
+                  size={20}
+                  color={theme["color-basic-700"]}
                 />
-              </SkeletonLoader.Container>
-            </SkeletonLoader>
-          ))}
-
-        {events.map((event) => (
-          <View
-            key={event.id}
-            style={[Style.containers.row, { marginVertical: 10 }]}
-          >
-            <OrgEventComponent
-              showPrice={false}
-              key={event.id}
-              i18n={i18n}
-              _event={event}
-            />
+              </TouchableOpacity>
+            </View>
+            {isLoading &&
+              skeletonTasks.map((_d, lidx) => (
+                <SkeletonLoader
+                  key={"loading-" + lidx}
+                  highlightColor="#DDD"
+                  boneColor="#EEE"
+                >
+                  <SkeletonLoader.Container
+                    style={[
+                      Style.cards.creativeText,
+                      {
+                        backgroundColor: "transparent",
+                        width: width * 0.9,
+                        height: height * 0.4,
+                        margin: 10,
+                      },
+                    ]}
+                  >
+                    <SkeletonLoader.Item
+                      style={[
+                        Style.cards.creativeText,
+                        {
+                          backgroundColor: "transparent",
+                          width: width * 0.9,
+                          height: height * 0.4,
+                          margin: 10,
+                        },
+                      ]}
+                    />
+                  </SkeletonLoader.Container>
+                </SkeletonLoader>
+              ))}
           </View>
-        ))}
-      </View>
-    </ScrollContainer>
+        ),
+        removeClippedSubviews: true,
+        getItemLayout: (data, index) => ({
+          length: 130,
+          offset: 130 * index,
+          index,
+        }),
+      }}
+      data={events}
+      renderItem={(params) => <RenderEvent {...params} />}
+    />
   );
 }
