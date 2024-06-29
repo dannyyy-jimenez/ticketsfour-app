@@ -340,5 +340,6 @@
   "offlineMode": "Enable offline mode",
   "savingTickets": "Saving tickets offline",
   "offlineAirplane": "Put phone on airplane mode and reconnect once you're done scanning",
-  "lockedView": "Sorry, but you don't have permission to access this page. You can contact your team leader and ask them to change your role"
+  "lockedView": "Sorry, but you don't have permission to access this page. You can contact your team leader and ask them to change your role",
+  "deleteAccountSub": "Deleting your account will remove all data. Are you sure?"
 }

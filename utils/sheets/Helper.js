@@ -702,5 +702,98 @@ function AuthenticateSheet({ sheetId, payload }) {
   );
 }
 
-export { HelperSheet, AuthenticateSheet, PaymentErrorSheet };
+function DeleteAccountSheet({ sheetId, payload }) {
+  const { auth, signOut } = useSession();
+  const { i18n } = useLocalization();
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const onClose = () => {
+    SheetManager.hide("delete-account-sheet");
+  };
+
+  const onApprove = async () => {
+    onClose();
+    signOut();
+
+    // setIsLoading(true);
+    // try {
+    //   const res = await Api.post("/users/account/delete", {
+    //     auth: session,
+    //   });
+    //   if (res.isError) throw "e";
+    //   onClose();
+    //   signOut();
+    // } catch (e) {
+    //   setIsLoading(false);
+    // }
+  };
+
+  return (
+    <ActionSheet
+      id={sheetId}
+      useBottomSafeAreaPadding
+      gestureEnabled={true}
+      containerStyle={{
+        padding: 20,
+        justifyContent: "center",
+        alignItems: "center",
+        display: "flex",
+      }}
+    >
+      {isLoading && (
+        <ActivityIndicator size="small" color={theme["color-danger-400"]} />
+      )}
+      {!isLoading && (
+        <View style={[Style.containers.column]}>
+          <View
+            style={{
+              paddingTop: 15,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text
+              style={[Style.text.md, Style.text.semibold, Style.text.danger]}
+            >
+              {i18n.t("deleteAccountSub")}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={onApprove}
+            style={{
+              paddingTop: 15,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 20,
+            }}
+          >
+            <Feather
+              name="trash-2"
+              size={20}
+              color={theme["color-danger-500"]}
+            />
+            <Text
+              style={[
+                { marginLeft: 20 },
+                Style.text.md,
+                Style.text.semibold,
+                Style.text.danger,
+              ]}
+            >
+              {i18n.t("deleteAccount")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ActionSheet>
+  );
+}
+
+export {
+  HelperSheet,
+  AuthenticateSheet,
+  PaymentErrorSheet,
+  DeleteAccountSheet,
+};
 export default HelperSheet;

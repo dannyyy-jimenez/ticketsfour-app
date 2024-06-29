@@ -55,10 +55,10 @@ import Purchase from "../../../../models/Purchase";
 import { BarChart, PieChart, XAxis } from "react-native-svg-charts";
 import { Text as SvgText } from "react-native-svg";
 import { CameraView } from "expo-camera";
-import NfcManager, { NfcAdapter, NfcTech } from "react-native-nfc-manager";
+// import NfcManager, { NfcAdapter, NfcTech } from "react-native-nfc-manager";
 import { Vibration } from "react-native";
 
-NfcManager.start().catch((_) => {});
+// NfcManager.start().catch((_) => {});
 
 export default function EventScreen() {
   const { sql, isOfflineMode, validateOffloadScan } = useOfflineProvider();
@@ -356,9 +356,9 @@ export default function EventScreen() {
         setIsLoadingScan(false);
         setScannedCode(null);
 
-        if (nfcMode) {
-          initNFC();
-        }
+        // if (nfcMode) {
+        //   initNFC();
+        // }
       },
       nfcMode ? 4500 : 1500,
     );
@@ -1229,28 +1229,28 @@ export default function EventScreen() {
     }
   };
 
-  const initNFC = async () => {
-    try {
-      // register for the NFC tag with NDEF in it
-      await NfcManager.requestTechnology(NfcTech.Ndef, {
-        readerModeFlags: NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
-        isReaderModeEnabled: false,
-        alertMessage: i18n.t("nfcTicketScan", {
-          remaining: ev.attendees - ev.scanned,
-        }),
-      });
-      // the resolved tag object will contain `ndefMessage` property
-      const tag = await NfcManager.getTag();
+  // const initNFC = async () => {
+  //   try {
+  //     // register for the NFC tag with NDEF in it
+  //     await NfcManager.requestTechnology(NfcTech.Ndef, {
+  //       readerModeFlags: NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+  //       isReaderModeEnabled: false,
+  //       alertMessage: i18n.t("nfcTicketScan", {
+  //         remaining: ev.attendees - ev.scanned,
+  //       }),
+  //     });
+  //     // the resolved tag object will contain `ndefMessage` property
+  //     const tag = await NfcManager.getTag();
 
-      setScannerResult("INVALID_TICKET");
-      setScannerResultsDatum("2434553");
-    } catch (ex) {
-      //setNFCMode(false);
-      NfcManager.cancelTechnologyRequest();
-    } finally {
-      NfcManager.cancelTechnologyRequest();
-    }
-  };
+  //     setScannerResult("INVALID_TICKET");
+  //     setScannerResultsDatum("2434553");
+  //   } catch (ex) {
+  //     //setNFCMode(false);
+  //     NfcManager.cancelTechnologyRequest();
+  //   } finally {
+  //     NfcManager.cancelTechnologyRequest();
+  //   }
+  // };
 
   React.useEffect(() => {
     // if (ev?.promptScanner) {
@@ -1260,12 +1260,11 @@ export default function EventScreen() {
     //     NfcManager.cancelTechnologyRequest();
     //   }
     // }
-
-    if (section == 4 && nfcMode) {
-      initNFC();
-    } else {
-      NfcManager.cancelTechnologyRequest();
-    }
+    // if (section == 4 && nfcMode) {
+    //   initNFC();
+    // } else {
+    //   NfcManager.cancelTechnologyRequest();
+    // }
   }, [section, nfcMode]);
 
   if (!isLoading && !hasPermission) {
@@ -3346,7 +3345,7 @@ export default function EventScreen() {
                                 shadowColor: theme["color-organizer-500"],
                                 marginRight: 6,
                                 alignSelf: "center",
-                                maxWidth: width * 0.1,
+                                maxWidth: width * 0.25,
                               },
                             ]}
                           >
@@ -4289,7 +4288,7 @@ export default function EventScreen() {
                   </Text>
                 </View>
               )}
-              {!nfcMode && (
+              {/* {!nfcMode && (
                 <TouchableOpacity
                   onPress={() => setNFCMode(true)}
                   style={[
@@ -4318,8 +4317,8 @@ export default function EventScreen() {
                     {i18n.t("tapToScanMode")}
                   </Text>
                 </TouchableOpacity>
-              )}
-              {nfcMode && (
+              )} */}
+              {/* {nfcMode && (
                 <>
                   <TouchableOpacity
                     onPress={() => setNFCMode(false)}
@@ -4418,7 +4417,7 @@ export default function EventScreen() {
                     </View>
                   )}
                 </>
-              )}
+              )} */}
               <View style={[Style.containers.column, { marginVertical: 30 }]}>
                 {!nfcMode && (
                   <CameraView

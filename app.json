@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tickets Four",
     "slug": "tickets-four-app",
-    "version": "0.4.0",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -115,13 +115,7 @@
         }
       ],
       "expo-asset",
-      "expo-build-properties",
-      [
-        "react-native-nfc-manager",
-        {
-          "includeNdefEntitlement": false
-        }
-      ]
+      "expo-build-properties"
     ],
     "extra": {
       "router": {

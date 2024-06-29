@@ -36,7 +36,7 @@ import { Pressable } from "react-native";
 import { ActivityIndicator } from "react-native";
 import PagerView from "react-native-pager-view";
 import TicketComponent from "../components/Ticket";
-import NfcManager, { Ndef, NfcEvents, NfcTech } from "react-native-nfc-manager";
+// import NfcManager, { Ndef, NfcEvents, NfcTech } from "react-native-nfc-manager";
 
 const blurhash = "L6Pj0^jE.AyE_3t7t7R**0o#DgR4";
 
@@ -1437,18 +1437,18 @@ function EventTicketViewerSheet({ sheetId, payload }) {
   const [activePager, setActivePager] = React.useState(0);
   const { height, width } = Dimensions.get("window");
 
-  const passNfc = async () => {
-    try {
-      await NfcManager.requestTechnology(NfcTech.Ndef);
-      const bytes = Ndef.encodeMessage([Ndef.textRecord("hi")]);
-      await NfcManager.ndefHandler.writeNdefMessage(bytes);
-    } catch (ex) {
-      console.warn(ex);
-      Alert.alert("Error", "Failed to write text to NFC tag");
-    } finally {
-      NfcManager.cancelTechnologyRequest();
-    }
-  };
+  // const passNfc = async () => {
+  //   try {
+  //     await NfcManager.requestTechnology(NfcTech.Ndef);
+  //     const bytes = Ndef.encodeMessage([Ndef.textRecord("hi")]);
+  //     await NfcManager.ndefHandler.writeNdefMessage(bytes);
+  //   } catch (ex) {
+  //     console.warn(ex);
+  //     Alert.alert("Error", "Failed to write text to NFC tag");
+  //   } finally {
+  //     NfcManager.cancelTechnologyRequest();
+  //   }
+  // };
 
   // React.useEffect(() => {
   //   NfcManager.start().catch((_) => {});

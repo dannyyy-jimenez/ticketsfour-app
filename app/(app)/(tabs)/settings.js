@@ -89,7 +89,9 @@ export default function AccountScreen() {
     };
   }, [email]);
 
-  const onDeleteAccount = () => {};
+  const onDeleteAccount = () => {
+    SheetManager.show("delete-account-sheet");
+  };
 
   const handleCollectBankAccountPress = async () => {
     // Fetch the intent client secret from the backend.

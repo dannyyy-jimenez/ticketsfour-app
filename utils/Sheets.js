@@ -16,6 +16,7 @@ import {
   HelperSheet,
   AuthenticateSheet,
   PaymentErrorSheet,
+  DeleteAccountSheet,
 } from "./sheets/Helper";
 
 registerSheet("payout-view-sheet", PayoutViewSheet);
@@ -23,6 +24,7 @@ registerSheet("events-share-sheet", EventsShareSheet);
 registerSheet("helper-sheet", HelperSheet);
 registerSheet("payment-error-sheet", PaymentErrorSheet);
 registerSheet("event-ticket-viewer", EventTicketViewerSheet);
+registerSheet("delete-account-sheet", DeleteAccountSheet);
 
 // global
 
