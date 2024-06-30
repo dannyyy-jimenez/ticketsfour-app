@@ -106,22 +106,6 @@ export default function AppLayout() {
                     >
                       Tickets Four
                     </Text>
-                    <View
-                      style={[
-                        Styles.badge,
-                        { alignSelf: "center", marginLeft: 6 },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          Styles.text.basic,
-                          Styles.text.sm,
-                          Styles.text.bold,
-                        ]}
-                      >
-                        Beta
-                      </Text>
-                    </View>
                   </View>
                 )}
                 <View style={{ flex: 1 }} />
@@ -208,22 +192,6 @@ export default function AppLayout() {
                     >
                       Tickets Four
                     </Text>
-                    <View
-                      style={[
-                        Styles.badge,
-                        { alignSelf: "center", marginLeft: 6 },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          Styles.text.basic,
-                          Styles.text.sm,
-                          Styles.text.bold,
-                        ]}
-                      >
-                        Beta
-                      </Text>
-                    </View>
                   </View>
                 )}
                 <View style={{ flex: 1 }} />

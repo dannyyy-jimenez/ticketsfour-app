@@ -119,27 +119,6 @@ export default function AppLayout() {
                   >
                     Tickets Four
                   </Text>
-                  <View
-                    style={[
-                      Styles.badge,
-                      {
-                        backgroundColor: theme["color-organizer-500"],
-                        shadowColor: theme["color-organizer-500"],
-                        alignSelf: "center",
-                        marginLeft: 6,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        Styles.text.basic,
-                        Styles.text.xs,
-                        Styles.text.bold,
-                      ]}
-                    >
-                      Beta
-                    </Text>
-                  </View>
                 </View>
               )}
               <View style={{ flex: 1 }} />
