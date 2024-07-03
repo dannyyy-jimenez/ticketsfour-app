@@ -283,6 +283,12 @@ export default class Ev {
       });
     }
 
+    if (type === "whatsapp") {
+      return encodeURIComponent(
+        this.description + "\nGet your tickets early on Tickets Four, " + path,
+      );
+    }
+
     return path;
   }
 

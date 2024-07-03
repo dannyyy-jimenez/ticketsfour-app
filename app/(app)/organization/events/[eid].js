@@ -1145,19 +1145,7 @@ export default function EventScreen() {
             err && console.log(err);
           });
       } else if (type === "whatsapp") {
-        Share.shareSingle({
-          title: ev?.name,
-          message: ev?.description,
-          url: ev?.getShareables("messenger"),
-          social: Share.Social.WHATSAPP,
-          type: "url",
-        })
-          .then((res) => {
-            console.log(res);
-          })
-          .catch((err) => {
-            err && console.log(err);
-          });
+        Linking.openURL("https://wa.me/?text=" + ev?.getShareables("whatsapp"));
       } else if (type === "email") {
         Linking.openURL(ev?.getShareables(type), "_blank");
       } else if (type === "qr") {
@@ -2144,7 +2132,7 @@ export default function EventScreen() {
                     <View style={[Style.containers.row]}>
                       <View style={[Style.containers.column]}>
                         <TouchableOpacity
-                          style={{ padding: 15 }}
+                          style={{ paddingHorizontal: 8, paddingVertical: 15 }}
                           onPress={() => onShare("qr")}
                         >
                           <MaterialCommunityIcons
@@ -2156,7 +2144,7 @@ export default function EventScreen() {
                       </View>
                       <View style={[Style.containers.column]}>
                         <TouchableOpacity
-                          style={{ padding: 15 }}
+                          style={{ paddingHorizontal: 8, paddingVertical: 15 }}
                           onPress={() => onShare("facebook")}
                         >
                           <Feather
@@ -2180,7 +2168,7 @@ export default function EventScreen() {
                       </View>
                       <View style={[Style.containers.column]}>
                         <TouchableOpacity
-                          style={{ padding: 15 }}
+                          style={{ paddingHorizontal: 8, paddingVertical: 15 }}
                           onPress={() => onShare("whatsapp")}
                         >
                           <MaterialCommunityIcons
@@ -2192,7 +2180,7 @@ export default function EventScreen() {
                       </View>
                       <View style={[Style.containers.column]}>
                         <TouchableOpacity
-                          style={{ padding: 15 }}
+                          style={{ paddingHorizontal: 8, paddingVertical: 15 }}
                           onPress={() => onShare("twitter")}
                         >
                           <FontAwesome6
@@ -2204,7 +2192,7 @@ export default function EventScreen() {
                       </View>
                       <View style={[Style.containers.column]}>
                         <TouchableOpacity
-                          style={{ padding: 15 }}
+                          style={{ paddingHorizontal: 8, paddingVertical: 15 }}
                           onPress={() => onShare("email")}
                         >
                           <MaterialCommunityIcons
