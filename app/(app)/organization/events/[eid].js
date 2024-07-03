@@ -1144,6 +1144,20 @@ export default function EventScreen() {
           .catch((err) => {
             err && console.log(err);
           });
+      } else if (type === "whatsapp") {
+        Share.shareSingle({
+          title: ev?.name,
+          message: ev?.description,
+          url: ev?.getShareables("messenger"),
+          social: Share.Social.WHATSAPP,
+          type: "url",
+        })
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            err && console.log(err);
+          });
       } else if (type === "email") {
         Linking.openURL(ev?.getShareables(type), "_blank");
       } else if (type === "qr") {
@@ -2159,6 +2173,18 @@ export default function EventScreen() {
                         >
                           <MaterialCommunityIcons
                             name="facebook-messenger"
+                            size={26}
+                            color={theme["color-basic-700"]}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={[Style.containers.column]}>
+                        <TouchableOpacity
+                          style={{ padding: 15 }}
+                          onPress={() => onShare("whatsapp")}
+                        >
+                          <MaterialCommunityIcons
+                            name="whatsapp"
                             size={26}
                             color={theme["color-basic-700"]}
                           />
