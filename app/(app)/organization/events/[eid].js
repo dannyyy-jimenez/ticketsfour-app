@@ -57,6 +57,7 @@ import { Text as SvgText } from "react-native-svg";
 import { CameraView } from "expo-camera";
 // import NfcManager, { NfcAdapter, NfcTech } from "react-native-nfc-manager";
 import { Vibration } from "react-native";
+import MapComponent from "../../../../utils/components/Map";
 
 // NfcManager.start().catch((_) => {});
 
@@ -82,9 +83,13 @@ export default function EventScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
 
   const [ev, setEvent] = React.useState(null);
+  const [dataPoints, setDataPoints] = React.useState(null);
   const [physicalTickets, setPhysicalTickets] = React.useState([]);
   const [section, setSection] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoadingBreakdown, setIsLoadingBreakdown] = React.useState(true);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = React.useState(true);
+
   const [isLoadingBackground, setIsLoadingBackground] = React.useState(false);
   const [isLoadingHosts, setIsLoadingHosts] = React.useState(false);
   const [isLoadingVenues, setIsLoadingVenues] = React.useState(false);
@@ -181,17 +186,16 @@ export default function EventScreen() {
 
   const enoughSalesDataPoints = React.useMemo(() => {
     return (
-      ev?.dataPoints?.sales?.map((p) => p.value).filter((v) => v != 0).length >
-      2
+      dataPoints?.sales?.map((p) => p.value).filter((v) => v != 0).length > 2
     );
   }, [ev]);
 
   const weekdaySales = React.useMemo(() => {
-    if (!ev?.dataPoints?.sales) return;
+    if (!dataPoints?.salesCum) return;
 
     let weekdays = [0, 0, 0, 0, 0, 0, 0];
 
-    for (let salePoint of ev?.dataPoints?.sales) {
+    for (let salePoint of dataPoints?.salesCum) {
       let parsedDate = moment(salePoint.date);
       let dow = parsedDate.weekday();
 
@@ -211,9 +215,12 @@ export default function EventScreen() {
 
     return (
       !ev?.active ||
-      ev?.dataPoints?.ages?.map((p) => p.value).filter((v) => v != 0).length > 3
+      dataPoints?.ages?.map((p) => p.value).filter((v) => v != 0).length > 3
     );
   }, [ev]);
+  const enoughMapDataPoints = React.useMemo(() => {
+    return !ev?.active || dataPoints?.views?.features?.length > 0;
+  }, [ev, dataPoints]);
 
   // editables
 
@@ -479,6 +486,8 @@ export default function EventScreen() {
   };
 
   const loadDetails = async () => {
+    setIsLoading(true);
+
     try {
       const res = await Api.get("/organizations/event/details", {
         auth,
@@ -523,6 +532,7 @@ export default function EventScreen() {
   };
 
   const loadBreakdown = async () => {
+    setIsLoadingBreakdown(true);
     try {
       const res = await Api.get("/organizations/event/breakdown", {
         auth,
@@ -555,8 +565,34 @@ export default function EventScreen() {
       setPurchases(
         res.data.purchases.map((purchase) => new Purchase({ ...purchase })),
       );
+      setIsLoadingBreakdown(false);
     } catch (e) {
       console.log(e);
+      setIsLoadingBreakdown(false);
+      //setIsLoading(false);
+    }
+  };
+
+  const loadAnalysis = async () => {
+    setIsLoadingAnalysis(true);
+    try {
+      const res = await Api.get("/organizations/event/analyze", {
+        auth,
+        oid,
+        eid,
+      });
+      if (res.isError) throw "e";
+
+      if (!res.data.has_permission) {
+        setHasPermission(false);
+        throw "NO_PERMISSION";
+      }
+
+      setDataPoints(res.data.dataPoints);
+      setIsLoadingAnalysis(false);
+    } catch (e) {
+      console.log(e);
+      setIsLoadingAnalysis(false);
       //setIsLoading(false);
     }
   };
@@ -579,8 +615,14 @@ export default function EventScreen() {
     }
 
     loadDetails();
-    loadBreakdown();
   };
+
+  React.useEffect(() => {
+    if (isLoading) return;
+
+    loadBreakdown();
+    loadAnalysis();
+  }, [isLoading]);
 
   React.useEffect(() => {
     if (!ev) return;
@@ -1474,7 +1516,7 @@ export default function EventScreen() {
             />
           </SkeletonLoader.Container>
         </SkeletonLoader>
-        <View style={[Style.containers.row, { height: 180, marginTop: 25 }]}>
+        <View style={[Style.containers.row, { height: 150, marginTop: 25 }]}>
           <View
             style={[
               Style.containers.column,
@@ -1483,9 +1525,9 @@ export default function EventScreen() {
                 marginHorizontal: 10,
                 paddingHorizontal: 15,
                 paddingTop: 5,
-                paddingVertical: 15,
                 borderRadius: 8,
                 backgroundColor: theme["color-basic-400"],
+                justifyContent: "flex-start",
               },
             ]}
           >
@@ -1494,10 +1536,10 @@ export default function EventScreen() {
                 style={[
                   {
                     backgroundColor: "transparent",
-                    width: 40,
+                    width: 80,
                     borderRadius: 4,
                     overflow: "hidden",
-                    height: 30,
+                    height: 40,
                     marginTop: 12,
                     marginBottom: 14,
                   },
@@ -1508,7 +1550,67 @@ export default function EventScreen() {
                     {
                       backgroundColor: "transparent",
                       width: 250,
-                      height: 45,
+                      height: 40,
+                    },
+                  ]}
+                />
+              </SkeletonLoader.Container>
+            </SkeletonLoader>
+
+            <MaterialCommunityIcons
+              name="wallet-outline"
+              size={26}
+              color={theme["color-basic-700"]}
+            />
+            <Text
+              style={[
+                Style.text.dark,
+                Style.text.lg,
+                Style.text.semibold,
+                {
+                  paddingVertical: 10,
+                  flex: 1,
+                },
+              ]}
+            >
+              {i18n.t("sales")}
+            </Text>
+          </View>
+        </View>
+        <View style={[Style.containers.row, { height: 150, marginTop: 10 }]}>
+          <View
+            style={[
+              Style.containers.column,
+              {
+                flex: 1,
+                marginHorizontal: 10,
+                paddingHorizontal: 15,
+                paddingTop: 5,
+                borderRadius: 8,
+                backgroundColor: theme["color-basic-400"],
+              },
+            ]}
+          >
+            <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+              <SkeletonLoader.Container
+                style={[
+                  {
+                    backgroundColor: "transparent",
+                    width: 80,
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    height: 40,
+                    marginTop: 10,
+                    marginBottom: 14,
+                  },
+                ]}
+              >
+                <SkeletonLoader.Item
+                  style={[
+                    {
+                      backgroundColor: "transparent",
+                      width: 250,
+                      height: 40,
                     },
                   ]}
                 />
@@ -1529,7 +1631,7 @@ export default function EventScreen() {
                 {
                   flex: 1,
                   textAlign: "center",
-                  paddingVertical: 15,
+                  paddingVertical: 10,
                 },
               ]}
             >
@@ -1544,67 +1646,6 @@ export default function EventScreen() {
                 marginHorizontal: 10,
                 paddingHorizontal: 15,
                 paddingTop: 5,
-                paddingVertical: 15,
-                borderRadius: 8,
-                backgroundColor: theme["color-basic-400"],
-                justifyContent: "flex-start",
-              },
-            ]}
-          >
-            <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
-              <SkeletonLoader.Container
-                style={[
-                  {
-                    backgroundColor: "transparent",
-                    width: 40,
-                    borderRadius: 4,
-                    overflow: "hidden",
-                    height: 30,
-                    marginTop: 12,
-                    marginBottom: 14,
-                  },
-                ]}
-              >
-                <SkeletonLoader.Item
-                  style={[
-                    {
-                      backgroundColor: "transparent",
-                      width: 250,
-                      height: 45,
-                    },
-                  ]}
-                />
-              </SkeletonLoader.Container>
-            </SkeletonLoader>
-
-            <MaterialCommunityIcons
-              name="wallet-outline"
-              size={26}
-              color={theme["color-basic-700"]}
-            />
-            <Text
-              style={[
-                Style.text.dark,
-                Style.text.lg,
-                Style.text.semibold,
-                {
-                  paddingVertical: 15,
-                  flex: 1,
-                },
-              ]}
-            >
-              {i18n.t("sales")}
-            </Text>
-          </View>
-          <View
-            style={[
-              Style.containers.column,
-              {
-                flex: 1,
-                marginHorizontal: 10,
-                paddingHorizontal: 15,
-                paddingTop: 5,
-                paddingVertical: 15,
                 borderRadius: 8,
                 justifyContent: "flex-start",
                 backgroundColor: theme["color-basic-400"],
@@ -1616,11 +1657,11 @@ export default function EventScreen() {
                 style={[
                   {
                     backgroundColor: "transparent",
-                    width: 40,
+                    width: 80,
                     borderRadius: 4,
                     overflow: "hidden",
-                    height: 30,
-                    marginTop: 12,
+                    height: 40,
+                    marginTop: 10,
                     marginBottom: 14,
                   },
                 ]}
@@ -1630,7 +1671,7 @@ export default function EventScreen() {
                     {
                       backgroundColor: "transparent",
                       width: 250,
-                      height: 45,
+                      height: 40,
                     },
                   ]}
                 />
@@ -1648,7 +1689,7 @@ export default function EventScreen() {
                 Style.text.lg,
                 Style.text.semibold,
                 {
-                  paddingVertical: 15,
+                  paddingVertical: 10,
                   flex: 1,
                 },
               ]}
@@ -2292,10 +2333,60 @@ export default function EventScreen() {
                     Style.containers.column,
                     {
                       flex: 1,
+                      marginHorizontal: 2,
+                      marginBottom: 10,
+                      paddingHorizontal: 15,
+                      paddingTop: 5,
+                      borderRadius: 8,
+                      backgroundColor: theme["color-basic-400"],
+                      justifyContent: "flex-start",
+                    },
+                  ]}
+                >
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={[
+                      Style.text.dark,
+                      Style.text.xxxl,
+                      Style.text.semibold,
+                      {
+                        paddingVertical: 10,
+                      },
+                    ]}
+                  >
+                    {ev.getSales()}
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="wallet-outline"
+                    size={32}
+                    color={theme["color-basic-700"]}
+                  />
+                  <Text
+                    style={[
+                      Style.text.dark,
+                      Style.text.lg,
+                      Style.text.semibold,
+                      {
+                        paddingVertical: 10,
+                        flex: 1,
+                      },
+                    ]}
+                  >
+                    {i18n.t("sales")}
+                  </Text>
+                </View>
+              </View>
+              <View style={[Style.containers.row]}>
+                <View
+                  style={[
+                    Style.containers.column,
+                    {
+                      flex: 1,
                       marginRight: 4,
                       paddingHorizontal: 15,
                       paddingTop: 5,
-                      paddingVertical: 15,
                       borderRadius: 8,
                       backgroundColor: theme["color-basic-400"],
                     },
@@ -2309,7 +2400,7 @@ export default function EventScreen() {
                       Style.text.xxxl,
                       Style.text.semibold,
                       {
-                        paddingVertical: 15,
+                        paddingVertical: 10,
                       },
                     ]}
                   >
@@ -2330,7 +2421,7 @@ export default function EventScreen() {
                       {
                         flex: 1,
                         textAlign: "center",
-                        paddingVertical: 15,
+                        paddingVertical: 10,
                       },
                     ]}
                   >
@@ -2342,59 +2433,9 @@ export default function EventScreen() {
                     Style.containers.column,
                     {
                       flex: 1,
-                      marginHorizontal: 2,
-                      paddingHorizontal: 15,
-                      paddingTop: 5,
-                      paddingVertical: 15,
-                      borderRadius: 8,
-                      backgroundColor: theme["color-basic-400"],
-                      justifyContent: "flex-start",
-                    },
-                  ]}
-                >
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={[
-                      Style.text.dark,
-                      Style.text.xxxl,
-                      Style.text.semibold,
-                      {
-                        paddingVertical: 15,
-                      },
-                    ]}
-                  >
-                    {ev.getSales()}
-                  </Text>
-
-                  <MaterialCommunityIcons
-                    name="wallet-outline"
-                    size={26}
-                    color={theme["color-basic-700"]}
-                  />
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.lg,
-                      Style.text.semibold,
-                      {
-                        paddingVertical: 15,
-                        flex: 1,
-                      },
-                    ]}
-                  >
-                    {i18n.t("sales")}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    Style.containers.column,
-                    {
-                      flex: 1,
                       marginLeft: 4,
                       paddingHorizontal: 15,
                       paddingTop: 5,
-                      paddingVertical: 15,
                       borderRadius: 8,
                       justifyContent: "flex-start",
                       backgroundColor: theme["color-basic-400"],
@@ -2410,7 +2451,7 @@ export default function EventScreen() {
                       Style.text.semibold,
                       {
                         textAlign: "center",
-                        paddingVertical: 15,
+                        paddingVertical: 10,
                       },
                     ]}
                   >
@@ -2428,7 +2469,7 @@ export default function EventScreen() {
                       Style.text.lg,
                       Style.text.semibold,
                       {
-                        paddingVertical: 15,
+                        paddingVertical: 10,
                         flex: 1,
                       },
                     ]}
@@ -2458,71 +2499,81 @@ export default function EventScreen() {
               >
                 {i18n.t("salesBreakdownDesc")}
               </Text>
-
-              {tierSales.map((tier, tidx) => (
-                <View
-                  key={"tier-" + tidx}
-                  style={[Style.containers.row, { paddingVertical: 15 }]}
-                >
+              {isLoadingBreakdown && (
+                <ActivityIndicator
+                  size={10}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                  }}
+                  color={theme["color-basic-100"]}
+                />
+              )}
+              {!isLoadingBreakdown &&
+                tierSales.map((tier, tidx) => (
                   <View
-                    style={[
-                      Style.badge,
-                      {
-                        backgroundColor: theme["color-organizer-500"],
-                        shadowColor: theme["color-organizer-500"],
-                        marginRight: 6,
-                        alignSelf: "center",
-                      },
-                    ]}
+                    key={"tier-" + tidx}
+                    style={[Style.containers.row, { paddingVertical: 15 }]}
                   >
-                    <Text style={[Style.text.basic, Style.text.bold]}>
-                      Tier - {tier.name}
-                    </Text>
-                  </View>
+                    <View
+                      style={[
+                        Style.badge,
+                        {
+                          backgroundColor: theme["color-organizer-500"],
+                          shadowColor: theme["color-organizer-500"],
+                          marginRight: 6,
+                          alignSelf: "center",
+                        },
+                      ]}
+                    >
+                      <Text style={[Style.text.basic, Style.text.bold]}>
+                        Tier - {tier.name}
+                      </Text>
+                    </View>
 
-                  <View
-                    style={[
-                      Style.containers.column,
-                      { alignItems: "flex-start", marginLeft: 8 },
-                    ]}
-                  >
+                    <View
+                      style={[
+                        Style.containers.column,
+                        { alignItems: "flex-start", marginLeft: 8 },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          Style.text.dark,
+                          Style.text.semibold,
+                          Style.text.lg,
+                        ]}
+                      >
+                        {Commasize(tier.sold)}
+                      </Text>
+                      <Text
+                        style={[
+                          Style.text.dark,
+                          Style.transparency.md,
+                          Style.text.normal,
+                        ]}
+                      >
+                        {i18n.t("ticketsSold")}
+                      </Text>
+                    </View>
+
+                    <View style={{ flex: 1 }} />
+
                     <Text
                       style={[
                         Style.text.dark,
-                        Style.text.semibold,
                         Style.text.lg,
-                      ]}
-                    >
-                      {Commasize(tier.sold)}
-                    </Text>
-                    <Text
-                      style={[
-                        Style.text.dark,
-                        Style.transparency.md,
                         Style.text.normal,
+                        {
+                          marginHorizontal: 8,
+                          maxWidth: "35%",
+                        },
                       ]}
                     >
-                      {i18n.t("ticketsSold")}
+                      ${CurrencyFormatter(tier.price)}
                     </Text>
                   </View>
-
-                  <View style={{ flex: 1 }} />
-
-                  <Text
-                    style={[
-                      Style.text.dark,
-                      Style.text.lg,
-                      Style.text.normal,
-                      {
-                        marginHorizontal: 8,
-                        maxWidth: "35%",
-                      },
-                    ]}
-                  >
-                    ${CurrencyFormatter(tier.price)}
-                  </Text>
-                </View>
-              ))}
+                ))}
               {/* {Object.keys(addonsGrouped).map((price, pidx) => (
                 <Table.Row key={"ADDON" + pidx}>
                   <Table.Cell>
@@ -2561,8 +2612,17 @@ export default function EventScreen() {
               >
                 {i18n.t("salesAnalyticsDesc")}
               </Text>
-
-              {!enoughSalesDataPoints && (
+              {isLoadingAnalysis && (
+                <ActivityIndicator
+                  size={10}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                  }}
+                  color={theme["color-basic-100"]}
+                />
+              )}
+              {!isLoadingAnalysis && !enoughSalesDataPoints && (
                 <>
                   <Text
                     style={[
@@ -2586,23 +2646,21 @@ export default function EventScreen() {
                   </Text>
                 </>
               )}
-              {enoughSalesDataPoints && (
+              {!isLoadingAnalysis && enoughSalesDataPoints && (
                 <>
                   <View style={{ height: 200, padding: 0, marginTop: 20 }}>
                     <BarChart
                       style={{ flex: 1 }}
-                      data={ev?.dataPoints?.sales.map((s) => s.value)}
+                      data={dataPoints?.sales.map((s) => s.value)}
                       gridMin={0}
                       svg={{ fill: theme["color-organizer-500"] }}
                     />
                     <XAxis
                       style={{ marginTop: 10 }}
-                      data={ev?.dataPoints?.sales.map((s) => s.value)}
+                      data={dataPoints?.sales.map((s) => s.value)}
                       scale={scale.scaleBand}
                       formatLabel={(value, index) =>
-                        moment(ev?.dataPoints?.sales[index].date).format(
-                          "MMM DD",
-                        )
+                        moment(dataPoints?.sales[index].date).format("MMM DD")
                       }
                       labelStyle={{ color: theme["color-basic-700"] }}
                     />
@@ -2622,7 +2680,17 @@ export default function EventScreen() {
                 />
               </View>
 
-              {!enoughAgeDataPoints && (
+              {isLoadingAnalysis && (
+                <ActivityIndicator
+                  size={10}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                  }}
+                  color={theme["color-basic-100"]}
+                />
+              )}
+              {!isLoadingAnalysis && !enoughAgeDataPoints && (
                 <>
                   <Text
                     style={[
@@ -2647,13 +2715,13 @@ export default function EventScreen() {
                 </>
               )}
 
-              {enoughAgeDataPoints && (
+              {!isLoadingAnalysis && enoughAgeDataPoints && (
                 <>
                   <PieChart
                     style={{ height: 200, marginTop: 20 }}
                     valueAccessor={({ item }) => item.value}
                     data={
-                      ev?.dataPoints?.ages?.map((dp, dpidx) => {
+                      dataPoints?.ages?.map((dp, dpidx) => {
                         return {
                           key: dpidx + 1,
                           value: dp.value * 100,
@@ -2671,6 +2739,82 @@ export default function EventScreen() {
                   >
                     <AgeLabels />
                   </PieChart>
+                </>
+              )}
+
+              <View style={[Style.containers.row, { marginTop: 30 }]}>
+                <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
+                  {i18n.t("viewsMap", { amount: ev.getSales() })}
+                </Text>
+                <View style={{ flex: 1 }} />
+                <Feather
+                  name="map-pin"
+                  size={22}
+                  color={theme["color-basic-700"]}
+                />
+              </View>
+              <Text
+                style={[
+                  Style.text.dark,
+                  Style.text.normal,
+                  { marginVertical: 6 },
+                ]}
+              >
+                {i18n.t("viewsMapDesc")}
+              </Text>
+
+              {isLoadingAnalysis && (
+                <ActivityIndicator
+                  size={10}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                  }}
+                  color={theme["color-basic-100"]}
+                />
+              )}
+              {!isLoadingAnalysis && !enoughMapDataPoints && (
+                <>
+                  <Text
+                    style={[
+                      Style.text.dark,
+                      Style.text.semibold,
+                      Style.transparency.lg,
+                      { textAlign: "center", marginTop: 10, marginBottom: 6 },
+                    ]}
+                  >
+                    {i18n.t("waitingForData")}
+                  </Text>
+                  <Text
+                    style={[
+                      Style.text.dark,
+                      Style.text.semibold,
+                      Style.transparency.lg,
+                      { textAlign: "center", marginBottom: 10 },
+                    ]}
+                  >
+                    {i18n.t("waitingDataMapView")}
+                  </Text>
+                </>
+              )}
+              {!isLoadingAnalysis && enoughMapDataPoints && (
+                <>
+                  <View
+                    style={{
+                      height: height * 0.5,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      padding: 0,
+                      marginTop: 20,
+                    }}
+                  >
+                    <MapComponent
+                      isOrganizer
+                      heatmap={dataPoints.views}
+                      zoom={6}
+                      center={ev?.venue?.center}
+                    />
+                  </View>
                 </>
               )}
             </View>

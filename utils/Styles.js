@@ -12,6 +12,7 @@ const theme = {
   "color-primary-900": "#c8041b",
 
   "color-organizer-200": "#CCDDFD",
+  "color-organizer-300": "#6899F9",
   "color-organizer-500": "#0456f5",
   "color-organizer-800": "#6899f9",
 

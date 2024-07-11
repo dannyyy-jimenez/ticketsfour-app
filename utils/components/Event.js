@@ -45,6 +45,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
   const [venue, setVenue] = React.useState(null);
   const [views, setViews] = React.useState(0);
   const [shares, setShares] = React.useState(0);
+  const [sales, setSales] = React.useState(0);
   const [attendees, setAttendees] = React.useState(0);
 
   const onView = () => {
@@ -74,6 +75,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
         setShares(NumFormatter(res.data.shares));
         setViews(NumFormatter(res.data.views));
         setShortLink(res.data.event.shortLink);
+        setSales(NumFormatter(res.data.event.sales / 100));
 
         setIsLoading(false);
 
@@ -244,7 +246,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
             )}
           </View>
           <Text
-            numberOfLines={2}
+            numberOfLines={4}
             adjustsFontSizeToFit
             style={[Style.text.lg, Style.text.bold, Style.text.dark]}
           >
@@ -265,7 +267,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
           >
             <View style={[Style.containers.row, { paddingRight: 10 }]}>
               <Feather
-                name="share-2"
+                name="credit-card"
                 color={theme["color-basic-700"]}
                 size={16}
               />
@@ -292,7 +294,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
                 <Text
                   style={[Style.text.dark, Style.text.bold, { marginLeft: 4 }]}
                 >
-                  {shares}
+                  ${sales}
                 </Text>
               )}
             </View>
@@ -323,7 +325,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
               )}
               {!isLoading && (
                 <Text
-                  style={[Style.text.dark, Style.text.bold, { marginLeft: 4 }]}
+                  style={[Style.text.dark, Style.text.bold, { marginLeft: 2 }]}
                 >
                   {views}
                 </Text>

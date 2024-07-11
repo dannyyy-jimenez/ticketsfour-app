@@ -341,5 +341,8 @@
   "savingTickets": "Saving tickets offline",
   "offlineAirplane": "Put phone on airplane mode and reconnect once you're done scanning",
   "lockedView": "Sorry, but you don't have permission to access this page. You can contact your team leader and ask them to change your role",
-  "deleteAccountSub": "Deleting your account will remove all data. Are you sure?"
+  "deleteAccountSub": "Deleting your account will remove all data. Are you sure?",
+  "viewsMap": "Views Map",
+  "viewsMapDesc": "Explore where your event's views are coming from, a high number of views with low sales may be related to a mismatch in geotargeting. Views are calculated at 10% of pop size and inferred through ip addresses.",
+  "waitingDataMapView": "Once we have enough data, you'll see a heatmap of your views geolocation."
 }

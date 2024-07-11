@@ -176,6 +176,9 @@ export default function EventsScreen() {
   };
 
   const onRefresh = () => {
+    setUpcomingEvents([]);
+    setPastEvents([]);
+
     loadFuture();
     loadPast();
   };

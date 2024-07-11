@@ -335,6 +335,7 @@ export default function DashboardScreen() {
     setIsLoading(true);
     setIsLoadingDashboard(true);
 
+    setEvents([]);
     setRoles([]);
     await loadDashboard();
     loadEvents();

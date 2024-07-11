@@ -9,6 +9,9 @@ import { LocalizationProvider } from "../locales/provider.js";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import * as SplashScreen from "expo-splash-screen";
+import Aptabase from "@aptabase/react-native";
+
+Aptabase.init("A-US-6354038978");
 
 export default function Root() {
   return (
