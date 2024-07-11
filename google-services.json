@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "574656982254",
+    "project_id": "tickets-four",
+    "storage_bucket": "tickets-four.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:574656982254:android:cda39550484331460fd7ff",
+        "android_client_info": {
+          "package_name": "com.ticketsfour.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXpHTMeAHBMZXaA_EWwGZMUGVt5ES9Cyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

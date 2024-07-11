@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tickets Four",
     "slug": "tickets-four-app",
-    "version": "0.8.1",
+    "version": "0.8.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -44,6 +44,11 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.INTERNET"
       ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCW8-TDRLy0WJbDbx7t_fQn_8p1s2e2lWg"
+        }
+      },
       "intentFilters": [
         {
           "action": "VIEW",
@@ -57,7 +62,8 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -108,7 +114,7 @@
             "compileSdkVersion": 34,
             "targetSdkVersion": 34,
             "buildToolsVersion": "34.0.0",
-            "minSdkVersion": 21
+            "minSdkVersion": 23
           },
           "ios": {
             "deploymentTarget": "14.0"

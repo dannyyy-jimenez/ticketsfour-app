@@ -150,7 +150,6 @@ export default function AccountScreen() {
 
     try {
       const res = await Api.get("/users/settings", { auth });
-      console.log(res);
       if (res.isError) throw "e";
 
       setName(res.data.user.first_name + " " + res.data.user.last_name);

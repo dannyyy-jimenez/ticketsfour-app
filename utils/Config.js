@@ -40,14 +40,14 @@ if (Updates.channel === "production") {
   Config.cloudUri = "https://res.cloudinary.com/lgxy/image/upload/";
 }
 
-// Config.apiUrl = "https://api.ticketsfour.com/";
-// Config.enableHiddenFeatures = false;
-// Config.isDev = false;
-// Config.key = "pdk_EcSJbumK5xZ3GUbAHWu6FqBUhNU3EpVT";
-// Config.stripeKey =
-//   "pk_live_51ModcoA60uJAVJy3rYJnMXYon10xTdtpm0WwbF0RLD7Br8OBh1Yv0bX3DKVgLuSP2g3iMJmZSym0B0lzXUzz3UOd005fZRQUcS";
-// Config.basePath = "https://www.ticketsfour.com";
-// Config.cloudUri =
-//   "https://res.cloudinary.com/ticketsfour/image/upload/f_auto,q_auto/";
+Config.apiUrl = "https://api.ticketsfour.com/";
+Config.enableHiddenFeatures = false;
+Config.isDev = false;
+Config.key = "pdk_EcSJbumK5xZ3GUbAHWu6FqBUhNU3EpVT";
+Config.stripeKey =
+  "pk_live_51ModcoA60uJAVJy3rYJnMXYon10xTdtpm0WwbF0RLD7Br8OBh1Yv0bX3DKVgLuSP2g3iMJmZSym0B0lzXUzz3UOd005fZRQUcS";
+Config.basePath = "https://www.ticketsfour.com";
+Config.cloudUri =
+  "https://res.cloudinary.com/ticketsfour/image/upload/f_auto,q_auto/";
 
 export default Config;

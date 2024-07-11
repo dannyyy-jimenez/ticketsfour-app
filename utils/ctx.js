@@ -292,7 +292,9 @@ export function OfflineProvider(props) {
   const versioning = "0.0.1";
 
   const initdb = async () => {
-    const db = await SQLite.openDatabaseAsync(DBName);
+    const db = await SQLite.openDatabaseAsync(DBName, {
+      useNewConnection: true,
+    });
 
     // GENESIS IS THE PROMOTERS EVENTS
     //
@@ -322,19 +324,25 @@ export function OfflineProvider(props) {
   };
 
   const get = async (query) => {
-    const db = await SQLite.openDatabaseAsync(DBName);
+    const db = await SQLite.openDatabaseAsync(DBName, {
+      useNewConnection: true,
+    });
 
     return await db.getAllAsync(query);
   };
 
   const post = async (query, values) => {
-    const db = await SQLite.openDatabaseAsync(DBName);
+    const db = await SQLite.openDatabaseAsync(DBName, {
+      useNewConnection: true,
+    });
 
     return await db.runAsync(query, values);
   };
 
   const command = async (query) => {
-    const db = await SQLite.openDatabaseAsync(DBName);
+    const db = await SQLite.openDatabaseAsync(DBName, {
+      useNewConnection: true,
+    });
 
     return await db.execAsync(query);
   };
@@ -484,7 +492,9 @@ export function OfflineProvider(props) {
         try {
           let today = moment().startOf("d").valueOf();
           await command(`DELETE FROM GENESIS WHERE start < ${today}`);
-        } catch (e) {}
+        } catch (e) {
+          console.log("DBE", e);
+        }
 
         //loadLatestOffline();
       });

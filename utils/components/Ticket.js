@@ -18,7 +18,11 @@ import {
 import { useLocalization } from "../../locales/provider";
 import { useFonts } from "expo-font";
 import QRCode from "react-native-qrcode-svg";
-import PassKit, { AddPassButton } from "react-native-wallet-pass";
+import WalletPasses, {
+  AddPassButton,
+  ADD_PASS_BUTTON_CONSTANTS,
+} from "react-native-wallet-passes";
+
 import Api from "../Api";
 
 export default function TicketComponent({ ticket, hidden = false }) {
@@ -30,7 +34,7 @@ export default function TicketComponent({ ticket, hidden = false }) {
   const [showApplePass, setShowApplePass] = React.useState(false);
 
   React.useEffect(() => {
-    PassKit.canAddPasses().then((result) => {
+    WalletPasses.canAddPasses().then((result) => {
       setShowApplePass(true);
     });
   });
@@ -46,7 +50,7 @@ export default function TicketComponent({ ticket, hidden = false }) {
       });
       if (res.isError) throw "e";
 
-      PassKit.addPass(res.data.encoding);
+      WalletPasses.addPass(res.data.encoding);
     } catch (e) {}
   };
 
@@ -381,7 +385,7 @@ export default function TicketComponent({ ticket, hidden = false }) {
             marginTop: 15,
             alignSelf: "center",
           }}
-          addPassButtonStyle={PassKit.AddPassButtonStyle.black}
+          addPassButtonStyle={ADD_PASS_BUTTON_CONSTANTS.STYLE.BLACK_OUTLINE}
           onPress={onAddToAppleWallet}
         />
       )}
