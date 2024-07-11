@@ -188,7 +188,7 @@ export default function EventScreen() {
     return (
       dataPoints?.sales?.map((p) => p.value).filter((v) => v != 0).length > 2
     );
-  }, [ev]);
+  }, [ev, dataPoints]);
 
   const weekdaySales = React.useMemo(() => {
     if (!dataPoints?.salesCum) return;
@@ -208,7 +208,7 @@ export default function EventScreen() {
       weekday: weekday,
       value: amount,
     }));
-  }, [ev]);
+  }, [ev, dataPoints]);
 
   const enoughAgeDataPoints = React.useMemo(() => {
     if (ev?.draft) return false;
@@ -217,7 +217,7 @@ export default function EventScreen() {
       !ev?.active ||
       dataPoints?.ages?.map((p) => p.value).filter((v) => v != 0).length > 3
     );
-  }, [ev]);
+  }, [ev, dataPoints]);
   const enoughMapDataPoints = React.useMemo(() => {
     return !ev?.active || dataPoints?.views?.features?.length > 0;
   }, [ev, dataPoints]);
@@ -2501,12 +2501,9 @@ export default function EventScreen() {
               </Text>
               {isLoadingBreakdown && (
                 <ActivityIndicator
-                  size={10}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                  }}
-                  color={theme["color-basic-100"]}
+                  size={20}
+                  color={theme["color-organizer-500"]}
+                  style={{ alignSelf: "center", paddingVertical: 10 }}
                 />
               )}
               {!isLoadingBreakdown &&
@@ -2614,12 +2611,9 @@ export default function EventScreen() {
               </Text>
               {isLoadingAnalysis && (
                 <ActivityIndicator
-                  size={10}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                  }}
-                  color={theme["color-basic-100"]}
+                  size={20}
+                  color={theme["color-organizer-500"]}
+                  style={{ alignSelf: "center", paddingVertical: 10 }}
                 />
               )}
               {!isLoadingAnalysis && !enoughSalesDataPoints && (
@@ -2682,12 +2676,9 @@ export default function EventScreen() {
 
               {isLoadingAnalysis && (
                 <ActivityIndicator
-                  size={10}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                  }}
-                  color={theme["color-basic-100"]}
+                  size={20}
+                  color={theme["color-organizer-500"]}
+                  style={{ alignSelf: "center", paddingVertical: 10 }}
                 />
               )}
               {!isLoadingAnalysis && !enoughAgeDataPoints && (
@@ -2765,12 +2756,9 @@ export default function EventScreen() {
 
               {isLoadingAnalysis && (
                 <ActivityIndicator
-                  size={10}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                  }}
-                  color={theme["color-basic-100"]}
+                  size={20}
+                  color={theme["color-organizer-500"]}
+                  style={{ alignSelf: "center", paddingVertical: 10 }}
                 />
               )}
               {!isLoadingAnalysis && !enoughMapDataPoints && (
