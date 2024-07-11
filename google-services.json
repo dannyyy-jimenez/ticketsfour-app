@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:574656982254:android:cda39550484331460fd7ff",
+        "mobilesdk_app_id": "1:574656982254:android:f75fab12d15483b90fd7ff",
         "android_client_info": {
-          "package_name": "com.ticketsfour.com"
+          "package_name": "com.ticketsfour.app"
         }
       },
       "oauth_client": [],
