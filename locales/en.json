@@ -342,7 +342,9 @@
   "offlineAirplane": "Put phone on airplane mode and reconnect once you're done scanning",
   "lockedView": "Sorry, but you don't have permission to access this page. You can contact your team leader and ask them to change your role",
   "deleteAccountSub": "Deleting your account will remove all data. Are you sure?",
-  "viewsMap": "Views Map",
-  "viewsMapDesc": "Explore where your event's views are coming from, a high number of views with low sales may be related to a mismatch in geotargeting. Views are calculated at 10% of pop size and inferred through ip addresses.",
-  "waitingDataMapView": "Once we have enough data, you'll see a heatmap of your views geolocation."
+  "viewsMap": "Geographic Views Heatmap",
+  "viewsMapDesc": "See where event views are coming from, based on IP addresses. The data is sampled for accuracy. Use this insight to identify key regions and optimize your promotional efforts.",
+  "waitingDataMapView": "Once we have enough data, you'll see a heatmap of your views geolocation.",
+  "ageDist": "Age Distribution",
+  "ageDistDesc": "This pie chart shows the age distribution of your event attendees, helping you understand your audience for better planning and marketing."
 }

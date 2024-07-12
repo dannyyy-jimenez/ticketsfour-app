@@ -341,5 +341,10 @@
   "savingTickets": "Guardando boletos sin conexión",
   "offlineAirplane": "Pon el teléfono en modo avión y reconéctalo una vez que hayas terminado de escanear",
   "lockedView": "Lo siento, pero no tienes permiso para acceder a esta página. Puedes contactar a tu líder de equipo y pedirle que cambie tu rol.",
-  "deleteAccountSub": "Eliminar su cuenta eliminará todos los datos. ¿Está seguro?"
+  "deleteAccountSub": "Eliminar su cuenta eliminará todos los datos. ¿Está seguro?",
+  "viewsMap": "Mapa de Calor de Vistas Geográficas",
+  "viewsMapDesc": "Vea de dónde provienen las vistas del evento, basándose en las direcciones IP. Los datos se muestrean para garantizar la precisión. Utilice este conocimiento para identificar regiones clave y optimizar sus esfuerzos promocionales.",
+  "waitingDataMapView": "Una vez que tengamos suficientes datos, verá un mapa de calor con la geolocalización de sus vistas.",
+  "ageDist": "Distribución por Edad",
+  "ageDistDesc": "Este gráfico circular muestra la distribución por edad de los asistentes a su evento, ayudándole a entender a su audiencia para una mejor planificación y mercadeo."
 }

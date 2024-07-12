@@ -1747,7 +1747,7 @@ export default function EventScreen() {
 
         <View style={[Style.containers.row, { marginTop: 30 }]}>
           <Text style={[Style.text.dark, Style.text.bold, Style.text.xxl]}>
-            {i18n.t("age", { amount: salesAmount })}
+            {i18n.t("ageDist", { amount: salesAmount })}
           </Text>
           <View style={{ flex: 1 }} />
           <MaterialCommunityIcons
@@ -2664,7 +2664,7 @@ export default function EventScreen() {
 
               <View style={[Style.containers.row, { marginTop: 30 }]}>
                 <Text style={[Style.text.dark, Style.text.bold, Style.text.xl]}>
-                  {i18n.t("age", { amount: salesAmount })}
+                  {i18n.t("ageDist", { amount: salesAmount })}
                 </Text>
                 <View style={{ flex: 1 }} />
                 <MaterialCommunityIcons
@@ -2673,6 +2673,15 @@ export default function EventScreen() {
                   color={theme["color-basic-700"]}
                 />
               </View>
+              <Text
+                style={[
+                  Style.text.dark,
+                  Style.text.normal,
+                  { marginVertical: 6 },
+                ]}
+              >
+                {i18n.t("ageDistDesc")}
+              </Text>
 
               {isLoadingAnalysis && (
                 <ActivityIndicator
