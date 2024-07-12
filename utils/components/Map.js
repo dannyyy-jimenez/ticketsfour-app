@@ -36,6 +36,22 @@ export default function MapComponent(props) {
         <ShapeSource id="heatmap-datapoints" shape={heatmap}>
           <HeatmapLayer
             style={{
+              heatmapRadius: {
+                stops: [
+                  [1, 15],
+                  [11, 30],
+                  [15, 50],
+                  [20, 200],
+                ],
+              },
+              heatmapIntensity: {
+                stops: [
+                  [5, 1],
+                  [11, 3],
+                  [15, 5],
+                  [20, 10],
+                ],
+              },
               heatmapColor: [
                 "interpolate",
                 ["linear"],

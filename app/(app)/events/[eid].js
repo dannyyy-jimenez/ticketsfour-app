@@ -24,7 +24,11 @@ import { Link, router, useLocalSearchParams } from "expo-router";
 import EventModel from "../../../models/Event";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+  Marker,
+  PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
+} from "react-native-maps";
 import PagerView from "react-native-pager-view";
 import * as Sharing from "expo-sharing";
 import {
@@ -53,6 +57,7 @@ import Animated, {
   interpolate,
 } from "react-native-reanimated";
 import { trackEvent } from "@aptabase/react-native";
+import { StatusBar } from "expo-status-bar";
 
 export default function EventScreen() {
   const { session, auth, isGuest, signOut } = useSession();
@@ -838,6 +843,7 @@ export default function EventScreen() {
         urlScheme="com.ticketsfour.app" // required for 3D Secure and bank redirects
         merchantIdentifier="merchant.com.ticketsfour.app" // required for Apple Pay
       >
+        {Platform.OS == "android" && <StatusBar hidden />}
         <KeyboardAvoidingView
           behavior="padding"
           style={{ flex: 1, width: "100%" }}
@@ -1037,7 +1043,11 @@ export default function EventScreen() {
                 </View>
                 <View key="map">
                   <MapView
-                    provider={Platform.OS == "android" ? PROVIDER_GOOGLE : null}
+                    provider={
+                      Platform.OS == "android"
+                        ? PROVIDER_GOOGLE
+                        : PROVIDER_DEFAULT
+                    }
                     scrollEnabled={false}
                     showsUserLocation={true}
                     initialRegion={{

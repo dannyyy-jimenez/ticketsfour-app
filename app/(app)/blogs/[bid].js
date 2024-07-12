@@ -31,6 +31,7 @@ import Config from "../../../utils/Config";
 import SkeletonLoader from "expo-skeleton-loader";
 import Blog from "../../../models/Blog";
 import FancyComposer from "../../../utils/components/FancyComposer";
+import { StatusBar } from "react-native";
 
 const blurhash = "L6Pj0^jE.AyE_3t7t7R**0o#DgR4";
 
@@ -177,177 +178,187 @@ export default function EventScreen() {
     );
 
   return (
-    <ScrollContainer
-      _ref={scrollContainer}
-      style={{ paddingBottom: 0 }}
-      paddingHorizontal={0}
-    >
-      <TouchableOpacity
-        style={[
-          Style.button.round,
-          Style.elevated,
-          { zIndex: 100, padding: 0, position: "absolute", left: 0 },
-        ]}
-        onPress={onClose}
+    <>
+      {Platform.OS == "android" && <StatusBar hidden />}
+      <ScrollContainer
+        _ref={scrollContainer}
+        style={{ paddingBottom: 0 }}
+        paddingHorizontal={0}
       >
-        <Feather name="x" size={20} color={theme["color-basic-700"]} />
-      </TouchableOpacity>
-      <View>
-        <Image
-          style={{
-            width: "100%",
-            borderTopLeftRadius: 4,
-            borderTopRightRadius: 4,
-          }}
-          contentFit="cover"
-          source={{ uri: blog.cover }}
-          width={"100%"}
-          height={height * 0.4}
-          allowDownscaling
-          contentPosition={"top"}
-        />
-        <BlurView
-          intensity={20}
+        <TouchableOpacity
           style={[
-            Style.containers.column,
-            {
-              paddingHorizontal: 10,
-              width: "100%",
-              height: height * 0.4,
-              paddingVertical: 10,
-              alignItems: "center",
-              justifyContent: "flex-start",
-              position: "absolute",
-              top: 0,
-              backgroundColor: theme["color-basic-800-10"],
-            },
+            Style.button.round,
+            Style.elevated,
+            { zIndex: 100, padding: 0, position: "absolute", left: 0 },
           ]}
+          onPress={onClose}
         >
+          <Feather name="x" size={20} color={theme["color-basic-700"]} />
+        </TouchableOpacity>
+        <View>
           <Image
             style={{
-              maxWidth: "90%",
-              flex: 1,
-              borderRadius: 4,
-              alignSelf: "center",
-              marginTop: 15,
-              marginBottom: 35,
+              width: "100%",
+              borderTopLeftRadius: 4,
+              borderTopRightRadius: 4,
             }}
             contentFit="cover"
             source={{ uri: blog.cover }}
             width={"100%"}
-            contentPosition={"center"}
+            height={height * 0.4}
+            allowDownscaling
+            contentPosition={"top"}
           />
-        </BlurView>
-      </View>
-      <View
-        style={{
-          padding: 10,
-          paddingVertical: 20,
-          borderTopLeftRadius: 15,
-          borderTopRightRadius: 15,
-          backgroundColor: theme["color-basic-100"],
-          top: -30,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={[Style.text.primary, Style.text.normal]}>
-          {blog?.getCategory()}
-        </Text>
-        <Text
-          style={[
-            Style.text.dark,
-            Style.text.bold,
-            Style.text.xl,
-            { textAlign: "center", marginTop: 10 },
-          ]}
-        >
-          {blog?.title}
-        </Text>
-        <Text
-          style={[
-            Style.text.dark,
-            Style.text.bold,
-            { textAlign: "center", marginTop: 15 },
-          ]}
-        >
-          {blog?.subtitle}
-        </Text>
-
-        {blog?.tags?.length > 0 && (
-          <View
-            style={[Style.containers.row, { marginTop: 15, marginBottom: 20 }]}
+          <BlurView
+            intensity={20}
+            style={[
+              Style.containers.column,
+              {
+                paddingHorizontal: 10,
+                width: "100%",
+                height: height * 0.4,
+                paddingVertical: 10,
+                alignItems: "center",
+                justifyContent: "flex-start",
+                position: "absolute",
+                top: 0,
+                backgroundColor: theme["color-basic-800-10"],
+              },
+            ]}
           >
-            {blog?.tags.map((tag, tidx) => (
-              <View
-                style={[Style.badge, { marginHorizontal: 4 }]}
-                key={"T-" + tidx}
-              >
-                <Text style={[Style.text.basic, Style.text.semibold]}>
-                  #{tag}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
+            <Image
+              style={{
+                maxWidth: "90%",
+                flex: 1,
+                borderRadius: 4,
+                alignSelf: "center",
+                marginTop: 15,
+                marginBottom: 35,
+              }}
+              contentFit="cover"
+              source={{ uri: blog.cover }}
+              width={"100%"}
+              contentPosition={"center"}
+            />
+          </BlurView>
+        </View>
         <View
-          style={[
-            Style.containers.column,
-            {
-              flex: 1,
-              justifyContent: "flex-start",
-              alignItems: "flex-start",
-            },
-          ]}
+          style={{
+            padding: 10,
+            paddingVertical: 20,
+            borderTopLeftRadius: 15,
+            borderTopRightRadius: 15,
+            backgroundColor: theme["color-basic-100"],
+            top: -30,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
-          {events.length > 0 && (
-            <>
-              <Text
-                style={[
-                  Style.text.dark,
-                  Style.transparency.md,
-                  Style.text.bold,
-                  Style.text.lg,
-                  { marginTop: 15, marginBottom: 10, alignSelf: "flex-start" },
-                ]}
-              >
-                {i18n.t("featuredEvents")}
-              </Text>
+          <Text style={[Style.text.primary, Style.text.normal]}>
+            {blog?.getCategory()}
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.bold,
+              Style.text.xl,
+              { textAlign: "center", marginTop: 10 },
+            ]}
+          >
+            {blog?.title}
+          </Text>
+          <Text
+            style={[
+              Style.text.dark,
+              Style.text.bold,
+              { textAlign: "center", marginTop: 15 },
+            ]}
+          >
+            {blog?.subtitle}
+          </Text>
 
-              <ScrollView
-                showsHorizontalScrollIndicator={false}
-                horizontal
-                style={{ marginTop: 10, marginBottom: 30, width: "100%" }}
-              >
-                {events.map((ev) => (
-                  <TouchableOpacity
-                    onPress={() => onCheckoutEvent(ev)}
-                    key={ev.id}
-                    style={[
-                      Style.cards.exposeCreative,
-                      { alignSelf: "flex-start", marginHorizontal: 5 },
-                    ]}
-                  >
-                    <Image
-                      placeholder={blurhash}
-                      style={{
-                        height: "100%",
-                        width: "100%",
-                        objectFit: "cover",
-                      }}
-                      contentFit="cover"
-                      source={{ uri: ev.coverT }}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </>
+          {blog?.tags?.length > 0 && (
+            <View
+              style={[
+                Style.containers.row,
+                { marginTop: 15, marginBottom: 20 },
+              ]}
+            >
+              {blog?.tags.map((tag, tidx) => (
+                <View
+                  style={[Style.badge, { marginHorizontal: 4 }]}
+                  key={"T-" + tidx}
+                >
+                  <Text style={[Style.text.basic, Style.text.semibold]}>
+                    #{tag}
+                  </Text>
+                </View>
+              ))}
+            </View>
           )}
 
-          <FancyComposer nodes={blog?.nodes} />
+          <View
+            style={[
+              Style.containers.column,
+              {
+                flex: 1,
+                justifyContent: "flex-start",
+                alignItems: "flex-start",
+              },
+            ]}
+          >
+            {events.length > 0 && (
+              <>
+                <Text
+                  style={[
+                    Style.text.dark,
+                    Style.transparency.md,
+                    Style.text.bold,
+                    Style.text.lg,
+                    {
+                      marginTop: 15,
+                      marginBottom: 10,
+                      alignSelf: "flex-start",
+                    },
+                  ]}
+                >
+                  {i18n.t("featuredEvents")}
+                </Text>
+
+                <ScrollView
+                  showsHorizontalScrollIndicator={false}
+                  horizontal
+                  style={{ marginTop: 10, marginBottom: 30, width: "100%" }}
+                >
+                  {events.map((ev) => (
+                    <TouchableOpacity
+                      onPress={() => onCheckoutEvent(ev)}
+                      key={ev.id}
+                      style={[
+                        Style.cards.exposeCreative,
+                        { alignSelf: "flex-start", marginHorizontal: 5 },
+                      ]}
+                    >
+                      <Image
+                        placeholder={blurhash}
+                        style={{
+                          height: "100%",
+                          width: "100%",
+                          objectFit: "cover",
+                        }}
+                        contentFit="cover"
+                        source={{ uri: ev.coverT }}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
+            <FancyComposer nodes={blog?.nodes} />
+          </View>
         </View>
-      </View>
-    </ScrollContainer>
+      </ScrollContainer>
+    </>
   );
 }

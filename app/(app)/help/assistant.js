@@ -1,6 +1,6 @@
 import React from "react";
 import { useSession } from "../../../utils/ctx";
-import { View, Dimensions, ScrollView } from "react-native";
+import { View, Dimensions, ScrollView, Platform } from "react-native";
 import { ScrollContainer } from "../../../utils/components/Layout";
 import Style, { theme } from "../../../utils/Styles";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ import { Text } from "react-native";
 import Api from "../../../utils/Api";
 import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native";
+import { StatusBar } from "expo-status-bar";
 
 export default function TicketScreen() {
   const { auth } = useSession();
@@ -87,141 +88,149 @@ export default function TicketScreen() {
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      behavior="position"
-      style={{
-        height: height,
-        backgroundColor: theme["color-basic-100"],
-      }}
-    >
-      <ScrollView
-        ref={conversationScrollRef}
-        showsVerticalScrollIndicator={false}
+    <>
+      {Platform.OS == "android" && <StatusBar hidden />}
+      <KeyboardAvoidingView
+        behavior="position"
         style={{
-          width: "100%",
-          paddingHorizontal: 10,
-          height: height - 150,
-        }}
-        contentContainerStyle={{
-          paddingBottom: 20,
+          height: height,
+          backgroundColor: theme["color-basic-100"],
         }}
       >
-        <View
+        <ScrollView
+          ref={conversationScrollRef}
+          showsVerticalScrollIndicator={false}
           style={{
-            width: 180,
-            height: conversation.length > 1 ? 200 : height * 0.6,
-            alignSelf: "center",
-            justifyContent: "center",
-            alignItems: "center",
-            flexDirection: "column",
+            width: "100%",
+            paddingHorizontal: 10,
+            height: height - 150,
+          }}
+          contentContainerStyle={{
+            paddingBottom: 20,
           }}
         >
-          <MaterialCommunityIcons
-            name="robot-confused-outline"
-            size={84}
-            color={theme["color-primary-500"]}
-            style={{ marginVertical: 20 }}
-          />
-          <Text
-            style={[
-              Style.text.primary,
-              Style.text.xxl,
-              { fontFamily: "Flix-Normal", letterSpacing: 0.5 },
-            ]}
+          <View
+            style={{
+              width: 180,
+              height: conversation.length > 1 ? 200 : height * 0.6,
+              alignSelf: "center",
+              justifyContent: "center",
+              alignItems: "center",
+              flexDirection: "column",
+            }}
           >
-            Tickets Four
-          </Text>
-          <Text
+            <MaterialCommunityIcons
+              name="robot-confused-outline"
+              size={84}
+              color={theme["color-primary-500"]}
+              style={{ marginVertical: 20 }}
+            />
+            <Text
+              style={[
+                Style.text.primary,
+                Style.text.xxl,
+                { fontFamily: "Flix-Normal", letterSpacing: 0.5 },
+              ]}
+            >
+              Tickets Four
+            </Text>
+            <Text
+              style={[
+                Style.text.dark,
+                Style.text.lg,
+                {
+                  textAlign: "right",
+                  width: "100%",
+                  fontFamily: "Flix-Normal",
+                  letterSpacing: 0.5,
+                },
+              ]}
+            >
+              Assistant
+            </Text>
+          </View>
+          <View style={{ flex: 1 }} />
+          {conversation.map((message, midx) => (
+            <View
+              key={"message-" + midx}
+              style={{ width: "100%", marginVertical: 6 }}
+            >
+              <View
+                style={{
+                  width: width * 0.6,
+                  paddingVertical: 15,
+                  paddingHorizontal: 10,
+                  borderRadius: 6,
+                  backgroundColor:
+                    message.sender == "assistant"
+                      ? theme["color-primary-300"]
+                      : theme["color-basic-700"],
+                  borderBottomLeftRadius: message.sender == "assistant" ? 0 : 6,
+                  borderBottomRightRadius:
+                    message.sender == "assistant" ? 6 : 0,
+                  alignSelf:
+                    message.sender == "assistant" ? "flex-start" : "flex-end",
+                }}
+              >
+                <Text style={[Style.text.basic, Style.text.semibold]}>
+                  {message.message}
+                </Text>
+              </View>
+            </View>
+          ))}
+          {isLoading && (
+            <View style={{ width, marginVertical: 6 }}>
+              <View
+                style={{
+                  width: width * 0.6,
+                  paddingVertical: 15,
+                  paddingHorizontal: 10,
+                  borderRadius: 6,
+                  borderBottomLeftRadius: 0,
+                }}
+              >
+                <Text
+                  style={[
+                    Style.text.basic,
+                    Style.text.xxl,
+                    Style.text.semibold,
+                  ]}
+                >
+                  🤔🤔🤔
+                </Text>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+        <View style={{ width, flexGrow: 0 }}>
+          <View
             style={[
-              Style.text.dark,
-              Style.text.lg,
+              Style.input.container,
               {
-                textAlign: "right",
-                width: "100%",
-                fontFamily: "Flix-Normal",
-                letterSpacing: 0.5,
+                width: width - 40,
+                alignSelf: "center",
               },
             ]}
           >
-            Assistant
-          </Text>
-        </View>
-        <View style={{ flex: 1 }} />
-        {conversation.map((message, midx) => (
-          <View
-            key={"message-" + midx}
-            style={{ width: "100%", marginVertical: 6 }}
-          >
-            <View
-              style={{
-                width: width * 0.6,
-                paddingVertical: 15,
-                paddingHorizontal: 10,
-                borderRadius: 6,
-                backgroundColor:
-                  message.sender == "assistant"
-                    ? theme["color-primary-300"]
-                    : theme["color-basic-700"],
-                borderBottomLeftRadius: message.sender == "assistant" ? 0 : 6,
-                borderBottomRightRadius: message.sender == "assistant" ? 6 : 0,
-                alignSelf:
-                  message.sender == "assistant" ? "flex-start" : "flex-end",
-              }}
-            >
-              <Text style={[Style.text.basic, Style.text.semibold]}>
-                {message.message}
-              </Text>
+            <View style={[Style.input.prefix]}>
+              <Feather
+                name="message-square"
+                size={18}
+                color={theme["color-primary-400"]}
+              />
             </View>
-          </View>
-        ))}
-        {isLoading && (
-          <View style={{ width, marginVertical: 6 }}>
-            <View
-              style={{
-                width: width * 0.6,
-                paddingVertical: 15,
-                paddingHorizontal: 10,
-                borderRadius: 6,
-                borderBottomLeftRadius: 0,
-              }}
-            >
-              <Text
-                style={[Style.text.basic, Style.text.xxl, Style.text.semibold]}
-              >
-                🤔🤔🤔
-              </Text>
-            </View>
-          </View>
-        )}
-      </ScrollView>
-      <View style={{ width, flexGrow: 0 }}>
-        <View
-          style={[
-            Style.input.container,
-            {
-              width: width - 40,
-              alignSelf: "center",
-            },
-          ]}
-        >
-          <View style={[Style.input.prefix]}>
-            <Feather
-              name="message-square"
-              size={18}
-              color={theme["color-primary-400"]}
+            <TextInput
+              readOnly={isLoading || conversation.length > 20}
+              onSubmitEditing={onSubmit}
+              enterKeyHint="submit"
+              style={[Style.input.text]}
+              placeholder={i18n.t("enter_message")}
+              value={message}
+              onChangeText={(val) => setMessage(val)}
             />
           </View>
-          <TextInput
-            readOnly={isLoading || conversation.length > 20}
-            onSubmitEditing={onSubmit}
-            enterKeyHint="submit"
-            style={[Style.input.text]}
-            placeholder={i18n.t("enter_message")}
-            value={message}
-            onChangeText={(val) => setMessage(val)}
-          />
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Linking,
   Switch,
+  Platform,
 } from "react-native";
 import * as Sharing from "expo-sharing";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -52,7 +53,7 @@ function EventsShareSheet({ sheetId, payload }) {
     let uri = await event.getShareables("qr");
 
     let shareImageBase64 = {
-      title: "React Native",
+      title: "Event QR Code",
       url: uri,
       type: "image/jpeg",
       filename: "event-code.svg",
@@ -66,10 +67,30 @@ function EventsShareSheet({ sheetId, payload }) {
   };
 
   const onShareAll = () => {
+    if (Platform.OS == "android") {
+      let uridata = {
+        title: event.name,
+        message: event.getShareables(),
+      };
+      Share.open(uridata).catch((e) => {});
+
+      return;
+    }
+
     Sharing.shareAsync(event.getShareables());
   };
 
   const onShareFlyer = () => {
+    if (Platform.OS == "android") {
+      let uridata = {
+        title: event.name,
+        message: event.coverT,
+      };
+      Share.open(uridata).catch((e) => {});
+
+      return;
+    }
+
     Sharing.shareAsync(event.coverT);
   };
 
@@ -95,7 +116,10 @@ function EventsShareSheet({ sheetId, payload }) {
       <BlurView
         intensity={40}
         style={{
-          backgroundColor: "rgba(11,11,11,0.5)",
+          backgroundColor:
+            Platform.OS == "android"
+              ? "rgba(0,0,0,0.95)"
+              : "rgba(11,11,11,0.4)",
           width,
           top: -30,
           height: height + 30,

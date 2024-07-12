@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReplaceWithStyle } from "../../../utils/Formatters";
 import { TypeAnimation } from "react-native-type-animation";
 import WebView from "react-native-webview";
+import { StatusBar } from "react-native";
 
 export default function TicketBundlerScreen() {
   const { i18n } = useLocalization();
@@ -232,206 +233,214 @@ export default function TicketBundlerScreen() {
     );
 
   return (
-    <ScrollContainer
-      style={{
-        paddingTop: 20,
-        paddingBottom: 0,
-      }}
-    >
-      {artists.length > 0 && (
-        <>
-          <Text
-            style={[
-              Style.text.xxl,
-              Style.text.semibold,
-              { textAlign: "center", paddingVertical: 4 },
-            ]}
-          >
-            You Got{" "}
-            <Text style={{ color: theme["color-primary-500"] }}>
-              Tickets Four
+    <>
+      {Platform.OS == "android" && <StatusBar hidden />}
+      <ScrollContainer
+        style={{
+          paddingTop: 20,
+          paddingBottom: 0,
+        }}
+      >
+        {artists.length > 0 && (
+          <>
+            <Text
+              style={[
+                Style.text.xxl,
+                Style.text.semibold,
+                { textAlign: "center", paddingVertical: 4 },
+              ]}
+            >
+              You Got{" "}
+              <Text style={{ color: theme["color-primary-500"] }}>
+                Tickets Four
+              </Text>
             </Text>
-          </Text>
-          <Text
-            style={[
-              Style.text.xxl,
-              Style.text.semibold,
-              { textAlign: "center", paddingVertical: 4 },
-            ]}
-          >
-            An Unforgettable{" "}
-            <Text style={{ color: theme["color-primary-500"] }}>Lineup</Text>
-          </Text>
-          <Text
-            style={[
-              Style.text.dark,
-              Style.text.semibold,
-              Style.transparency.md,
-              { textAlign: "center", paddingVertical: 2, marginBottom: 8 },
-            ]}
-          >
-            Make sure to practice for the event!
-          </Text>
-          {artists.map((talent) => (
-            <ArtistCard style={{ marginVertical: 10 }} talent={talent} />
-          ))}
+            <Text
+              style={[
+                Style.text.xxl,
+                Style.text.semibold,
+                { textAlign: "center", paddingVertical: 4 },
+              ]}
+            >
+              An Unforgettable{" "}
+              <Text style={{ color: theme["color-primary-500"] }}>Lineup</Text>
+            </Text>
+            <Text
+              style={[
+                Style.text.dark,
+                Style.text.semibold,
+                Style.transparency.md,
+                { textAlign: "center", paddingVertical: 2, marginBottom: 8 },
+              ]}
+            >
+              Make sure to practice for the event!
+            </Text>
+            {artists.map((talent) => (
+              <ArtistCard style={{ marginVertical: 10 }} talent={talent} />
+            ))}
 
-          <Text
-            style={[
-              Style.text.xxl,
-              Style.text.semibold,
-              { textAlign: "center", paddingVertical: 4, marginTop: 8 },
-            ]}
-          >
-            <Text style={{ color: theme["color-primary-500"] }}>Music</Text>{" "}
-            That{" "}
-            <Text style={{ color: theme["color-primary-500"] }}>Elevates</Text>{" "}
-            Your <Text style={{ color: theme["color-primary-500"] }}>Soul</Text>
-          </Text>
-          <Text
-            style={[
-              Style.text.dark,
-              Style.text.semibold,
-              Style.transparency.md,
-              { textAlign: "center", paddingVertical: 2, marginBottom: 15 },
-            ]}
-          >
-            Checkout the most recent music from these artists
-          </Text>
-          {artists.map((talent, tidx) => (
-            <WebView
-              key={"talent-" + tidx}
-              style={{ width: "100%", marginVertical: 4, height: 480 }}
-              source={{ uri: talent.embed }}
+            <Text
+              style={[
+                Style.text.xxl,
+                Style.text.semibold,
+                { textAlign: "center", paddingVertical: 4, marginTop: 8 },
+              ]}
+            >
+              <Text style={{ color: theme["color-primary-500"] }}>Music</Text>{" "}
+              That{" "}
+              <Text style={{ color: theme["color-primary-500"] }}>
+                Elevates
+              </Text>{" "}
+              Your{" "}
+              <Text style={{ color: theme["color-primary-500"] }}>Soul</Text>
+            </Text>
+            <Text
+              style={[
+                Style.text.dark,
+                Style.text.semibold,
+                Style.transparency.md,
+                { textAlign: "center", paddingVertical: 2, marginBottom: 15 },
+              ]}
+            >
+              Checkout the most recent music from these artists
+            </Text>
+            {artists.map((talent, tidx) => (
+              <WebView
+                key={"talent-" + tidx}
+                style={{ width: "100%", marginVertical: 4, height: 480 }}
+                source={{ uri: talent.embed }}
+              />
+            ))}
+          </>
+        )}
+        <TouchableOpacity
+          style={[
+            Style.button.round,
+            Style.elevated,
+            { zIndex: 100, padding: 0, position: "absolute", left: 0 },
+          ]}
+          onPress={onClose}
+        >
+          <Feather name="x" size={20} color={theme["color-basic-700"]} />
+        </TouchableOpacity>
+        <TypeAnimation
+          sequence={[{ text: i18n.t("quoteHellen") }]}
+          style={{
+            ...Style.text.primary,
+            ...Style.text.xxl,
+            ...Style.text.bold,
+            ...{ textAlign: "center", fontStyle: "italic", paddingVertical: 2 },
+          }}
+        />
+        <Text
+          style={[
+            Style.text.organizer,
+            Style.text.semibold,
+            {
+              textAlign: "right",
+              marginTop: 6,
+              paddingVertical: 2,
+            },
+          ]}
+        >
+          - Hellen Keller
+        </Text>
+        <PagerView
+          onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
+          style={{
+            flex: 1,
+            minHeight: height * 0.68,
+            width: "100%",
+            left: 0,
+            marginTop: 10,
+            marginBottom: 10,
+          }}
+          initialPage={0}
+        >
+          {tickets.map((ticket, tidx) => (
+            <TicketComponent key={tidx} ticket={ticket} />
+          ))}
+        </PagerView>
+        <View style={[Style.containers.row, { marginTop: 5 }]}>
+          {tickets.map((_p, pidx) => (
+            <View
+              style={{
+                height: 8,
+                width: 8,
+                borderRadius: 4,
+                marginHorizontal: 4,
+                backgroundColor:
+                  pidx == activePager
+                    ? theme["color-primary-500"]
+                    : theme["color-basic-500"],
+              }}
             />
           ))}
-        </>
-      )}
-      <TouchableOpacity
-        style={[
-          Style.button.round,
-          Style.elevated,
-          { zIndex: 100, padding: 0, position: "absolute", left: 0 },
-        ]}
-        onPress={onClose}
-      >
-        <Feather name="x" size={20} color={theme["color-basic-700"]} />
-      </TouchableOpacity>
-      <TypeAnimation
-        sequence={[{ text: i18n.t("quoteHellen") }]}
-        style={{
-          ...Style.text.primary,
-          ...Style.text.xxl,
-          ...Style.text.bold,
-          ...{ textAlign: "center", fontStyle: "italic", paddingVertical: 2 },
-        }}
-      />
-      <Text
-        style={[
-          Style.text.organizer,
-          Style.text.semibold,
-          {
-            textAlign: "right",
-            marginTop: 6,
-            paddingVertical: 2,
-          },
-        ]}
-      >
-        - Hellen Keller
-      </Text>
-      <PagerView
-        onPageScroll={(e) => setActivePager(e.nativeEvent.position)}
-        style={{
-          flex: 1,
-          minHeight: height * 0.68,
-          width: "100%",
-          left: 0,
-          marginTop: 10,
-          marginBottom: 10,
-        }}
-        initialPage={0}
-      >
-        {tickets.map((ticket, tidx) => (
-          <TicketComponent key={tidx} ticket={ticket} />
-        ))}
-      </PagerView>
-      <View style={[Style.containers.row, { marginTop: 5 }]}>
-        {tickets.map((_p, pidx) => (
-          <View
-            style={{
-              height: 8,
-              width: 8,
-              borderRadius: 4,
-              marginHorizontal: 4,
-              backgroundColor:
-                pidx == activePager
-                  ? theme["color-primary-500"]
-                  : theme["color-basic-500"],
-            }}
-          />
-        ))}
-      </View>
-      <View
-        style={[
-          Style.containers.row,
-          {
-            justifyContent: "space-evenly",
-            width: width,
-            marginTop: 25,
-            marginBottom: 5,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => Linking.openURL("https://facebook.com/ticketsfour")}
+        </View>
+        <View
+          style={[
+            Style.containers.row,
+            {
+              justifyContent: "space-evenly",
+              width: width,
+              marginTop: 25,
+              marginBottom: 5,
+            },
+          ]}
         >
-          <Feather
-            name="facebook"
-            color={theme["color-primary-500"]}
-            size={26}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            Linking.openURL("https://www.instagram.com/ticketsfour")
-          }
-        >
-          <MaterialCommunityIcons
-            name="instagram"
-            color={theme["color-primary-500"]}
-            size={28}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => Linking.openURL("https://www.x.com/ticketsfourapp")}
-        >
-          <FontAwesome6
-            name="x-twitter"
-            color={theme["color-primary-500"]}
-            size={24}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => Linking.openURL("https://www.tiktok.com/@ticketsfour")}
-        >
-          <FontAwesome6
-            name="tiktok"
-            color={theme["color-primary-500"]}
-            size={22}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            Linking.openURL("https://www.linkedin.com/company/ticketsfour")
-          }
-        >
-          <FontAwesome6
-            name="linkedin-in"
-            color={theme["color-primary-500"]}
-            size={24}
-          />
-        </TouchableOpacity>
-      </View>
-    </ScrollContainer>
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://facebook.com/ticketsfour")}
+          >
+            <Feather
+              name="facebook"
+              color={theme["color-primary-500"]}
+              size={26}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              Linking.openURL("https://www.instagram.com/ticketsfour")
+            }
+          >
+            <MaterialCommunityIcons
+              name="instagram"
+              color={theme["color-primary-500"]}
+              size={28}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://www.x.com/ticketsfourapp")}
+          >
+            <FontAwesome6
+              name="x-twitter"
+              color={theme["color-primary-500"]}
+              size={24}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              Linking.openURL("https://www.tiktok.com/@ticketsfour")
+            }
+          >
+            <FontAwesome6
+              name="tiktok"
+              color={theme["color-primary-500"]}
+              size={22}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              Linking.openURL("https://www.linkedin.com/company/ticketsfour")
+            }
+          >
+            <FontAwesome6
+              name="linkedin-in"
+              color={theme["color-primary-500"]}
+              size={24}
+            />
+          </TouchableOpacity>
+        </View>
+      </ScrollContainer>
+    </>
   );
 }
