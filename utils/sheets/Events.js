@@ -1070,7 +1070,7 @@ function EventNodeTierSheet({ sheetId, payload }) {
   const event = payload?.event;
   const eid = event?.id;
   const node = payload?.node;
-  const nidx = payload?.nodeIdx;
+  const [nidx, setNidx] = React.useState(payload?.nodeIdx);
 
   const [activeTier, setActiveTier] = React.useState(node.tier);
 
@@ -1087,6 +1087,7 @@ function EventNodeTierSheet({ sheetId, payload }) {
         capacity: node.capacity,
         holdings: node.holdings,
         tier: activeTier,
+        tierTasks: [],
       });
       if (res.isError) throw "e";
 
@@ -1169,7 +1170,10 @@ function EventNodeTierSheet({ sheetId, payload }) {
         {event?.tiers.map((tier, tidx) => (
           <Pressable
             key={"tier-" + tidx}
-            onPress={() => setActiveTier(tier.identifier)}
+            onPress={() => {
+              setActiveTier(tier.identifier);
+              setNidx(tidx);
+            }}
             style={[
               Style.containers.row,
               {
@@ -1209,7 +1213,10 @@ function EventNodeTierSheet({ sheetId, payload }) {
         ))}
 
         {isLoading && (
-          <ActivityIndicator size="small" color={theme["color-primary-500"]} />
+          <ActivityIndicator
+            size="small"
+            color={theme["color-organizer-500"]}
+          />
         )}
         {!isLoading && (
           <TouchableOpacity
