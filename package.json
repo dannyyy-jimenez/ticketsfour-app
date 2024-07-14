@@ -25,6 +25,7 @@
     "@shopify/react-native-skia": "^1.2.3",
     "@stripe/stripe-react-native": "0.37.2",
     "axios": "^1.6.7",
+    "axios-retry": "^4.4.1",
     "expo": "~51.0.19",
     "expo-asset": "~10.0.6",
     "expo-av": "~14.0.6",

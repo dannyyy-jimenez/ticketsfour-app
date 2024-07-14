@@ -482,58 +482,68 @@ export default function DashboardScreen() {
             {i18n.t("overview")}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSection(1)}
-          style={[{ padding: 15, marginVertical: 10 }, Style.containers.column]}
-        >
-          <Feather
-            size={26}
-            color={
-              section == 1
-                ? theme["color-organizer-500"]
-                : theme["color-basic-700"]
-            }
-            name="users"
-          />
-          <Text
+        {canEditTeamRoles && (
+          <TouchableOpacity
+            onPress={() => setSection(1)}
             style={[
-              Style.text.semibold,
-              Style.text.sm,
-              section == 1 ? Style.text.organizer : Style.text.dark,
-              {
-                marginTop: 4,
-              },
+              { padding: 15, marginVertical: 10 },
+              Style.containers.column,
             ]}
           >
-            {i18n.t("team")}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSection(2)}
-          style={[{ padding: 15, marginVertical: 10 }, Style.containers.column]}
-        >
-          <Feather
-            size={26}
-            color={
-              section == 2
-                ? theme["color-organizer-500"]
-                : theme["color-basic-700"]
-            }
-            name="settings"
-          />
-          <Text
+            <Feather
+              size={26}
+              color={
+                section == 1
+                  ? theme["color-organizer-500"]
+                  : theme["color-basic-700"]
+              }
+              name="users"
+            />
+            <Text
+              style={[
+                Style.text.semibold,
+                Style.text.sm,
+                section == 1 ? Style.text.organizer : Style.text.dark,
+                {
+                  marginTop: 4,
+                },
+              ]}
+            >
+              {i18n.t("team")}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {canEditSettings && (
+          <TouchableOpacity
+            onPress={() => setSection(2)}
             style={[
-              Style.text.semibold,
-              Style.text.sm,
-              section == 2 ? Style.text.organizer : Style.text.dark,
-              {
-                marginTop: 4,
-              },
+              { padding: 15, marginVertical: 10 },
+              Style.containers.column,
             ]}
           >
-            {i18n.t("settings")}
-          </Text>
-        </TouchableOpacity>
+            <Feather
+              size={26}
+              color={
+                section == 2
+                  ? theme["color-organizer-500"]
+                  : theme["color-basic-700"]
+              }
+              name="settings"
+            />
+            <Text
+              style={[
+                Style.text.semibold,
+                Style.text.sm,
+                section == 2 ? Style.text.organizer : Style.text.dark,
+                {
+                  marginTop: 4,
+                },
+              ]}
+            >
+              {i18n.t("settings")}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
       {section == 0 && (
         <View>

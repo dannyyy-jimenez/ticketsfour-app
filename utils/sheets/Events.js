@@ -975,7 +975,7 @@ function EventTierSheet({ sheetId, payload }) {
             {i18n.t("name")}
           </Text>
         </View>
-        <View style={[Style.input.container]}>
+        <View style={[Style.input.container, { marginBottom: 20 }]}>
           <TextInput
             enterKeyHint="next"
             style={[Style.input.text]}
@@ -986,38 +986,45 @@ function EventTierSheet({ sheetId, payload }) {
           />
         </View>
 
-        <View
-          style={{
-            borderRadius: 5,
-            paddingVertical: 8,
-            backgroundColor: theme["color-basic-100"],
-            alignSelf: "flex-start",
-            textAlign: "left",
-            marginTop: 20,
-          }}
-        >
-          <Text
-            style={[Style.text.semibold, Style.text.lg, { marginBottom: 4 }]}
-          >
-            {i18n.t("amount")}
-          </Text>
-        </View>
-        <View style={[Style.input.container, { marginBottom: 30 }]}>
-          <MaterialCommunityIcons
-            style={[Style.button.prefix]}
-            name="currency-usd"
-            size={20}
-            color={theme["color-basic-700"]}
-          />
-          <TextInput
-            enterKeyHint="done"
-            style={[Style.input.text]}
-            placeholder={"20.00"}
-            value={tierAmount}
-            keyboardType="numeric"
-            onChangeText={(val) => setTierAmount(val)}
-          />
-        </View>
+        {!edit && (
+          <>
+            <View
+              style={{
+                borderRadius: 5,
+                paddingVertical: 8,
+                backgroundColor: theme["color-basic-100"],
+                alignSelf: "flex-start",
+                textAlign: "left",
+              }}
+            >
+              <Text
+                style={[
+                  Style.text.semibold,
+                  Style.text.lg,
+                  { marginBottom: 4 },
+                ]}
+              >
+                {i18n.t("amount")}
+              </Text>
+            </View>
+            <View style={[Style.input.container, { marginBottom: 30 }]}>
+              <MaterialCommunityIcons
+                style={[Style.button.prefix]}
+                name="currency-usd"
+                size={20}
+                color={theme["color-basic-700"]}
+              />
+              <TextInput
+                enterKeyHint="done"
+                style={[Style.input.text]}
+                placeholder={"20.00"}
+                value={tierAmount}
+                keyboardType="numeric"
+                onChangeText={(val) => setTierAmount(val)}
+              />
+            </View>
+          </>
+        )}
         {isLoading && (
           <ActivityIndicator size="small" color={theme["color-primary-500"]} />
         )}

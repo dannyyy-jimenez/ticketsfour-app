@@ -11,6 +11,7 @@ import {
   RefreshControl,
 } from "react-native";
 import LayoutContainer, {
+  LockedView,
   ScrollContainer,
 } from "../../../utils/components/Layout";
 import Style, { theme } from "../../../utils/Styles";
@@ -167,6 +168,10 @@ export default function FinancesScreen() {
         />
       </LayoutContainer>
     );
+
+  if (!isLoading && !hasPermission) {
+    return <LockedView />;
+  }
 
   return (
     <StripeProvider

@@ -346,5 +346,7 @@
   "viewsMapDesc": "See where event views are coming from, based on IP addresses. The data is sampled for accuracy. Use this insight to identify key regions and optimize your promotional efforts.",
   "waitingDataMapView": "Once we have enough data, you'll see a heatmap of your views geolocation.",
   "ageDist": "Age Distribution",
-  "ageDistDesc": "This pie chart shows the age distribution of your event attendees, helping you understand your audience for better planning and marketing."
+  "ageDistDesc": "This pie chart shows the age distribution of your event attendees, helping you understand your audience for better planning and marketing.",
+  "issueScanning": "Having an issue scanning?",
+  "issueScanningDesc": "Search for ticket purchases by name, phone number, or the last four digits of the credit card used to quickly and easily validate tickets for your event."
 }

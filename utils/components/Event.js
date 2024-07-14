@@ -47,6 +47,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
   const [shares, setShares] = React.useState(0);
   const [sales, setSales] = React.useState(0);
   const [attendees, setAttendees] = React.useState(0);
+  const [permissions, setPermissions] = React.useState([]);
 
   const onView = () => {
     router.push("/organization/events/" + event.id);
@@ -76,6 +77,7 @@ export function OrgEventComponent({ _event, withinMap = false }) {
         setViews(NumFormatter(res.data.views));
         setShortLink(res.data.event.shortLink);
         setSales(NumFormatter(res.data.event.sales / 100));
+        setPermissions(res.data.permissions);
 
         setIsLoading(false);
 
@@ -265,39 +267,45 @@ export function OrgEventComponent({ _event, withinMap = false }) {
               },
             ]}
           >
-            <View style={[Style.containers.row, { paddingRight: 10 }]}>
-              <Feather
-                name="credit-card"
-                color={theme["color-basic-700"]}
-                size={16}
-              />
-              {isLoading && (
-                <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
-                  <SkeletonLoader.Container
+            {permissions?.includes("EVENT_SALES_VIEW") && (
+              <View style={[Style.containers.row, { paddingRight: 10 }]}>
+                <Feather
+                  name="credit-card"
+                  color={theme["color-basic-700"]}
+                  size={16}
+                />
+                {isLoading && (
+                  <SkeletonLoader highlightColor="#DDD" boneColor="#EEE">
+                    <SkeletonLoader.Container
+                      style={[
+                        {
+                          padding: 0,
+                          height: 15,
+                          borderRadius: 2,
+                          opacity: 0.3,
+                          marginLeft: 4,
+                          overflow: "hidden",
+                          width: 20,
+                        },
+                      ]}
+                    >
+                      <SkeletonLoader.Item style={[{ width: 20 }]} />
+                    </SkeletonLoader.Container>
+                  </SkeletonLoader>
+                )}
+                {!isLoading && (
+                  <Text
                     style={[
-                      {
-                        padding: 0,
-                        height: 15,
-                        borderRadius: 2,
-                        opacity: 0.3,
-                        marginLeft: 4,
-                        overflow: "hidden",
-                        width: 20,
-                      },
+                      Style.text.dark,
+                      Style.text.bold,
+                      { marginLeft: 4 },
                     ]}
                   >
-                    <SkeletonLoader.Item style={[{ width: 20 }]} />
-                  </SkeletonLoader.Container>
-                </SkeletonLoader>
-              )}
-              {!isLoading && (
-                <Text
-                  style={[Style.text.dark, Style.text.bold, { marginLeft: 4 }]}
-                >
-                  ${sales}
-                </Text>
-              )}
-            </View>
+                    ${sales}
+                  </Text>
+                )}
+              </View>
+            )}
             <View style={[Style.containers.row, { paddingHorizontal: 5 }]}>
               <Feather
                 name="bar-chart"

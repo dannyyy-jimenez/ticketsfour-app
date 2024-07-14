@@ -70,6 +70,7 @@ export default function EventScreen() {
   const [quotes, setQuotes] = React.useState([]);
   const params = useLocalSearchParams();
   const [event, setEvent] = React.useState(null);
+  const [lineup, setLineup] = React.useState([]);
   const [pagers, setPagers] = React.useState(new Array(2).fill(0));
   const [activePager, setActivePager] = React.useState(0);
   const [totalY, setTotalY] = React.useState(null);
@@ -275,6 +276,25 @@ export default function EventScreen() {
     setNodeQuantities(_nodeQuantities);
   };
 
+  const loadLineup = async () => {
+    try {
+      const res = await Api.get("/event/talent", {
+        auth: session,
+        eid: params?.eid,
+      });
+
+      if (res.isError) throw "e";
+
+      setLineup(res.data.artists);
+
+      let _pagers = pagers.length;
+      setPagers(new Array(_pagers + res.data.artists.length).fill(0));
+    } catch (e) {
+      console.log(e);
+      setIsLoading(false);
+    }
+  };
+
   const load = async () => {
     setIsLoading(true);
 
@@ -297,43 +317,10 @@ export default function EventScreen() {
         _pagers += 1;
       }
 
-      setPagers(new Array(_pagers + res.data.event.lineup.length).fill(0));
-      MarkAsViewed();
-      // try {
-      //   fbq.event("ViewContent", {
-      //     content_name: res.data?.event?.name,
-      //     content_ids: [res.data?.event?.id],
-      //     content_type: 'event',
-      //     value: 0.50,
-      //     currency: 'USD'
-      //   })
-      //   gtag.event("page_view", {
-      //     event_category: "events",
-      //     event_label: res.data?.event?.id,
-      //     value: 0.50,
-      //     currency: 'USD'
-      //   })
-      //   ttq.event("ViewContent", {
-      //     description: res.data?.event?.name,
-      //     content_id: res.data?.event?.id,
-      //     quantity: 1,
-      //     content_type: 'product',
-      //     value: 0.50,
-      //     currency: 'USD'
-      //   })
-      //   snaptr.event("VIEW_CONTENT", {
-      //     description: res.data?.event?.name,
-      //     item_ids: [res.data?.event?.id],
-      //     item_category: 'event',
-      //     value: 0.50,
-      //     currency: 'USD'
-      //   })
-
-      //   setMusicKitDevToken(res.data._mkt)
-      //   setMusicKitReady(true)
-      // } catch (e) {
-      // }
+      setPagers(new Array(_pagers).fill(0));
       setIsLoading(false);
+      loadLineup();
+      MarkAsViewed();
     } catch (e) {
       console.log(e);
       setIsLoading(false);
@@ -1096,7 +1083,7 @@ export default function EventScreen() {
                     />
                   </TouchableOpacity>
                 </View>
-                {event?.lineup?.map((talent, tidx) => (
+                {lineup?.map((talent, tidx) => (
                   <View key={(3 + tidx).toString()} style={{ paddingTop: 120 }}>
                     <Image
                       style={{

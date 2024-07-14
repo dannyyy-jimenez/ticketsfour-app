@@ -1,4 +1,5 @@
 import axios from "axios";
+import axiosRetry from "axios-retry";
 import qs from "qs";
 import { Platform, NativeModules } from "react-native";
 import Config from "./Config";
@@ -10,6 +11,10 @@ const deviceLanguage =
     : NativeModules.I18nManager.localeIdentifier;
 
 const isIOS = Platform.OS === "ios";
+
+axiosRetry(axios, {
+  retries: 3, // Number of retries (Defaults to 3)
+});
 
 const client = axios.create({
   withCredentials: true,

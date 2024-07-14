@@ -276,7 +276,7 @@ export default function EventScreen() {
   const [venueQuery, setVenueQuery] = React.useState("");
   const [deleteConfirmValue, setDeleteConfirmValue] = React.useState("Default");
   const [holdsTransferPhone, setHoldsTransferPhone] = React.useState("Default");
-  const [scannerSearchQuery, setScannerSearchQuery] = React.useState("Default");
+  const [scannerSearchQuery, setScannerSearchQuery] = React.useState("");
 
   const [scannerSearchResults, setScannerSearchResults] = React.useState([]);
   const [holdsTransferError, setHoldsTransferError] = React.useState("");
@@ -651,60 +651,55 @@ export default function EventScreen() {
       if (isOfflineMode) {
         let offloaded_ticket = await validateOffloadScan(eid, scannedCode);
 
-        if (!offloaded_ticket) {
-          setScannerResult("INVALID_TICKET");
+        if (offloaded_ticket) {
+          if (offloaded_ticket.attended) {
+            setScannerResult("USED_VALID_TICKET");
+            setScanStamp(
+              moment(offloaded_ticket.timeAttended).format("hh:mm A"),
+            );
+
+            setIsLoadingScan(false);
+            return;
+          }
+
           setScanStamp(null);
+          setScannerResult("VALID");
 
-          setIsLoadingScan(false);
-          return;
-        }
-
-        if (offloaded_ticket.attended) {
-          setScannerResult("USED_VALID_TICKET");
-          setScanStamp(moment(offloaded_ticket.timeAttended).format("hh:mm A"));
-
-          setIsLoadingScan(false);
-          return;
-        }
-
-        setScanStamp(null);
-        setScannerResult("VALID");
-
-        await sql.post(
-          `
-          REPLACE INTO APOCALYPSE (
-            id,
-            attended,
-            timeAttended,
-            offloaded
-          ) VALUES (
-            $id,
-            $attended,
-            $timeAttended,
-            $offloaded
+          await sql.post(
+            `
+            REPLACE INTO APOCALYPSE (
+              id,
+              attended,
+              timeAttended,
+              offloaded
+            ) VALUES (
+              $id,
+              $attended,
+              $timeAttended,
+              $offloaded
+            );
+            `,
+            {
+              $id: offloaded_ticket.id,
+              $attended: 1,
+              $timeAttended: moment().valueOf(),
+              $offloaded: 1,
+            },
           );
-          `,
-          {
-            $id: offloaded_ticket.id,
-            $attended: 1,
-            $timeAttended: moment().valueOf(),
-            $offloaded: 1,
-          },
-        );
 
-        let scanned = (
-          await sql.get(`
-          SELECT *
-            FROM APOCALYPSE
-            WHERE attended = 1
-        `)
-        ).length;
+          let scanned = (
+            await sql.get(`
+            SELECT *
+              FROM APOCALYPSE
+              WHERE attended = 1
+          `)
+          ).length;
 
-        let updatedEv = ev.updateScanned(scanned);
-        setEvent(updatedEv);
-        setIsLoadingScan(false);
-
-        return;
+          let updatedEv = ev.updateScanned(scanned);
+          setEvent(updatedEv);
+          setIsLoadingScan(false);
+          return;
+        }
       }
 
       const res = await Api.post("/organizations/events/scan", {
@@ -726,8 +721,10 @@ export default function EventScreen() {
       setEvent(updatedEv);
       setIsLoadingScan(false);
     } catch (e) {
-      console.log(e);
       if (e === "NO_EVENT") load();
+      setScannerResult("INVALID_TICKET");
+      setScanStamp(null);
+
       setIsLoadingScan(false);
     }
   };
@@ -1772,7 +1769,135 @@ export default function EventScreen() {
     (section == 3 && !canViewSales) ||
     (section == 4 && !canViewScanner)
   )
-    return <LockedView />;
+    return (
+      <>
+        <LayoutContainer>
+          <TouchableOpacity
+            style={[
+              Style.button.round,
+              Style.elevated,
+              { zIndex: 100, padding: 0, position: "absolute", left: 0 },
+            ]}
+            onPress={onClose}
+          >
+            <Feather name="x" size={20} color={theme["color-basic-700"]} />
+          </TouchableOpacity>
+          <View
+            style={[
+              Style.containers.row,
+              { alignItems: "flex-start", justifyContent: "flex-end" },
+            ]}
+          >
+            {canViewDashboard && (
+              <TouchableOpacity
+                onPress={() => setSection(0)}
+                style={[{ padding: 14 }, Style.containers.column]}
+              >
+                <Feather
+                  color={
+                    section == 0
+                      ? theme["color-organizer-500"]
+                      : theme["color-basic-700"]
+                  }
+                  name="bar-chart-2"
+                  size={26}
+                />
+                {section == 0 && (
+                  <Text style={[Style.text.organizer, Style.text.semibold]}>
+                    {i18n.t("overview")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {canViewSales && (
+              <TouchableOpacity
+                onPress={() => setSection(1)}
+                style={[{ padding: 14 }, Style.containers.column]}
+              >
+                <Ionicons
+                  color={
+                    section == 1
+                      ? theme["color-organizer-500"]
+                      : theme["color-basic-700"]
+                  }
+                  name="wallet-outline"
+                  size={26}
+                />
+                {section == 1 && (
+                  <Text style={[Style.text.organizer, Style.text.semibold]}>
+                    {i18n.t("sales")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {canViewTiers && (
+              <TouchableOpacity
+                onPress={() => setSection(25)}
+                style={[{ padding: 14 }, Style.containers.column]}
+              >
+                <MaterialCommunityIcons
+                  color={
+                    section == 25
+                      ? theme["color-organizer-500"]
+                      : theme["color-basic-700"]
+                  }
+                  name="ticket-percent-outline"
+                  size={26}
+                />
+                {section == 25 && (
+                  <Text style={[Style.text.organizer, Style.text.semibold]}>
+                    {i18n.t("ticketing")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {canViewSales && (
+              <TouchableOpacity
+                onPress={() => setSection(3)}
+                style={[{ padding: 14 }, Style.containers.column]}
+              >
+                <Feather
+                  color={
+                    section == 3
+                      ? theme["color-organizer-500"]
+                      : theme["color-basic-700"]
+                  }
+                  name="file-text"
+                  size={26}
+                />
+                {section == 3 && (
+                  <Text style={[Style.text.organizer, Style.text.semibold]}>
+                    {i18n.t("reports")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {canViewScanner && ev?.promptScanner && (
+              <TouchableOpacity
+                onPress={() => setSection(4)}
+                style={[{ padding: 14 }, Style.containers.column]}
+              >
+                <MaterialCommunityIcons
+                  color={
+                    section == 4
+                      ? theme["color-organizer-500"]
+                      : theme["color-basic-700"]
+                  }
+                  name="qrcode-scan"
+                  size={26}
+                />
+                {section == 4 && (
+                  <Text style={[Style.text.organizer, Style.text.semibold]}>
+                    {i18n.t("scanner")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          <LockedView />
+        </LayoutContainer>
+      </>
+    );
 
   return (
     <SheetProvider>
@@ -1798,83 +1923,91 @@ export default function EventScreen() {
             { alignItems: "flex-start", justifyContent: "flex-end" },
           ]}
         >
-          <TouchableOpacity
-            onPress={() => setSection(0)}
-            style={[{ padding: 14 }, Style.containers.column]}
-          >
-            <Feather
-              color={
-                section == 0
-                  ? theme["color-organizer-500"]
-                  : theme["color-basic-700"]
-              }
-              name="bar-chart-2"
-              size={26}
-            />
-            {section == 0 && (
-              <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("overview")}
-              </Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSection(1)}
-            style={[{ padding: 14 }, Style.containers.column]}
-          >
-            <Ionicons
-              color={
-                section == 1
-                  ? theme["color-organizer-500"]
-                  : theme["color-basic-700"]
-              }
-              name="wallet-outline"
-              size={26}
-            />
-            {section == 1 && (
-              <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("sales")}
-              </Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSection(25)}
-            style={[{ padding: 14 }, Style.containers.column]}
-          >
-            <MaterialCommunityIcons
-              color={
-                section == 25
-                  ? theme["color-organizer-500"]
-                  : theme["color-basic-700"]
-              }
-              name="ticket-percent-outline"
-              size={26}
-            />
-            {section == 25 && (
-              <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("ticketing")}
-              </Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSection(3)}
-            style={[{ padding: 14 }, Style.containers.column]}
-          >
-            <Feather
-              color={
-                section == 3
-                  ? theme["color-organizer-500"]
-                  : theme["color-basic-700"]
-              }
-              name="file-text"
-              size={26}
-            />
-            {section == 3 && (
-              <Text style={[Style.text.organizer, Style.text.semibold]}>
-                {i18n.t("reports")}
-              </Text>
-            )}
-          </TouchableOpacity>
-          {ev?.promptScanner && (
+          {canViewDashboard && (
+            <TouchableOpacity
+              onPress={() => setSection(0)}
+              style={[{ padding: 14 }, Style.containers.column]}
+            >
+              <Feather
+                color={
+                  section == 0
+                    ? theme["color-organizer-500"]
+                    : theme["color-basic-700"]
+                }
+                name="bar-chart-2"
+                size={26}
+              />
+              {section == 0 && (
+                <Text style={[Style.text.organizer, Style.text.semibold]}>
+                  {i18n.t("overview")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          {canViewSales && (
+            <TouchableOpacity
+              onPress={() => setSection(1)}
+              style={[{ padding: 14 }, Style.containers.column]}
+            >
+              <Ionicons
+                color={
+                  section == 1
+                    ? theme["color-organizer-500"]
+                    : theme["color-basic-700"]
+                }
+                name="wallet-outline"
+                size={26}
+              />
+              {section == 1 && (
+                <Text style={[Style.text.organizer, Style.text.semibold]}>
+                  {i18n.t("sales")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          {canViewTiers && (
+            <TouchableOpacity
+              onPress={() => setSection(25)}
+              style={[{ padding: 14 }, Style.containers.column]}
+            >
+              <MaterialCommunityIcons
+                color={
+                  section == 25
+                    ? theme["color-organizer-500"]
+                    : theme["color-basic-700"]
+                }
+                name="ticket-percent-outline"
+                size={26}
+              />
+              {section == 25 && (
+                <Text style={[Style.text.organizer, Style.text.semibold]}>
+                  {i18n.t("ticketing")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          {canViewSales && (
+            <TouchableOpacity
+              onPress={() => setSection(3)}
+              style={[{ padding: 14 }, Style.containers.column]}
+            >
+              <Feather
+                color={
+                  section == 3
+                    ? theme["color-organizer-500"]
+                    : theme["color-basic-700"]
+                }
+                name="file-text"
+                size={26}
+              />
+              {section == 3 && (
+                <Text style={[Style.text.organizer, Style.text.semibold]}>
+                  {i18n.t("reports")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          {canViewScanner && ev?.promptScanner && (
             <TouchableOpacity
               onPress={() => setSection(4)}
               style={[{ padding: 14 }, Style.containers.column]}
@@ -4212,6 +4345,26 @@ export default function EventScreen() {
                   {i18n.t("eventRepDesc")}
                 </Text>
 
+                {venueEarnings != null && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL(
+                        `${Config.apiUrl}api/organizations/events/reports/statement/download?auth=${auth}&oid=${oid}&eid=${eid}&hideBump=true`,
+                      )
+                    }
+                    style={[
+                      Style.button.container,
+                      {
+                        backgroundColor: theme["color-organizer-500"],
+                        marginTop: 20,
+                      },
+                    ]}
+                  >
+                    <Text style={[Style.button.text, Style.text.semibold]}>
+                      Statement - {i18n.t("download")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={() =>
                     Linking.openURL(
@@ -4227,7 +4380,7 @@ export default function EventScreen() {
                   ]}
                 >
                   <Text style={[Style.button.text, Style.text.semibold]}>
-                    {i18n.t("download")}
+                    Report - {i18n.t("download")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -4600,7 +4753,7 @@ export default function EventScreen() {
                                 : theme["color-primary-500"],
                             position: "absolute",
                             alignSelf: "center",
-                            bottom: 50,
+                            top: 100,
                           },
                         ]}
                       >
@@ -4618,7 +4771,7 @@ export default function EventScreen() {
                           <Text
                             style={[
                               Style.text.basic,
-                              Style.text.lg,
+                              Style.text.xxl,
                               Style.text.semibold,
                             ]}
                           >
@@ -4643,7 +4796,7 @@ export default function EventScreen() {
                         <Text
                           style={[
                             Style.text.basic,
-                            Style.text.lg,
+                            Style.text.xl,
                             Style.text.semibold,
                           ]}
                         >
@@ -4655,21 +4808,130 @@ export default function EventScreen() {
                     )}
                   </CameraView>
                 )}
+                <View style={[Style.containers.row, { marginTop: 30 }]}>
+                  <Text
+                    style={[Style.text.dark, Style.text.bold, Style.text.xl]}
+                  >
+                    {i18n.t("issueScanning")}
+                  </Text>
+                  <View style={{ flex: 1 }} />
+                  <MaterialCommunityIcons
+                    name="magnify-scan"
+                    size={22}
+                    color={theme["color-basic-700"]}
+                  />
+                </View>
                 <Text
                   style={[
                     Style.text.dark,
-                    Style.text.semibold,
-                    Style.text.xl,
-                    { marginTop: 20, marginBottom: 10, textAlign: "left" },
+                    Style.text.normal,
+                    { marginVertical: 10 },
                   ]}
                 >
-                  {i18n.t("scannerTips")}
+                  {i18n.t("issueScanningDesc")}
                 </Text>
+                <View style={[Style.input.container, { marginVertical: 10 }]}>
+                  <TextInput
+                    placeholder="ex. Lucas, Rebecca"
+                    style={[Style.input.text, { width: "100%" }]}
+                    onSubmitEditing={onSearchScan}
+                    value={scannerSearchQuery}
+                    onChangeText={(val) => setScannerSearchQuery(val)}
+                  />
+                </View>
+                {isLoadingScan && (
+                  <ActivityIndicator
+                    style={{ marginVertical: 20, alignSelf: "center" }}
+                    color={theme["color-organizer-500"]}
+                    size={22}
+                  />
+                )}
+                {!isLoadingScan &&
+                  scannerSearchResults.map((result, pidx) => {
+                    return (
+                      <View
+                        key={"scanner-result-" + pidx}
+                        style={[Style.containers.row, { paddingVertical: 15 }]}
+                      >
+                        <View
+                          style={[
+                            Style.badge,
+                            {
+                              backgroundColor: theme["color-organizer-500"],
+                              shadowColor: theme["color-organizer-500"],
+                              marginRight: 6,
+                              alignSelf: "center",
+                            },
+                          ]}
+                        >
+                          <Text style={[Style.text.basic, Style.text.bold]}>
+                            {i18n.t("Xtickets", { x: result.tickets.length })}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={[
+                            Style.containers.column,
+                            {
+                              alignItems: "flex-start",
+                              flex: 1,
+                              marginLeft: 8,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              Style.text.dark,
+                              Style.text.semibold,
+                              Style.text.lg,
+                            ]}
+                            adjustsFontSizeToFit
+                          >
+                            {result.person.first_name} {result.person.last_name}
+                          </Text>
+                          <Text
+                            style={[
+                              Style.text.dark,
+                              Style.transparency.md,
+                              Style.text.normal,
+                            ]}
+                          >
+                            Phone (***) ***-{result.person.phone} • Receipt #
+                            {result.receipt} • Card #{result.card4}
+                          </Text>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => onValidateTickets(result.tickets)}
+                          style={{ padding: 10 }}
+                        >
+                          <MaterialCommunityIcons
+                            size={22}
+                            name="skull-scan-outline"
+                            color={theme["color-danger-500"]}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                <View style={[Style.containers.row, { marginTop: 30 }]}>
+                  <Text
+                    style={[Style.text.dark, Style.text.bold, Style.text.xl]}
+                  >
+                    {i18n.t("scannerTips")}
+                  </Text>
+                  <View style={{ flex: 1 }} />
+                  <MaterialCommunityIcons
+                    name="scan-helper"
+                    size={22}
+                    color={theme["color-basic-700"]}
+                  />
+                </View>
                 <Text
                   style={[
                     Style.text.dark,
-                    Style.text.lg,
-                    Style.transparency.md,
+                    Style.text.normal,
+                    { marginVertical: 10, alignSelf: "flex-start" },
                   ]}
                 >
                   {i18n.t("scannerTipsDesc")}
@@ -4767,105 +5029,6 @@ export default function EventScreen() {
                     </Text>
                   </Text>
                 </TouchableOpacity>
-                {/* <Spacer y={1} />
-                <Text h4 align="start">
-                  Having an issue scanning?
-                </Text>
-                <Text>
-                  You can look up a ticket by owner, card last 4, phone number
-                  last 4
-                </Text>
-                <Spacer y={1} />
-                <Row w="100%">
-                  <Col span={8}>
-                    <Input
-                      {...scannerSearchQueryBindings}
-                      placeholder="Search name, last 4 of phone number, or receipt number..."
-                      width="100%"
-                      size="lg"
-                    />
-                  </Col>
-                  <Col span={4} align="center">
-                    <Button shadow onPress={onSearchScan}>
-                      Search
-                    </Button>
-                  </Col>
-                </Row>
-                <Spacer y={2} />
-                {isLoadingScan && (
-                  <Row justify="center">
-                    <Loading type="points" />
-                  </Row>
-                )}
-                {!isLoadingScan && (
-                  <Grid.Container gap={2}>
-                    <Grid>
-                      <Collapse.Group splitted>
-                        {scannerSearchResults.map((result, ridx) => (
-                          <Collapse
-                            title={
-                              <Text h4>
-                                {result.person.first_name}{" "}
-                                {result.person.last_name}
-                              </Text>
-                            }
-                            key={ridx + "_collapsable"}
-                          >
-                            <Text>
-                              Before verifying a purchase, keep in mind, all
-                              members of party must be present, as tickets will
-                              no longer show up once marked as present. Verify
-                              that the information displayed below matches the
-                              information the attendee gives you.
-                            </Text>
-                            <Spacer y={1}></Spacer>
-                            <Text>
-                              Receipt Number:{" "}
-                              <Text span weight="semibold" color="primary">
-                                {result.receipt}
-                              </Text>
-                            </Text>
-                            <Text>
-                              Last 4 Digits of Card on File:{" "}
-                              <Text span weight="semibold" color="primary">
-                                {result.card4}
-                              </Text>
-                            </Text>
-                            <Text>
-                              Phone Number:{" "}
-                              <Text span weight="semibold" color="primary">
-                                (***) ***-{result.person.phone}
-                              </Text>
-                            </Text>
-                            <Spacer y={1}></Spacer>
-                            <Text h5>Tickets</Text>
-                            {result.tickets.map((ticket) => {
-                              return (
-                                <Text css={{ px: "$4" }}>
-                                  <Badge color="primary" variant="dot" />
-                                  {ticket.node.getIdentifier()} - $
-                                  {CurrencyFormatter(ticket.total)}
-                                </Text>
-                              );
-                            })}
-                            <Spacer y={1}></Spacer>
-                            <Row justify="center">
-                              <Button
-                                onPress={() =>
-                                  onValidateTickets(result.tickets)
-                                }
-                                shadow
-                                auto
-                              >
-                                Validate
-                              </Button>
-                            </Row>
-                          </Collapse>
-                        ))}
-                      </Collapse.Group>
-                    </Grid>
-                  </Grid.Container>
-                )} */}
               </View>
             </>
           )}

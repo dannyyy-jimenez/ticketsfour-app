@@ -13,11 +13,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HoldItem } from "react-native-hold-menu";
 import { useSession } from "../../../utils/ctx";
 import { useFonts } from "expo-font";
+import { ActivityIndicator } from "react-native";
+import Api from "../../../utils/Api";
 
 export default function AppLayout() {
   const insets = useSafeAreaInsets();
   const { i18n } = useLocalization();
   const {
+    auth,
     session,
     isGuest,
     signOut,
@@ -29,6 +32,8 @@ export default function AppLayout() {
     setOrganizerMode,
     organizerMode,
   } = useSession();
+  const [permissions, setPermissions] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [fontsLoaded, fontError] = useFonts({
     "Flix-Normal": require("../../../assets/Flix-Normal.otf"),
   });
@@ -78,6 +83,21 @@ export default function AppLayout() {
     borderBottomWidth: 0,
     bottom: 0,
   };
+
+  React.useEffect(() => {
+    if (!defaultOrganization || !auth) return;
+
+    Api.get("/organizations/core", { auth: session, oid: defaultOrganization })
+      .then((res) => {
+        if (res.isError) throw "no auth";
+
+        setPermissions(res.data.permissions);
+        setIsLoading(false);
+      })
+      .catch((e) => {
+        setIsLoading(false);
+      });
+  }, [defaultOrganization, auth]);
 
   if (!session) {
     // On web, static rendering will stop here as the user is not authenticated
@@ -161,7 +181,7 @@ export default function AppLayout() {
           ),
           headerShadowVisible: false,
         }}
-        initialRouteName="quotes"
+        initialRouteName="events"
       >
         <Tabs.Screen
           name="dashboard"
@@ -184,7 +204,7 @@ export default function AppLayout() {
                 }
               />
             ),
-            href: "/dashboard",
+            href: permissions.includes("DASHBOARD_VIEW") ? "/dashboard" : null,
           }}
         />
         <Tabs.Screen
@@ -208,7 +228,7 @@ export default function AppLayout() {
                 }
               />
             ),
-            href: "/events",
+            href: permissions.includes("EVENT_VIEW") ? "/events" : null,
           }}
         />
         <Tabs.Screen
@@ -280,7 +300,7 @@ export default function AppLayout() {
                 }
               />
             ),
-            href: "/finances",
+            href: permissions.includes("FINANCES_VIEW") ? "/finances" : null,
           }}
         />
       </Tabs>
